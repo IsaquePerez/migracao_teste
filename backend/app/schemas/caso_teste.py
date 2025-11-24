@@ -15,7 +15,6 @@ class CasoTesteBase(BaseModel):
     prioridade: PrioridadeEnum = PrioridadeEnum.media 
     passos: Optional[str] = None
     projeto_id: int
-    ciclo_teste_id: int
 
 class CasoTesteCreate(CasoTesteBase):
     pass
@@ -27,7 +26,6 @@ class CasoTesteUpdate(BaseModel):
     prioridade: Optional[PrioridadeEnum] = None
     passos: Optional[str] = None
     projeto_id: Optional[int] = None
-    ciclo_teste_id: Optional[int] = None
 
 class CasoTesteResponse(CasoTesteBase):
     id: int

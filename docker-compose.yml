@@ -23,6 +23,8 @@ services:
       args:
         # Mude para 'true' se você tiver o nwrfcsdk.zip "ARQUIVO DO SAP"
         - WITH_SAP=false
+    env_file:
+      - .env
     ports:
       - "${BACKEND_PORT}:8000"
     volumes:

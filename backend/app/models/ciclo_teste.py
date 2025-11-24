@@ -1,26 +1,32 @@
-from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, ForeignKey
-from sqlalchemy.dialects.postgresql import ENUM
+import enum
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
 
-# Define o ENUM sem tentar criá-lo de novo na base de dados, pois ele já existe
-status_ciclo_enum = ENUM('planejado', 'em_execucao', 'concluido', 'pausado', 'cancelado', 'erro', name='status_ciclo_enum', create_type=False)
+class StatusCicloEnum(str, enum.Enum):
+    planejado = "planejado"
+    em_execucao = "em_execucao"
+    concluido = "concluido"
+    pausado = "pausado"
+    cancelado = "cancelado"
+    erro = "erro"
 
 class CicloTeste(Base):
     __tablename__ = "ciclos_teste"
 
     id = Column(Integer, primary_key=True, index=True)
-    casos_teste_id = Column(Integer, ForeignKey("casos_teste.id"), nullable=False)
-    nome = Column(String(255))
-    numero = Column(Integer)
+    projeto_id = Column(Integer, ForeignKey("projetos.id"), nullable=False)
+    nome = Column(String)
+    numero = Column(Integer) # Preenchido via trigger ou lógica de app
     descricao = Column(Text)
-    data_inicio = Column(TIMESTAMP(timezone=True))
-    data_fim = Column(TIMESTAMP(timezone=True))
-    status = Column(status_ciclo_enum, default='planejado')
-    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
-    updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
+    data_inicio = Column(DateTime(timezone=True))
+    data_fim = Column(DateTime(timezone=True))
+    status = Column(Enum(StatusCicloEnum, name='status_ciclo_enum', create_type=False), default=StatusCicloEnum.planejado)    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    # Relacionamento: Um ciclo de teste pertence a um projeto
-    caso_teste = relationship("CasoTeste", back_populates="ciclos_teste", foreign_keys=[casos_teste_id])
-    metricas = relationship("Metrica", back_populates="ciclo_teste", foreign_keys="[Metrica.ciclo_teste_id]")
+    # Relacionamentos
+    projeto = relationship("Projeto", back_populates="ciclos")
+    execucoes = relationship("ExecucaoTeste", back_populates="ciclo")
+    metricas = relationship("Metrica", back_populates="ciclo")

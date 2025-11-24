@@ -7,8 +7,6 @@ class NivelAcessoSimple(BaseModel):
     id: int
     nome: str
     descricao: Optional[str] = None
-    
-    # Isto é obrigatório para ler do SQLAlchemy
     model_config = ConfigDict(from_attributes=True)
 
 class UsuarioBase(BaseModel):
