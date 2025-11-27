@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 
-export function QACiclos() {
+export function AdminCiclos() {
   const [projetos, setProjetos] = useState([]);
   const [selectedProjeto, setSelectedProjeto] = useState('');
   const [ciclos, setCiclos] = useState([]);

@@ -9,6 +9,9 @@ from app.models.testing import (
     ExecucaoTeste, ExecucaoPasso, 
     StatusExecucaoEnum
 )
+# --- IMPORTANTE: Importar Usuario para os relacionamentos ---
+from app.models.usuario import Usuario
+
 from app.schemas.caso_teste import CasoTesteCreate
 from app.schemas.ciclo_teste import CicloTesteCreate
 from app.schemas.execucao_teste import ExecucaoPassoUpdate
@@ -48,7 +51,11 @@ class TesteRepository:
     async def get_caso_teste_by_id(self, caso_id: int) -> Optional[CasoTeste]:
         query = (
             select(CasoTeste)
-            .options(selectinload(CasoTeste.passos))
+            .options(
+                selectinload(CasoTeste.passos),
+                # Carrega responsável e seu nível de acesso
+                selectinload(CasoTeste.responsavel).selectinload(Usuario.nivel_acesso)
+            )
             .where(CasoTeste.id == caso_id)
         )
         result = await self.db.execute(query)
@@ -57,7 +64,11 @@ class TesteRepository:
     async def list_casos_by_projeto(self, projeto_id: int, skip: int = 0, limit: int = 100) -> Sequence[CasoTeste]:
         query = (
             select(CasoTeste)
-            .options(selectinload(CasoTeste.passos))
+            .options(
+                selectinload(CasoTeste.passos),
+                # Carrega responsável e seu nível de acesso
+                selectinload(CasoTeste.responsavel).selectinload(Usuario.nivel_acesso)
+            )
             .where(CasoTeste.projeto_id == projeto_id)
             .offset(skip)
             .limit(limit)
@@ -161,8 +172,12 @@ class TesteRepository:
         query = (
             select(ExecucaoTeste)
             .options(
+                # Carrega caso e passos
                 selectinload(ExecucaoTeste.caso_teste).selectinload(CasoTeste.passos),
-                selectinload(ExecucaoTeste.passos_executados).selectinload(ExecucaoPasso.passo_template)
+                # Carrega passos executados e templates
+                selectinload(ExecucaoTeste.passos_executados).selectinload(ExecucaoPasso.passo_template),
+                # --- CARREGAMENTO COMPLETO DO RESPONSÁVEL ---
+                selectinload(ExecucaoTeste.responsavel).selectinload(Usuario.nivel_acesso)
             )
             .where(ExecucaoTeste.id == execucao_id)
         )
@@ -179,8 +194,12 @@ class TesteRepository:
         query = (
             select(ExecucaoTeste)
             .options(
+                # Carrega caso e passos
                 selectinload(ExecucaoTeste.caso_teste).selectinload(CasoTeste.passos),
-                selectinload(ExecucaoTeste.passos_executados)
+                # Carrega passos executados e templates
+                selectinload(ExecucaoTeste.passos_executados).selectinload(ExecucaoPasso.passo_template),
+                # --- CARREGAMENTO COMPLETO DO RESPONSÁVEL ---
+                selectinload(ExecucaoTeste.responsavel).selectinload(Usuario.nivel_acesso)
             )
             .where(ExecucaoTeste.responsavel_id == usuario_id)
         )
@@ -200,12 +219,9 @@ class TesteRepository:
         result = await self.db.execute(query)
         return result.scalars().all()
 
-    # --- NOVO MÉTODO NECESSÁRIO PARA O UPLOAD (Validação de Limite) ---
     async def get_execucao_passo(self, passo_id: int) -> Optional[ExecucaoPasso]:
-        # Não precisa de carregar template aqui, pois é só para ler evidências
         return await self.db.get(ExecucaoPasso, passo_id)
 
-    # --- CORREÇÃO DO ERRO MISSING GREENLET NO UPDATE ---
     async def update_execucao_passo(self, passo_exec_id: int, data: ExecucaoPassoUpdate) -> Optional[ExecucaoPasso]:
         exec_passo = await self.db.get(ExecucaoPasso, passo_exec_id)
         
@@ -217,8 +233,6 @@ class TesteRepository:
             if update_data:
                 await self.db.commit()
                 
-                # EM VEZ DE REFRESH, FAZEMOS UMA QUERY COMPLETA COM SELECTINLOAD
-                # Isso garante que 'passo_template' venha junto para o Schema de resposta
                 query = (
                     select(ExecucaoPasso)
                     .options(selectinload(ExecucaoPasso.passo_template))

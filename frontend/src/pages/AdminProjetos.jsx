@@ -72,7 +72,7 @@ export function AdminProjetos() {
                 </select>
             </div>
             <div>
-                <label>Responsável (QA Lead)</label>
+                <label>Responsável (Lider)</label>
                 <select value={form.responsavel_id} onChange={e => setForm({...form, responsavel_id: e.target.value})}>
                     <option value="">Sem responsável</option>
                     {usuarios.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}

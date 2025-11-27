@@ -3,6 +3,7 @@ from typing import List, Optional
 from datetime import datetime
 from app.models.testing import StatusExecucaoEnum, StatusPassoEnum
 from .caso_teste import CasoTesteResponse, PassoCasoTesteResponse
+from .usuario import UsuarioResponse
 
 # --- EXECUÇÃO DE PASSOS ---
 
@@ -37,6 +38,6 @@ class ExecucaoTesteResponse(ExecucaoTesteBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     caso_teste: Optional[CasoTesteResponse] = None 
+    responsavel: Optional[UsuarioResponse] = None
     passos_executados: List[ExecucaoPassoResponse] = [] 
-    
     model_config = ConfigDict(from_attributes=True)

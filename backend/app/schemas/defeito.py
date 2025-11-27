@@ -2,6 +2,7 @@ from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional
 from app.models.testing import StatusDefeitoEnum, SeveridadeDefeitoEnum
+from .execucao_teste import ExecucaoTesteResponse
 
 class DefeitoBase(BaseModel):
     titulo: str
@@ -25,5 +26,5 @@ class DefeitoResponse(DefeitoBase):
     id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
-
+    execucao: Optional[ExecucaoTesteResponse] = None
     model_config = ConfigDict(from_attributes=True)

@@ -8,10 +8,10 @@ import './index.css';
 import { AdminSistemas } from './pages/AdminSistemas';
 import { AdminModulos } from './pages/AdminModulos';
 import { AdminProjetos } from './pages/AdminProjetos';
-import { QACasosTeste } from './pages/QACasosTeste';
-import { QACiclos } from './pages/QACiclos';
-import { QARunner } from './pages/QARunner';
+import { AdminCasosTeste } from './pages/AdminCasosTeste';
+import { AdminCiclos } from './pages/AdminCiclos';
 import { QADefeitos } from './pages/QADefeitos';
+import { QARunner } from './pages/QARunner';
 
 function TopHeader() {
   const { user, logout } = useAuth();
@@ -57,12 +57,12 @@ function Sidebar({ role }) {
              <Link to="/admin/modulos" className={isActive('/admin/modulos')}>Módulos</Link>
              <Link to="/admin/projetos" className={isActive('/admin/projetos')}>Projetos</Link>
 
-             <div className="nav-section">QA - PLANEJAMENTO</div>
-             <Link to="/qa/casos" className={isActive('/qa/casos')}>Biblioteca de Testes</Link>
-             <Link to="/qa/ciclos" className={isActive('/qa/ciclos')}>Criar Ciclos</Link>
+             <div className="nav-section">PLANEJAMENTO</div>
+             <Link to="/admin/ciclos" className={isActive('/admin/ciclos')}>Criar Ciclos</Link>
+             <Link to="/admin/casos" className={isActive('/admin/casos')}>Biblioteca de Testes</Link>
              
              {/* Admin vê Defeitos para acompanhar, mas não executa testes */}
-             <div className="nav-section">QA - MONITORAMENTO</div>
+             <div className="nav-section">MONITORAMENTO</div>
              <Link to="/qa/defeitos" className={isActive('/qa/defeitos')}>Gestão de Defeitos</Link>
            </>
          )}
@@ -116,8 +116,8 @@ function App() {
             <Route path="/admin/modulos" element={<AdminModulos />} />
             <Route path="/admin/projetos" element={<AdminProjetos />} />
             
-            <Route path="/qa/casos" element={<QACasosTeste />} />
-            <Route path="/qa/ciclos" element={<QACiclos />} />
+            <Route path="/admin/casos" element={<AdminCasosTeste />} />
+            <Route path="/admin/ciclos" element={<AdminCiclos />} />
           </Route>
 
           {/* === ROTAS EXCLUSIVAS DO TESTADOR === */}

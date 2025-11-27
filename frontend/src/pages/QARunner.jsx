@@ -103,9 +103,25 @@ export function QARunner() {
   const saveDefect = async (e) => {
       e.preventDefault();
       try {
-          await api.post("/defeitos/", { ...defeitoForm, status: 'aberto', execucao_teste_id: activeExecucao.id });
+          // 1. Encontra o passo que falhou
+          const passoFalho = activeExecucao.passos_executados.find(p => p.id === currentFailedStep);
+          
+          // 2. Se o passo tem evidências, usa elas. Se o usuário escreveu algo manual, dá preferência ao manual.
+          let evidenciasFinais = defeitoForm.evidencias;
+          if (!evidenciasFinais && passoFalho && passoFalho.evidencias) {
+              evidenciasFinais = passoFalho.evidencias; // Copia o JSON ou URL
+          }
+
+          // 3. Cria o defeito com as evidências corretas
+          await api.post("/defeitos/", { 
+              ...defeitoForm, 
+              evidencias: evidenciasFinais, // Envia para o backend
+              status: 'aberto', 
+              execucao_teste_id: activeExecucao.id 
+          });
+
           await updatePasso(currentFailedStep, 'reprovado');
-          alert("Ocorrência registrada.");
+          alert("Ocorrência registrada com as evidências do passo!");
           setShowDefectModal(false);
       } catch (error) { alert("Erro ao registrar defeito."); }
   };
@@ -282,7 +298,7 @@ export function QARunner() {
                   <form onSubmit={saveDefect}>
                       <div className="form-grid" style={{gridTemplateColumns:'1fr'}}>
                           <input required placeholder="Título do erro" value={defeitoForm.titulo} onChange={e => setDefeitoForm({...defeitoForm, titulo:e.target.value})} />
-                          <textarea required rows="3" placeholder="Descrição" value={defeitoForm.descricao} onChange={e => setDefeitoForm({...defeitoForm, descricao:e.target.value})} />
+                          <input required rows="3" placeholder="Descrição" value={defeitoForm.descricao} onChange={e => setDefeitoForm({...defeitoForm, descricao:e.target.value})} />
                       </div>
                       <div className="actions" style={{marginTop:'15px'}}>
                           <button type="submit" className="btn danger">Confirmar</button>

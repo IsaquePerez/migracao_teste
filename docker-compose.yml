@@ -31,6 +31,7 @@ services:
       - ./backend/app:/code/app
       - ./backend/alembic:/code/alembic
       - ./backend/alembic.ini:/code/alembic.ini
+      - ./backend/evidencias:/code/evidencias
     environment:
       # - DATABASE_URL=${DATABASE_URL}
       # - PYTHONPATH=/code

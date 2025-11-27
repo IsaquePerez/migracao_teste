@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../services/api';
 
-export function QACasosTeste() {
+export function AdminCasosTeste() {
   // --- ESTADOS ---
   const [projetos, setProjetos] = useState([]);
   const [ciclos, setCiclos] = useState([]);
@@ -197,7 +197,7 @@ export function QACasosTeste() {
            
            {view === 'list' ? (
              <button onClick={handleNew} className="btn primary" style={{height: '40px', padding: '0 20px'}}>
-               + Novo Teste
+               Novo Teste
              </button>
            ) : (
              <button onClick={handleReset} className="btn" style={{height: '40px'}}>Voltar à Lista</button>
@@ -243,7 +243,7 @@ export function QACasosTeste() {
 
                  <div style={{gridColumn: '1/-1'}}>
                    <label>Critérios de Aceitação / Objetivo</label>
-                   <textarea 
+                   <input
                       rows="2" 
                       value={form.criterios_aceitacao} 
                       onChange={e => setForm({...form, criterios_aceitacao: e.target.value})}
@@ -262,14 +262,14 @@ export function QACasosTeste() {
                  <div>
                    <label>Alocar ao Ciclo (Sprint)</label>
                    <select value={form.ciclo_id} onChange={e => setForm({...form, ciclo_id: e.target.value})}>
-                      <option value="">-- Apenas Salvar na Biblioteca --</option>
+                      <option value="">Apenas Salvar na Biblioteca</option>
                       {ciclos.map(c => <option key={c.id} value={c.id}>{c.nome} ({c.status})</option>)}
                    </select>
                  </div>
                  <div>
                    <label>Responsável (Testador)</label>
                    <select value={form.responsavel_id} onChange={e => setForm({...form, responsavel_id: e.target.value})}>
-                      <option value="">-- Definir depois --</option>
+                      <option value="">Definir depois</option>
                       {usuarios.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
                    </select>
                  </div>
@@ -290,7 +290,7 @@ export function QACasosTeste() {
                  {form.passos.map((passo, idx) => (
                    <div key={idx} style={{display: 'flex', gap: '15px', alignItems: 'flex-start', padding: '15px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0'}}>
                       <div style={{
-                          minWidth: '28px', height: '28px', background: '#cbd5e1', color: '#fff', 
+                          height: '28px', 
                           borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', 
                           fontSize: '0.85rem', fontWeight: 'bold', marginTop: '3px'
                       }}>
@@ -319,15 +319,11 @@ export function QACasosTeste() {
                         style={{padding: '5px 10px', height: '30px'}}
                         title="Remover passo"
                       >
-                        ✕
+                        X
                       </button>
                    </div>
                  ))}
                </div>
-               
-               <button type="button" onClick={addStep} className="btn" style={{width: '100%', marginTop: '15px', border: '1px dashed #94a3b8', color: '#64748b', background: 'white'}}>
-                 Adicionar Novo Passo
-               </button>
 
                <div className="actions" style={{marginTop: '30px', borderTop: '1px solid #f1f5f9', paddingTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
                   <button type="button" onClick={handleReset} className="btn large">Cancelar</button>
