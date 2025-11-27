@@ -9,8 +9,7 @@ from app.models.testing import (
     ExecucaoTeste, ExecucaoPasso, 
     StatusExecucaoEnum
 )
-# --- IMPORTANTE: Importar Usuario para os relacionamentos ---
-from app.models.usuario import Usuario
+from app.models.usuario import Usuario 
 
 from app.schemas.caso_teste import CasoTesteCreate
 from app.schemas.ciclo_teste import CicloTesteCreate
@@ -53,7 +52,6 @@ class TesteRepository:
             select(CasoTeste)
             .options(
                 selectinload(CasoTeste.passos),
-                # Carrega responsável e seu nível de acesso
                 selectinload(CasoTeste.responsavel).selectinload(Usuario.nivel_acesso)
             )
             .where(CasoTeste.id == caso_id)
@@ -66,7 +64,6 @@ class TesteRepository:
             select(CasoTeste)
             .options(
                 selectinload(CasoTeste.passos),
-                # Carrega responsável e seu nível de acesso
                 selectinload(CasoTeste.responsavel).selectinload(Usuario.nivel_acesso)
             )
             .where(CasoTeste.projeto_id == projeto_id)
@@ -172,11 +169,8 @@ class TesteRepository:
         query = (
             select(ExecucaoTeste)
             .options(
-                # Carrega caso e passos
                 selectinload(ExecucaoTeste.caso_teste).selectinload(CasoTeste.passos),
-                # Carrega passos executados e templates
                 selectinload(ExecucaoTeste.passos_executados).selectinload(ExecucaoPasso.passo_template),
-                # --- CARREGAMENTO COMPLETO DO RESPONSÁVEL ---
                 selectinload(ExecucaoTeste.responsavel).selectinload(Usuario.nivel_acesso)
             )
             .where(ExecucaoTeste.id == execucao_id)
@@ -194,26 +188,20 @@ class TesteRepository:
         query = (
             select(ExecucaoTeste)
             .options(
-                # Carrega caso e passos
                 selectinload(ExecucaoTeste.caso_teste).selectinload(CasoTeste.passos),
-                # Carrega passos executados e templates
                 selectinload(ExecucaoTeste.passos_executados).selectinload(ExecucaoPasso.passo_template),
-                # --- CARREGAMENTO COMPLETO DO RESPONSÁVEL ---
                 selectinload(ExecucaoTeste.responsavel).selectinload(Usuario.nivel_acesso)
             )
             .where(ExecucaoTeste.responsavel_id == usuario_id)
         )
 
+        # --- CORREÇÃO: Removemos o filtro padrão que escondia concluídos ---
         if status:
             query = query.where(ExecucaoTeste.status_geral == status)
-        else:
-            query = query.where(
-                ExecucaoTeste.status_geral.in_([
-                    StatusExecucaoEnum.pendente, 
-                    StatusExecucaoEnum.em_progresso
-                ])
-            )
-            
+        # else:
+            # ANTES: filtrava pendente/em_progresso
+            # AGORA: traz tudo, para ficar no histórico
+
         query = query.offset(skip).limit(limit).order_by(ExecucaoTeste.updated_at.desc())
             
         result = await self.db.execute(query)
