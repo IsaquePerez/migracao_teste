@@ -90,7 +90,6 @@ export function AdminCiclos() {
     e.preventDefault();
     if (!selectedProjeto) return alert("Selecione um projeto!");
 
-    // VALIDAÇÃO BÁSICA PARA EVITAR ERRO DE DADOS VAZIOS
     if (!form.data_inicio || !form.data_fim) {
         return alert("Por favor, preencha as datas de início e fim.");
     }
@@ -99,8 +98,6 @@ export function AdminCiclos() {
       const payload = { 
           ...form, 
           projeto_id: parseInt(selectedProjeto),
-          // CORREÇÃO DO ERRO DE CRIAÇÃO:
-          // Garante que só chama toISOString se a data existir
           data_inicio: new Date(form.data_inicio).toISOString(),
           data_fim: new Date(form.data_fim).toISOString()
       };
@@ -184,9 +181,6 @@ export function AdminCiclos() {
                    required
                    value={form.data_inicio} 
                    onChange={e => setForm({...form, data_inicio: e.target.value})} 
-                   // CORREÇÃO DO BLOQUEIO:
-                   // Se for NOVO, bloqueia passado. 
-                   // Se for EDIÇÃO, remove o bloqueio para permitir editar ciclos antigos sem erro.
                    min={!editingId ? getHojeISO() : undefined}
                  />
                </div>
@@ -198,8 +192,6 @@ export function AdminCiclos() {
                    required
                    value={form.data_fim} 
                    onChange={e => setForm({...form, data_fim: e.target.value})}
-                   // CORREÇÃO DO BLOQUEIO:
-                   // A data fim SEMPRE tem que ser maior ou igual a data inicio (mesmo na edição)
                    min={form.data_inicio}
                  />
                </div>
@@ -225,6 +217,17 @@ export function AdminCiclos() {
 
       {view === 'list' && (
         <section className="card">
+           {/* --- CSS INTERNO PARA O HOVER --- */}
+           <style>{`
+             tr.hover-row {
+                 transition: background-color 0.2s;
+             }
+             tr.hover-row:hover {
+                 background-color: #f1f5f9 !important; /* Cinza claro */
+                 cursor: pointer; /* Mãozinha para indicar clique */
+             }
+           `}</style>
+
            {loading ? <p>Carregando...</p> : (
              <div className="table-wrap">
                {ciclos.length === 0 ? <p className="muted">Nenhum ciclo encontrado para este projeto.</p> : (
@@ -235,12 +238,17 @@ export function AdminCiclos() {
                        <th>Nome</th>
                        <th>Período</th>
                        <th>Status</th>
-                       <th>Ações</th>
+                       <th style={{textAlign: 'right'}}>Ações</th>
                      </tr>
                    </thead>
                    <tbody>
                      {ciclos.map(c => (
-                       <tr key={c.id}>
+                       <tr 
+                          key={c.id} 
+                          className="hover-row" 
+                          onClick={() => handleEdit(c)} // CLIQUE NA LINHA ABRE EDIÇÃO
+                          title="Clique para editar"
+                       >
                          <td style={{color: '#94a3b8'}}>#{c.id}</td>
                          <td>
                            <strong>{c.nome}</strong><br/>
@@ -256,9 +264,18 @@ export function AdminCiclos() {
                                 {c.status.replace('_', ' ').toUpperCase()}
                             </span>
                          </td>
-                         <td>
-                            <button onClick={() => handleEdit(c)} className="btn" style={{fontSize: '0.8rem', marginRight: '5px', padding: '4px 8px'}}>Editar</button>
-                            <button onClick={() => handleDelete(c.id)} className="btn danger" style={{fontSize: '0.8rem', padding: '4px 8px'}}>Excluir</button>
+                         <td style={{textAlign: 'right'}}>
+                            {/* Botão de Editar removido, pois a linha inteira edita */}
+                            <button 
+                                onClick={(e) => { 
+                                    e.stopPropagation(); // IMPEDE QUE O CLIQUE ABRA A EDIÇÃO
+                                    handleDelete(c.id); 
+                                }} 
+                                className="btn danger" 
+                                style={{fontSize: '0.8rem', padding: '4px 8px'}}
+                            >
+                                Excluir
+                            </button>
                          </td>
                        </tr>
                      ))}

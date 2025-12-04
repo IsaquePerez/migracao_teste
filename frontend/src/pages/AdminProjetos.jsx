@@ -95,7 +95,8 @@ export function AdminProjetos() {
   
   const getStatusStyle = (status) => {
       switch(status) {
-          case 'ativo': return { bg: '#dcfce7', color: '#166534' }; 
+          // AQUI: Alterado para Azul
+          case 'ativo': return { bg: '#eef2ff', color: '#3730a3' }; 
           case 'pausado': return { bg: '#fef3c7', color: '#92400e' }; 
           case 'finalizado': return { bg: '#f1f5f9', color: '#64748b' }; 
           default: return { bg: '#f3f4f6', color: '#6b7280' };
@@ -114,25 +115,22 @@ export function AdminProjetos() {
 
   return (
     <main className="container grid">
-      {/* Estilo local para o Hover do Status */}
       <style>{`
         .status-hover {
           transition: all 0.2s ease-in-out;
         }
         .status-hover:hover {
-          filter: brightness(0.95); /* Escurece levemente */
-          transform: scale(1.05);   /* Aumenta um pouquinho */
+          filter: brightness(0.95);
+          transform: scale(1.05);
           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-          tr.selectable {
+        tr.selectable {
             transition: background-color 0.2s;
         }
         tr.selectable:hover {
-            background-color: #f1f5f9 !important; /* Cinza claro ao passar o mouse */
+            background-color: #f1f5f9 !important;
             cursor: pointer;
         }
-        
-        /* Linha selecionada (Azul claro fixo) */
         tr.selected {
             background-color: #e0f2fe !important; 
         }
@@ -166,7 +164,7 @@ export function AdminProjetos() {
             </div>
           </div>
           <div className="actions" style={{marginTop:'15px', display:'flex', gap:'10px'}}>
-            <button type="submit" className="btn primary">{editingId ? 'Atualizar' : 'Salvar'}</button>
+            <button type="submit" className="btn primary">{editingId ? 'Atualizar' : 'Cadastrar'}</button>
             {editingId && <button type="button" className="btn" onClick={handleCancel}>Cancelar Seleção</button>}
           </div>
         </form>
@@ -180,7 +178,7 @@ export function AdminProjetos() {
                     <tr>
                         <th>Projeto</th>
                         <th>Módulo</th>
-                        <th>Status (Clique para mudar)</th>
+                        <th>Status</th>
                         <th>Responsável</th>
                     </tr>
                 </thead>
@@ -209,7 +207,7 @@ export function AdminProjetos() {
                                             e.stopPropagation(); 
                                             cycleStatus(p); 
                                         }}
-                                        className="badge status-hover" // Adicionei a classe aqui
+                                        className="badge status-hover"
                                         style={{
                                             backgroundColor: style.bg, 
                                             color: style.color,
@@ -221,7 +219,7 @@ export function AdminProjetos() {
                                             textAlign: 'center'
                                         }}
                                     >
-                                        {p.status}
+                                        {p.status.toUpperCase()}
                                     </span>
                                 </td>
                                 

@@ -7,6 +7,12 @@ export function AdminSistemas() {
   const [form, setForm] = useState({ nome: '', descricao: '' });
   const [editingId, setEditingId] = useState(null);
 
+  // --- LIMITES DE CARACTERES ---
+  const LIMITS = {
+      nome: 50,
+      descricao: 100
+  };
+
   useEffect(() => { loadSistemas(); }, []);
 
   const loadSistemas = async () => {
@@ -54,14 +60,40 @@ export function AdminSistemas() {
         <h2 className="section-title">{editingId ? 'Editar Sistema' : 'Novo Sistema'}</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
+            
+            {/* CAMPO NOME COM LIMITE */}
             <div>
-                <label>Nome do Sistema</label>
-                <input required value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} placeholder="Ex: ERP Financeiro" />
+                <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                    <label>Nome do Sistema</label>
+                    <span style={{fontSize: '0.75rem', color: '#94a3b8'}}>
+                        {form.nome.length}/{LIMITS.nome}
+                    </span>
+                </div>
+                <input 
+                    required 
+                    maxLength={LIMITS.nome} // Limita a digitação
+                    value={form.nome} 
+                    onChange={e => setForm({...form, nome: e.target.value})} 
+                    placeholder="Ex: ERP Financeiro" 
+                />
             </div>
+
+            {/* CAMPO DESCRIÇÃO COM LIMITE */}
             <div>
-                <label>Descrição</label>
-                <input value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} placeholder="Breve descrição..." />
+                <div style={{display: 'flex', justifyContent: 'space-between'}}>
+                    <label>Descrição</label>
+                    <span style={{fontSize: '0.75rem', color: '#94a3b8'}}>
+                        {form.descricao.length}/{LIMITS.descricao}
+                    </span>
+                </div>
+                <input 
+                    maxLength={LIMITS.descricao} // Limita a digitação
+                    value={form.descricao} 
+                    onChange={e => setForm({...form, descricao: e.target.value})} 
+                    placeholder="Breve descrição..." 
+                />
             </div>
+
           </div>
           <div className="actions" style={{marginTop: '15px', display: 'flex', gap: '10px'}}>
             <button type="submit" className="btn primary">{editingId ? 'Atualizar' : 'Cadastrar'}</button>
@@ -83,8 +115,18 @@ export function AdminSistemas() {
                             className={editingId === s.id ? 'selected' : 'selectable'}
                             style={{opacity: s.ativo ? 1 : 0.6}}
                         >
-                            <td><strong>{s.nome}</strong></td>
-                            <td>{s.descricao}</td>
+                            <td title={s.nome}>
+                                <strong>
+                                    {s.nome.length > 30 
+                                        ? s.nome.substring(0, 30) + '...' 
+                                        : s.nome}
+                                </strong>
+                            </td>
+                            
+                            {/* Dica: Title mostra o texto completo se passar o mouse */}
+                            <td title={s.descricao}>
+                                {s.descricao.length > 50 ? s.descricao.substring(0, 30) + '...' : s.descricao}
+                            </td>
                             
                             <td>
                                 <span 

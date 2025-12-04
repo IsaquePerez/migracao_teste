@@ -5,12 +5,12 @@ export function AdminCasosTeste() {
   // --- ESTADOS ---
   const [projetos, setProjetos] = useState([]);
   const [ciclos, setCiclos] = useState([]);
-  const [usuarios, setUsuarios] = useState([]); // Lista completa (para histórico)
+  const [usuarios, setUsuarios] = useState([]); 
   const [casos, setCasos] = useState([]);
   
   const [selectedProjeto, setSelectedProjeto] = useState('');
   const [loading, setLoading] = useState(false);
-  const [view, setView] = useState('list'); // 'list' | 'form'
+  const [view, setView] = useState('list'); 
   const [editingId, setEditingId] = useState(null);
 
   // Estado do Formulário
@@ -31,7 +31,7 @@ export function AdminCasosTeste() {
       try {
         const [projData, userData] = await Promise.all([
           api.get("/projetos"),
-          api.get("/usuarios/") // Carrega TODOS (ativos e inativos) para a tabela funcionar
+          api.get("/usuarios/") 
         ]);
         setProjetos(projData || []);
         setUsuarios(userData || []);
@@ -169,15 +169,12 @@ export function AdminCasosTeste() {
   };
 
   // --- HELPERS VISUAIS ---
-
-  // Renderiza o responsável com estilo de Badge (Azul=Ativo, Vermelho=Inativo)
   const renderResponsavel = (id) => {
       if (!id) return <span style={{color: '#cbd5e1'}}>-</span>;
       
       const user = usuarios.find(u => u.id === id);
       if (!user) return <span style={{color: '#94a3b8'}}>Desconhecido</span>;
 
-      // Inativo
       if (!user.ativo) {
           return (
               <span className="badge" style={{backgroundColor: '#fee2e2', color: '#b91c1c'}} title="Inativo">
@@ -186,7 +183,6 @@ export function AdminCasosTeste() {
           );
       }
       
-      // Ativo
       return (
           <span className="badge" style={{backgroundColor: '#eef2ff', color: '#3730a3'}}>
               {user.nome.split(' ')[0]}
@@ -194,12 +190,23 @@ export function AdminCasosTeste() {
       );
   };
 
-  // Filtro para o dropdown: Apenas ativos podem receber novos testes
   const usuariosAtivos = usuarios.filter(u => u.ativo);
 
   // --- RENDERIZAÇÃO ---
   return (
     <main className="container">
+      
+      {/* --- CSS PARA O HOVER DA LINHA --- */}
+      <style>{`
+        tr.hover-row {
+            transition: background-color 0.2s;
+        }
+        tr.hover-row:hover {
+            background-color: #f1f5f9 !important;
+            cursor: pointer;
+        }
+      `}</style>
+
       {/* HEADER DA PÁGINA */}
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', paddingBottom: '15px', borderBottom: '1px solid #e5e7eb'}}>
         <div>
@@ -240,40 +247,39 @@ export function AdminCasosTeste() {
               </h3>
               
               <div className="form-grid">
-                 <div style={{gridColumn: '1/-1'}}>
-                   <label>Título do Cenário <span style={{color:'red'}}>*</span></label>
-                   <input 
-                      required 
-                      value={form.nome} 
-                      onChange={e => setForm({...form, nome: e.target.value})} 
-                      placeholder="Ex: Validar login com credenciais inválidas"
-                      style={{fontSize: '1.1rem', fontWeight: 500}}
-                   />
-                 </div>
-                 
-                 <div>
-                   <label>Prioridade</label>
-                   <select value={form.prioridade} onChange={e => setForm({...form, prioridade: e.target.value})}>
-                      <option value="alta"> Alta</option>
-                      <option value="media"> Média</option>
-                      <option value="baixa"> Baixa</option>
-                   </select>
-                 </div>
+                  <div style={{gridColumn: '1/-1'}}>
+                    <label>Título do Cenário <span style={{color:'red'}}>*</span></label>
+                    <input 
+                       required 
+                       value={form.nome} 
+                       onChange={e => setForm({...form, nome: e.target.value})} 
+                       placeholder="Ex: Validar login com credenciais inválidas"
+                       style={{fontSize: '1.1rem', fontWeight: 500}}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label>Prioridade</label>
+                    <select value={form.prioridade} onChange={e => setForm({...form, prioridade: e.target.value})}>
+                       <option value="alta"> Alta</option>
+                       <option value="media"> Média</option>
+                       <option value="baixa"> Baixa</option>
+                    </select>
+                  </div>
 
-                 <div>
-                   <label>Pré-condições</label>
-                   <input value={form.pre_condicoes} onChange={e => setForm({...form, pre_condicoes: e.target.value})} placeholder="Ex: Usuário na Home" />
-                 </div>
+                  <div>
+                    <label>Pré-condições</label>
+                    <input value={form.pre_condicoes} onChange={e => setForm({...form, pre_condicoes: e.target.value})} placeholder="Ex: Usuário na Home" />
+                  </div>
 
-                 <div style={{gridColumn: '1/-1'}}>
-                   <label>Critérios de Aceitação / Objetivo</label>
-                   <input
-                      rows="2" 
-                      value={form.criterios_aceitacao} 
-                      onChange={e => setForm({...form, criterios_aceitacao: e.target.value})}
-                      placeholder="O que deve acontecer para o teste passar?"
-                   />
-                 </div>
+                  <div style={{gridColumn: '1/-1'}}>
+                    <label>Critérios de Aceitação / Objetivo</label>
+                    <input
+                       value={form.criterios_aceitacao} 
+                       onChange={e => setForm({...form, criterios_aceitacao: e.target.value})}
+                       placeholder="O que deve acontecer para o teste passar?"
+                    />
+                  </div>
               </div>
             </section>
 
@@ -283,24 +289,23 @@ export function AdminCasosTeste() {
                 Planejamento & Alocação
               </h3>
               <div className="form-grid">
-                 <div>
-                   <label>Alocar ao Ciclo (Sprint)</label>
-                   <select value={form.ciclo_id} onChange={e => setForm({...form, ciclo_id: e.target.value})}>
-                      <option value="">Apenas Salvar na Biblioteca</option>
-                      {ciclos.map(c => <option key={c.id} value={c.id}>{c.nome} ({c.status})</option>)}
-                   </select>
-                 </div>
-                 <div>
-                   <label>Responsável (Testador)</label>
-                   <select value={form.responsavel_id} onChange={e => setForm({...form, responsavel_id: e.target.value})}>
-                      <option value="">Definir depois</option>
-                      {/* AQUI: Usamos usuariosAtivos para não selecionar quem saiu */}
-                      {usuariosAtivos.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
-                   </select>
-                 </div>
+                  <div>
+                    <label>Alocar ao Ciclo (Sprint)</label>
+                    <select value={form.ciclo_id} onChange={e => setForm({...form, ciclo_id: e.target.value})}>
+                       <option value="">Apenas Salvar na Biblioteca</option>
+                       {ciclos.map(c => <option key={c.id} value={c.id}>{c.nome} ({c.status})</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label>Responsável (Testador)</label>
+                    <select value={form.responsavel_id} onChange={e => setForm({...form, responsavel_id: e.target.value})}>
+                       <option value="">Definir depois</option>
+                       {usuariosAtivos.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+                    </select>
+                  </div>
               </div>
               <p style={{fontSize: '0.85rem', color: '#64748b', marginTop: '10px', fontStyle: 'italic'}}>
-                 * Ao selecionar ambos, o teste será enviado automaticamente para a fila de execução do responsável.
+                  * Ao selecionar ambos, o teste será enviado automaticamente para a fila de execução do responsável.
               </p>
             </section>
 
@@ -386,7 +391,12 @@ export function AdminCasosTeste() {
                    </thead>
                    <tbody>
                      {casos.map(c => (
-                       <tr key={c.id}>
+                       <tr 
+                          key={c.id} 
+                          className="hover-row" // CLASSE DO HOVER
+                          onClick={() => handleEdit(c)} // CLIQUE NA LINHA EDITA
+                          title="Clique para editar"
+                       >
                          <td style={{color: '#64748b'}}>#{c.id}</td>
                          <td>
                            <div style={{fontWeight: 600, color: '#334155'}}>{c.nome}</div>
@@ -408,9 +418,19 @@ export function AdminCasosTeste() {
                          </td>
                          
                          <td>{c.passos?.length || 0}</td>
+                         
                          <td style={{textAlign: 'right'}}>
-                            <button onClick={() => handleEdit(c)} className="btn" style={{marginRight: '8px', padding: '6px 12px'}}>Editar</button>
-                            <button onClick={() => handleDelete(c.id)} className="btn danger" style={{padding: '6px 12px'}}>Excluir</button>
+                            {/* Botão de editar removido, pois a linha inteira edita */}
+                            <button 
+                                onClick={(e) => { 
+                                    e.stopPropagation(); // IMPEDE QUE ABRA A EDIÇÃO AO EXCLUIR
+                                    handleDelete(c.id); 
+                                }} 
+                                className="btn danger" 
+                                style={{padding: '6px 12px'}}
+                            >
+                                Excluir
+                            </button>
                          </td>
                        </tr>
                      ))}

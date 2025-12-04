@@ -140,7 +140,7 @@ export function AdminUsers() {
       {/* --- CARD DO FORMULÁRIO --- */}
       <section className="card">
         <h2 className="section-title">
-          {selectedUser ? 'Editar Utilizador' : 'Cadastrar Novo Testador'}
+          {selectedUser ? 'Editar Utilizador' : 'Novo User'}
         </h2>
 
         <form onSubmit={handleSubmit}>
@@ -199,7 +199,7 @@ export function AdminUsers() {
           {/* Botões de Ação */}
           <div className="actions" style={{justifyContent: 'flex-start', gap: '10px', display: 'flex', marginTop: '20px'}}>
             <button type="submit" className="btn primary">
-              {selectedUser ? 'Atualizar Dados' : 'Salvar Novo'}
+              {selectedUser ? 'Atualizar Dados' : 'Salvar'}
             </button>
             
             {selectedUser && (
