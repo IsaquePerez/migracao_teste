@@ -80,7 +80,7 @@ export function AdminModulos() {
             </div>
           </div>
           <div className="actions" style={{marginTop: '15px'}}>
-            <button type="submit" className="btn primary">{editingId ? 'Atualizar' : 'Cadastrar'}</button>
+            <button type="submit" className="btn primary">{editingId ? 'Atualizar' : 'Salvar'}</button>
             {editingId && <button type="button" onClick={handleCancel} className="btn" style={{marginLeft:'10px'}}>Cancelar Seleção</button>}
           </div>
         </form>

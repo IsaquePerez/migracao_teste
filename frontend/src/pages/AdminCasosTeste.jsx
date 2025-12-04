@@ -36,8 +36,10 @@ export function AdminCasosTeste() {
         setProjetos(projData || []);
         setUsuarios(userData || []);
         
-        if (projData && projData.length > 0) {
-          setSelectedProjeto(projData[0].id);
+        // --- ALTERAÇÃO 1: Seleciona o primeiro ATIVO por padrão ---
+        const ativos = (projData || []).filter(p => p.status === 'ativo');
+        if (ativos.length > 0) {
+          setSelectedProjeto(ativos[0].id);
         }
       } catch (e) {
         console.error("Erro ao carregar básicos:", e);
@@ -222,7 +224,11 @@ export function AdminCasosTeste() {
                 onChange={e => setSelectedProjeto(e.target.value)}
                 style={{padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', minWidth: '200px', fontWeight: 500}}
              >
-                {projetos.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                {/* --- ALTERAÇÃO 2: FILTRO (MOSTRA APENAS ATIVOS) --- */}
+                {projetos
+                    .filter(p => p.status === 'ativo')
+                    .map(p => <option key={p.id} value={p.id}>{p.nome}</option>)
+                }
              </select>
            </div>
            
@@ -420,7 +426,6 @@ export function AdminCasosTeste() {
                          <td>{c.passos?.length || 0}</td>
                          
                          <td style={{textAlign: 'right'}}>
-                            {/* Botão de editar removido, pois a linha inteira edita */}
                             <button 
                                 onClick={(e) => { 
                                     e.stopPropagation(); // IMPEDE QUE ABRA A EDIÇÃO AO EXCLUIR

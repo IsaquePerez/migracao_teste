@@ -32,10 +32,12 @@ export function AdminProjetos() {
         });
 
         setProjetos(sortedProjetos);
-        setModulos(modData.filter(m => m.ativo !== false));
+        setModulos(modData); 
         setUsuarios(userData);
         
-        if (modData.length > 0) setForm(f => ({ ...f, modulo_id: modData[0].id }));
+        const primeiroAtivo = modData.find(m => m.ativo !== false);
+        if (primeiroAtivo) setForm(f => ({ ...f, modulo_id: primeiroAtivo.id }));
+        
     } catch (e) { console.error(e); }
   };
 
@@ -91,11 +93,40 @@ export function AdminProjetos() {
       } catch(e) { alert("Erro ao mudar status."); }
   };
 
-  const getModuloName = (id) => modulos.find(m => m.id === id)?.nome || '-';
+  // --- BADGE DO MÓDULO (ESTILO IDÊNTICO AO USUÁRIO) ---
+  const renderModuloBadge = (id) => {
+      const mod = modulos.find(m => m.id === id);
+      if (!mod) return <span style={{color: '#cbd5e1'}}>-</span>;
+
+      // Inativo: Vermelho com borda sutil
+      if (mod.ativo === false) {
+          return (
+              <span className="badge" style={{
+                  backgroundColor: '#fee2e2', 
+                  color: '#b91c1c',
+                  border: '1px solid rgba(185, 28, 28, 0.2)', // Borda sutil vermelha
+                  fontSize: '0.75rem'
+              }}>
+                  {mod.nome} (Inativo)
+              </span>
+          );
+      }
+      
+      // Ativo: Azul com borda sutil
+      return (
+          <span className="badge" style={{
+              backgroundColor: '#eef2ff', 
+              color: '#3730a3',
+              border: '1px solid rgba(55, 48, 163, 0.2)', // Borda sutil azul
+              fontSize: '0.75rem'
+          }}>
+              {mod.nome}
+          </span>
+      );
+  };
   
   const getStatusStyle = (status) => {
       switch(status) {
-          // AQUI: Alterado para Azul
           case 'ativo': return { bg: '#eef2ff', color: '#3730a3' }; 
           case 'pausado': return { bg: '#fef3c7', color: '#92400e' }; 
           case 'finalizado': return { bg: '#f1f5f9', color: '#64748b' }; 
@@ -103,12 +134,34 @@ export function AdminProjetos() {
       }
   };
 
+  // --- BADGE DO USUÁRIO ---
   const renderResponsavel = (id) => {
       if (!id) return <span style={{color: '#cbd5e1'}}>-</span>;
       const user = usuarios.find(u => u.id === id);
       if (!user) return <span style={{color: '#94a3b8'}}>Desconhecido</span>;
-      if (user.ativo === false) return <span className="badge" style={{backgroundColor: '#fee2e2', color: '#b91c1c'}}>{user.nome} (Inativo)</span>;
-      return <span className="badge" style={{backgroundColor: '#eef2ff', color: '#3730a3'}}>{user.nome}</span>;
+      
+      if (user.ativo === false) {
+          return (
+            <span className="badge" style={{
+                backgroundColor: '#fee2e2', 
+                color: '#b91c1c', 
+                border: '1px solid rgba(185, 28, 28, 0.2)', // Borda sutil vermelha
+                fontSize: '0.75rem'
+            }}>
+                {user.nome} (Inativo)
+            </span>
+          );
+      }
+      return (
+        <span className="badge" style={{
+            backgroundColor: '#eef2ff', 
+            color: '#3730a3', 
+            border: '1px solid rgba(55, 48, 163, 0.2)', // Borda sutil azul
+            fontSize: '0.75rem'
+        }}>
+            {user.nome}
+        </span>
+      );
   };
 
   const usuariosAtivos = usuarios.filter(u => u.ativo !== false);
@@ -144,7 +197,15 @@ export function AdminProjetos() {
                 <label>Módulo Pai</label>
                 <select value={form.modulo_id} onChange={e => setForm({...form, modulo_id: e.target.value})} required>
                     <option value="">Selecione...</option>
-                    {modulos.map(m => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                    {modulos.map(m => (
+                        <option 
+                            key={m.id} 
+                            value={m.id}
+                            style={{color: m.ativo === false ? '#991b1b' : 'inherit'}}
+                        >
+                            {m.nome} {m.ativo === false ? '(Inativo)' : ''}
+                        </option>
+                    ))}
                 </select>
             </div>
             <div>
@@ -199,7 +260,9 @@ export function AdminProjetos() {
                                 }}
                             >
                                 <td><strong>{p.nome}</strong></td>
-                                <td>{getModuloName(p.modulo_id)}</td>
+                                
+                                {/* AQUI ESTÁ O BADGE DE MÓDULO */}
+                                <td>{renderModuloBadge(p.modulo_id)}</td>
                                 
                                 <td>
                                     <span 

@@ -96,7 +96,7 @@ export function AdminSistemas() {
 
           </div>
           <div className="actions" style={{marginTop: '15px', display: 'flex', gap: '10px'}}>
-            <button type="submit" className="btn primary">{editingId ? 'Atualizar' : 'Cadastrar'}</button>
+            <button type="submit" className="btn primary">{editingId ? 'Atualizar' : 'Salvar'}</button>
             {editingId && <button type="button" onClick={handleCancel} className="btn">Cancelar Seleção</button>}
           </div>
         </form>
