@@ -75,8 +75,7 @@ class TesteRepository:
         return result.scalars().all()
     
     async def update_caso_teste(self, caso_id: int, dados: dict) -> Optional[CasoTeste]:
-        if 'passos' in dados:
-            del dados['passos'] 
+        passos_data = dados.pop('passos', None)
 
         query = (
             sqlalchemy_update(CasoTeste)
@@ -88,6 +87,31 @@ class TesteRepository:
         await self.db.commit()
         
         updated_id = result.scalars().first()
+        
+        # 3. Processa os passos (Adicionar ou Editar)
+        if updated_id and passos_data is not None:
+            for passo in passos_data:
+                if 'id' in passo and passo['id']:
+                    await self.db.execute(
+                        sqlalchemy_update(PassoCasoTeste)
+                        .where(PassoCasoTeste.id == passo['id'])
+                        .values(
+                            acao=passo['acao'], 
+                            resultado_esperado=passo['resultado_esperado'],
+                            ordem=passo['ordem']
+                        )
+                    )
+                else:
+                    novo_passo = PassoCasoTeste(
+                        caso_teste_id=caso_id,
+                        acao=passo['acao'],
+                        resultado_esperado=passo['resultado_esperado'],
+                        ordem=passo['ordem']
+                    )
+                    self.db.add(novo_passo)
+            
+            await self.db.commit()
+
         if updated_id:
              return await self.get_caso_teste_by_id(updated_id)
         return None
@@ -195,12 +219,8 @@ class TesteRepository:
             .where(ExecucaoTeste.responsavel_id == usuario_id)
         )
 
-        # --- CORREÇÃO: Removemos o filtro padrão que escondia concluídos ---
         if status:
             query = query.where(ExecucaoTeste.status_geral == status)
-        # else:
-            # ANTES: filtrava pendente/em_progresso
-            # AGORA: traz tudo, para ficar no histórico
 
         query = query.offset(skip).limit(limit).order_by(ExecucaoTeste.updated_at.desc())
             

@@ -12,6 +12,7 @@ import { AdminCasosTeste } from './pages/AdminCasosTeste';
 import { AdminCiclos } from './pages/AdminCiclos';
 import { QADefeitos } from './pages/QADefeitos';
 import { QARunner } from './pages/QARunner';
+import { Dashboard } from './pages/Dashboard'; 
 
 function TopHeader() {
   const { user, logout } = useAuth();
@@ -20,7 +21,10 @@ function TopHeader() {
   return (
     <header className="top-header">
       <nav className="top-actions" style={{ display: 'flex', alignItems: 'center', gap: '15px', width: '100%' }}>
-        <div style={{ marginRight: 'auto' }}></div>
+        <div style={{ marginRight: 'auto' }}></div> 
+
+        <span style={{ fontWeight: 500 }}>{user?.username}</span>
+        
         <span className="badge" style={{backgroundColor: '#eef2ff', color: '#3730a3'}}>
             {user?.nome}
         </span>
@@ -30,7 +34,6 @@ function TopHeader() {
   );
 }
 
-// --- SIDEBAR INTELIGENTE ---
 function Sidebar({ role }) {
   const location = useLocation();
   const isActive = (path) => location.pathname === path ? 'active' : '';
@@ -45,7 +48,7 @@ function Sidebar({ role }) {
          <div className="brand">Veritus</div>
        </div>
        <nav>
-         {/* === VISÃO DO ADMIN (PLANEJAMENTO) === */}
+         {/* === VISÃO DO ADMIN === */}
          {role === 'admin' && (
            <>
              <div className="nav-section">ADMINISTRAÇÃO</div>
@@ -61,13 +64,12 @@ function Sidebar({ role }) {
              <Link to="/admin/ciclos" className={isActive('/admin/ciclos')}>Ciclos</Link>
              <Link to="/admin/casos" className={isActive('/admin/casos')}>Casos de Testes</Link>
              
-             {/* Admin vê Defeitos para acompanhar, mas não executa testes */}
              <div className="nav-section">MONITORAMENTO</div>
              <Link to="/qa/defeitos" className={isActive('/qa/defeitos')}>Gestão de Defeitos</Link>
            </>
          )}
          
-         {/* === VISÃO DO TESTADOR (EXECUÇÃO) === */}
+         {/* === VISÃO DO TESTADOR === */}
          {role === 'user' && (
            <>
               <div className="nav-section">MINHA ÁREA</div>
@@ -108,24 +110,25 @@ function App() {
         <Routes>
           <Route path="/" element={<Login />} />
           
-          {/* === ROTAS EXCLUSIVAS DO ADMIN === */}
+          {/* === ROTAS ADMIN === */}
           <Route element={<ProtectedLayout roles={['admin']} />}>
-            <Route path="/admin" element={<div className="container"><h2 className="section-title">Hub Gerencial</h2><p>Selecione um módulo para gerenciar.</p></div>} />
+            {/* 2. Substituir o placeholder pela Dashboard real */}
+            <Route path="/admin" element={<Dashboard />} />
+            
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/sistemas" element={<AdminSistemas />} />
             <Route path="/admin/modulos" element={<AdminModulos />} />
             <Route path="/admin/projetos" element={<AdminProjetos />} />
-            
             <Route path="/admin/casos" element={<AdminCasosTeste />} />
             <Route path="/admin/ciclos" element={<AdminCiclos />} />
           </Route>
 
-          {/* === ROTAS EXCLUSIVAS DO TESTADOR === */}
+          {/* === ROTAS TESTADOR === */}
           <Route element={<ProtectedLayout roles={['user']} />}>
             <Route path="/qa/runner" element={<QARunner />} />
           </Route>
 
-          {/* === ROTAS COMUNS (Visíveis para ambos, mas com contextos diferentes) === */}
+          {/* === ROTAS COMUNS === */}
           <Route element={<ProtectedLayout roles={['user', 'admin']} />}>
             <Route path="/qa/defeitos" element={<QADefeitos />} />
           </Route>
