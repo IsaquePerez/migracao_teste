@@ -26,10 +26,26 @@ body {
 
 /* === Ajuste para React: Wrapper da página de Login === */
 .page-login-wrapper {
-    display: block;
-    background-color: var(--gray-bg);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: radial-gradient(circle, #0e529b, #0D1B2A);
     min-height: 100vh;
+    position: relative;
 }
+
+.page-login-wrapper::after {
+  content: ""; 
+  position: absolute; 
+  
+  top: 0;
+  bottom: 0;
+  
+  left: calc(50% - 1px);
+  
+  width: 2px;
+  background-color: #ffffff;
+}
+
 .page-login-wrapper .topbar {
     background-color: var(--dark-blue);
     color: var(--white);
@@ -37,8 +53,8 @@ body {
 }
 .page-login-wrapper .brand-logo {
     filter: brightness(0) invert(1);
-    width: 32px;
-    height: 32px;
+    width: 130px;
+    height: auto;
 }
 .page-login-wrapper .brand {
     font-weight: 400;
@@ -112,14 +128,70 @@ body {
 
 /* Utilitários e Componentes */
 .container { padding: 30px; }
-.container.narrow { max-width: 600px; margin: 50px auto; }
+.container.narrow { 
+    margin: 0;
+    position: absolute;
+    left: initial;
+    transform: initial;
+    top: 100px;
+    max-width: initial;
+    width: 90%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    grid-column: 1/2;
+
+}
 .container.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+
+.image-half {
+    background: linear-gradient(45deg, #071019, #112047);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    grid-column: 2/3;
+}
+.right-half-image {
+    max-width: 100%;
+    height: auto;
+    animation: imagePop 10s infinite ease-in-out;
+}
+
+@keyframes imagePop {
+    0%, 100% {
+        transform: scale(1);
+    }
+    
+    50% {
+        transform: scale(1.2);
+    }
+}
 
 .card {
     background-color: var(--card-bg);
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.login-card {
+    background-color: #0D1A23;
+    padding: 20px;
+    margin-top: 50px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    height: 300px;
+    width: 500px;
+}
+
+.logo-card {
+    background-color: #0D1A23;
+    padding: 20px;
+    margin-top: 50px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    height: 300px;
 }
 
 .info-block {
@@ -145,6 +217,24 @@ body {
 .form-grid input, .form-grid select, .form-grid textarea {
     width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box;
 }
+
+.login-form-grid {
+    display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px;
+}
+.login-form-grid label {
+    display: block; font-size: .9rem; font-weight: 500; margin-bottom: 5px; color: #ffffff;
+}
+.login-form-grid input, .login-form-grid select, .login-form-grid textarea {
+    display: block; width: 70%; padding: 10px; border: 1px solid #0F2B4B; border-radius: 4px; box-sizing: border-box; background-color: #149DCD;
+    color: #0D1A23; margin-bottom: 15px; margin-left: auto; margin-right: auto;
+}
+
+.login-form-grid input::placeholder,
+.login-form-grid textarea::placeholder {
+    color: #0D1A23;
+    opacity: 1;
+}
+
 .btn {
     padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;
     transition: background-color 0.2s; font-size: .9rem;
@@ -153,10 +243,26 @@ body {
 .btn.primary:hover { background-color: #1e3a8a; }
 .btn.danger { background-color: #1E3A8A; color: var(--white); }
 
+.login-btn {
+    display: block; width: 70%; padding: 8px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;
+    transition: background-color 0.5s; font-size: .9rem; margin-top: 15px; margin-left: auto; margin-right: auto;
+}
+.login-btn.primary { background-color: #1E4497; color: var(--white); }
+.login-btn.primary:hover { background-color: #3E2874; }
+.login-btn.danger { background-color: #1E3A8A; color: var(--white); }
+
+
+.login-section-title {
+    font-size: 1.4rem; font-weight: 600; margin-top: 10px; margin-bottom: 50px;
+    padding-bottom: 30px; border-bottom: 1px solid #f3f4f6;
+    color: #A8DADC; text-align: center;
+}
+
 .section-title {
     font-size: 1.4rem; font-weight: 600; margin-top: 0; margin-bottom: 20px;
     padding-bottom: 10px; border-bottom: 1px solid #f3f4f6;
 }
+
 .muted { color: #6b7280; }
 
 /* Tabelas */

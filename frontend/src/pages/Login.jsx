@@ -49,26 +49,10 @@ export function Login() {
 
   return (
     <div className="page-login-wrapper">
-      <header className="topbar">
-        <div className="brand-wrap" style={{borderBottom: 'none', marginBottom: 0, padding: 0}}>
-          {/* Certifique-se que a imagem está na pasta 'public' */}
-          <img src="/logoge.png" alt="GE" className="brand-logo" />
-          <div className="brand">Test Manager ERP</div>
-        </div>
-      </header>
 
       <main className="container narrow">
-        <section className="card">
-          <h1 className="section-title">Acessar</h1>
-          <p className="muted">Use as credenciais de demonstração para entrar.</p>
-
-          {/* Bloco Informativo */}
-          <div className="info-block">
-            <div><strong>Admin:</strong> <code>admin@example.com</code> / <code>adm123</code></div>
-            <div style={{marginTop: '5px'}}><strong>Testadores (Ex):</strong> 
-              <code>igor@example.com</code> / <code>adm123</code>
-            </div>
-          </div>
+        <section className="login-card">
+          <h1 className="login-section-title">Login</h1>
 
           {error && (
             <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '10px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.9rem' }}>
@@ -76,38 +60,41 @@ export function Login() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="form-grid">
+          <form onSubmit={handleSubmit} className="login-form-grid">
             <div>
-              <label htmlFor="username">Usuário (Email)</label>
               <input 
                 type="text" 
                 id="username"
                 required 
                 value={username} 
                 onChange={e => setUsername(e.target.value)}
-                placeholder="ex.: admin@example.com" 
+                placeholder="Usuário" 
               />
             </div>
             <div>
-              <label htmlFor="password">Senha</label>
               <input 
                 type="password" 
                 id="password"
                 required 
                 value={password} 
                 onChange={e => setPassword(e.target.value)}
-                placeholder="ex.: adm123" 
+                placeholder="Senha" 
               />
             </div>
             
             <div className="actions" style={{ gridColumn: '1/-1' }}>
-              <button type="submit" className="btn primary" disabled={loading} style={{width: '100%'}}>
+              <button type="submit" className="login-btn primary" disabled={loading}>
                 {loading ? 'A entrar...' : 'Entrar'}
               </button>
             </div>
           </form>
         </section>
       </main>
+
+      <div className="image-half">
+        <img src="../Veritus_nobg-2.png" alt="Veritus" className="right-half-image" />
+      </div>
+
     </div>
   );
 }
