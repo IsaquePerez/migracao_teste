@@ -18,13 +18,8 @@ app = FastAPI(
 # comunique com o backend.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://testedocker-production-4e85.up.railway.app",
-        "https://teste-docker.vercel.app",
-        "https://*.vercel.app"
-    ],
+    # MUDANÇA AQUI: ["*"] libera para qualquer site (Vercel, Localhost, etc)
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -33,6 +28,7 @@ app.add_middleware(
 # Inclui o roteador principal da v1, prefixando todas as suas rotas com /api/v1
 app.mount("/evidencias", StaticFiles(directory="evidencias"), name="evidencias")
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
 # Adiciona os endpoints básicos que você já tinha
 @app.get("/", summary="Endpoint raiz da API")
 def read_root():
