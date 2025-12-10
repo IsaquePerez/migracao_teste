@@ -150,38 +150,61 @@ export function AdminSistemas() {
         </form>
       </section>
 
-      {/* Tabela */}
       <section className="card">
         <h2 className="section-title">Sistemas</h2>
         <div className="table-wrap">
             {loading ? <p>Carregando...</p> : (
                 <table>
-                    <thead><tr><th>Nome</th><th>Status</th><th style={{textAlign: 'right'}}>Ações</th></tr></thead>
+                    <thead>
+                        <tr>
+                            {/* Coluna Nome (Alinhada à Esquerda - Padrão) */}
+                            <th style={{textAlign: 'left'}}>Nome</th>
+                            
+                            {/* Coluna Status (Alinhada à Direita para bater com o badge) */}
+                            <th style={{textAlign: 'right'}}>Status</th>
+                            
+                            {/* Coluna Ações (Alinhada à Direita) */}
+                            <th style={{textAlign: 'right'}}>Ações</th>
+                        </tr>
+                    </thead>
                     <tbody>
                         {sistemas.map(s => (
-                            <tr key={s.id} onClick={() => handleSelectRow(s)} className={editingId === s.id ? 'selected' : 'selectable'} style={{opacity: s.ativo ? 1 : 0.6}}>
-                                <td>
-                                  <strong title={s.nome }>
-                                      {truncate(s.nome )} 
-                                  </strong>
-                                  <div className="muted" style={{fontSize: '0.8rem'}} title={s.descricao }>
-                                      {truncate(s.descricao, 40)}
-                                  </div>
-                              </td>
-                                <td style={{textAlign: 'right', whiteSpace: 'nowrap'}}>
-                                    <span onClick={(e) => { e.stopPropagation(); toggleActive(s); }} className={`badge ${s.ativo ? 'on' : 'off'}`} style={{marginRight:'10px', cursor:'pointer'}}>
+                            <tr 
+                                key={s.id} 
+                                onClick={() => handleSelectRow(s)} 
+                                className={editingId === s.id ? 'selected' : 'selectable'} 
+                                style={{opacity: s.ativo ? 1 : 0.6}}
+                            >
+                                {/* Célula do Nome: Adicionado verticalAlign middle */}
+                                <td style={{verticalAlign: 'middle'}}>
+                                    <strong title={s.nome}>
+                                        {truncate(s.nome)} 
+                                    </strong>
+                                    <div className="muted" style={{fontSize: '0.8rem'}} title={s.descricao}>
+                                        {truncate(s.descricao, 40)}
+                                    </div>
+                                </td>
+
+                                {/* Célula do Status: Adicionado verticalAlign middle e Mantido right */}
+                                <td style={{textAlign: 'right', whiteSpace: 'nowrap', verticalAlign: 'middle'}}>
+                                    <span 
+                                        onClick={(e) => { e.stopPropagation(); toggleActive(s); }} 
+                                        className={`badge ${s.ativo ? 'on' : 'off'}`} 
+                                        style={{marginRight:'10px', cursor:'pointer'}}
+                                    >
                                         {s.ativo ? 'Ativo' : 'Inativo'}
                                     </span>
-                                    
-                                    
                                 </td>
-                                <td>
+
+                                {/* Célula de Ações: Adicionado align right e verticalAlign middle */}
+                                <td style={{textAlign: 'right', verticalAlign: 'middle'}}>
                                     <button 
                                         onClick={(e) => { 
                                             e.stopPropagation(); 
                                             requestDelete(s); 
                                         }}
                                         className="btn danger small"
+                                        title="Excluir"
                                     >
                                         🗑️
                                     </button>
