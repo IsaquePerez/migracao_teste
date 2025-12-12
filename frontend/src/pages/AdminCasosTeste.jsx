@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom'; // Importante para o Portal da Navbar
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import { ConfirmationModal } from '../components/ConfirmationModal';
@@ -7,6 +8,7 @@ import { ConfirmationModal } from '../components/ConfirmationModal';
    COMPONENTE: ADMIN CASOS DE TESTE
    ========================================================================== */
 export function AdminCasosTeste() {
+  // --- ESTADOS ---
   const [projetos, setProjetos] = useState([]);
   const [ciclos, setCiclos] = useState([]);
   const [usuarios, setUsuarios] = useState([]); 
@@ -31,7 +33,26 @@ export function AdminCasosTeste() {
     passos: [{ ordem: 1, acao: '', resultado_esperado: '' }]
   });
 
-  // Carregamento Inicial
+  // --- BUSCA E FILTROS ---
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredCasos = casos.filter(c => 
+      c.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      c.prioridade.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // --- AUXILIARES ---
+  const truncate = (str, n = 30) => {
+    if (!str) return '';
+    return str.length > n ? str.substr(0, n - 1) + '...' : str;
+  };
+
+  const inputStyle = {
+    width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '4px',
+    fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box'
+  };
+
+  // --- CARREGAMENTO INICIAL ---
   useEffect(() => {
     const loadBasics = async () => {
       try {
@@ -73,7 +94,11 @@ export function AdminCasosTeste() {
     }
   };
 
-  // Handlers
+  const currentProject = projetos.find(p => p.id == selectedProjeto);
+  // Se o projeto não for encontrado ou não estiver ativo, bloqueia criação
+  const isProjectActive = currentProject?.status === 'ativo';
+
+  // --- HANDLERS ---
   const handleReset = () => {
     setForm({
       nome: '', descricao: '', pre_condicoes: '', criterios_aceitacao: '',
@@ -85,7 +110,9 @@ export function AdminCasosTeste() {
   };
 
   const handleNew = () => {
-    if (!selectedProjeto) return toast.warning("Selecione um projeto antes de criar um caso.");
+    if (!isProjectActive) {
+        return toast.warning(`Projeto ${currentProject?.status?.toUpperCase() || 'Inativo'}. Criação bloqueada.`);
+    }
     handleReset();
     setView('form');
   };
@@ -98,7 +125,7 @@ export function AdminCasosTeste() {
       criterios_aceitacao: caso.criterios_aceitacao || '',
       prioridade: caso.prioridade,
       responsavel_id: caso.responsavel_id || '',
-      ciclo_id: '',
+      ciclo_id: '', // Ciclo é opcional na edição do caso base
       passos: caso.passos && caso.passos.length > 0 
               ? caso.passos.map(p => ({...p})) 
               : [{ ordem: 1, acao: '', resultado_esperado: '' }]
@@ -106,6 +133,8 @@ export function AdminCasosTeste() {
     setEditingId(caso.id);
     setView('form');
   };
+
+  const handleCancel = () => { setView('list'); setEditingId(null); };
 
   const addStep = () => {
     setForm(prev => ({
@@ -128,17 +157,11 @@ export function AdminCasosTeste() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!selectedProjeto) return toast.error("Erro: Projeto não selecionado.");
-    
-    if (!form.nome || !form.nome.trim()) {
-        return toast.warning("O Título do Cenário é obrigatório.");
-    }
+    if (!form.nome || !form.nome.trim()) return toast.warning("O Título do Cenário é obrigatório.");
     
     const passosValidos = form.passos.filter(p => p.acao && p.acao.trim() !== '');
-    if (passosValidos.length === 0) {
-        return toast.warning("Preencha a 'Ação' de pelo menos um passo.");
-    }
+    if (passosValidos.length === 0) return toast.warning("Preencha a 'Ação' de pelo menos um passo.");
 
     const payload = {
         ...form,
@@ -181,15 +204,12 @@ export function AdminCasosTeste() {
       }
   };
 
-  const truncate = (str, n = 30) => {
-    return (str && str.length > n) ? str.substr(0, n - 1) + '...' : str;
-  };
+  // Pega o elemento do DOM para o Portal (Navbar Superior)
+  const navbarTarget = document.getElementById('header-actions');
 
-  const inputStyle = {
-    width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '4px',
-    fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box'
-  };
-
+  /* ==========================================================================
+     RENDERIZAÇÃO
+     ========================================================================== */
   return (
     <main className="container">
       <style>{`
@@ -197,6 +217,7 @@ export function AdminCasosTeste() {
         .hover-row:hover { background-color: #f1f5f9 !important; }
         .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.85rem; font-weight: 500; }
       `}</style>
+      
       <ConfirmationModal 
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -207,43 +228,52 @@ export function AdminCasosTeste() {
         isDanger={true}
       />
 
-      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-        <div>
-           <h2 className="section-title" style={{margin: 0}}>Casos de Testes</h2>
-           <p className="muted" style={{margin: '5px 0 0 0'}}>Biblioteca de testes do projeto.</p>
-        </div>
-        
-        {view === 'list' && (
-          <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}> {/* <--- FALTAVA ESSA DIV PAI */}
-             <div style={{textAlign: 'right'}}>
-               <label style={{display: 'block', fontSize: '0.7rem', fontWeight: 'bold', color: '#64748b', marginBottom: '2px', textTransform: 'uppercase'}}>PROJETO ATIVO</label>
-               <select 
-                  value={selectedProjeto} 
-                  onChange={e => setSelectedProjeto(e.target.value)}
-                  style={{
-                      padding: '8px', 
-                      borderRadius: '6px', 
-                      border: '1px solid #cbd5e1', 
-                      minWidth: '200px', 
-                      maxWidth: '300px', 
-                      fontWeight: 500
-                  }}
-               >
-                  {projetos.filter(p => p.status === 'ativo').map(p => (
-                      <option key={p.id} value={p.id} title={p.nome}>
-                          {truncate(p.nome, 30)}
-                      </option>
-                  ))}
-               </select>
-             </div>
-             <button onClick={handleNew} className="btn primary">Novo Cenário</button>
-          </div>
-        )}
-      </div>
+      {/* --- NAVBAR SUPERIOR (Portal) --- */}
+      {navbarTarget && createPortal(
+        <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+           <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+             <span style={{fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase'}}>Projeto:</span>
+             <select 
+                value={selectedProjeto} 
+                onChange={e => setSelectedProjeto(e.target.value)}
+                style={{
+                    padding: '6px 10px', 
+                    borderRadius: '4px', 
+                    border: '1px solid #cbd5e1', 
+                    fontSize: '0.9rem', 
+                    backgroundColor: '#fff',
+                    maxWidth: '300px'
+                }}
+             >
+                {projetos.filter(p => p.status === 'ativo').map(p => (
+                    <option key={p.id} value={p.id} title={p.nome}>
+                        {truncate(p.nome, 30)}
+                    </option>
+                ))}
+             </select>
+           </div>
+           {view === 'list' ? (
+             <button 
+                onClick={handleNew} 
+                className="btn primary" 
+                // Desabilita se não tiver projeto ativo selecionado
+                disabled={!isProjectActive} 
+                style={{height: '34px', opacity: isProjectActive ? 1 : 0.5, cursor: isProjectActive ? 'pointer' : 'not-allowed', fontSize: '0.9rem'}}
+             >
+                Novo Cenário
+             </button>
+           ) : (
+             <button onClick={handleCancel} className="btn" style={{height: '34px', fontSize: '0.9rem'}}>Voltar</button>
+           )}
+        </div>,
+        navbarTarget
+      )}
 
+      {/* --- FORMULÁRIO --- */}
       {view === 'form' && (
         <div style={{maxWidth: '100%', margin: '0 auto'}}>
           <form onSubmit={handleSubmit}>
+            {/* ... Seção de Detalhes ... */}
             <section className="card" style={{marginBottom: '20px', padding: '25px'}}>
               <h3 style={{marginTop: 0, marginBottom: '20px', color: '#334155', fontSize: '1.1rem', fontWeight: 700}}>Detalhes do Cenário</h3>
               <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
@@ -289,6 +319,7 @@ export function AdminCasosTeste() {
               </div>
             </section>
 
+            {/* ... Seção de Alocação ... */}
             <section className="card" style={{marginBottom: '20px', padding: '25px'}}>
               <h3 style={{marginTop: 0, marginBottom: '20px', color: '#334155', fontSize: '1.1rem', fontWeight: 700}}>Alocação (Opcional)</h3>
               <div className="form-grid">
@@ -312,9 +343,8 @@ export function AdminCasosTeste() {
                         style={{...inputStyle, backgroundColor: '#f3f4f6'}}
                     >
                         <option value="">Definir depois</option>
-                        
                         {usuarios
-                            .filter(u => u.ativo && u.nivel_acesso?.nome === 'user')
+                            .filter(u => u.ativo && u.nivel_acesso?.nome === 'testador')
                             .map(u => (
                                 <option key={u.id} value={u.id}>
                                     {truncate(u.nome, 30)}
@@ -326,6 +356,7 @@ export function AdminCasosTeste() {
               </div>
             </section>
 
+            {/* ... Seção de Passos ... */}
             <section className="card" style={{padding: '25px'}}>
                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
                  <h3 style={{margin: 0, color: '#334155', fontSize: '1.1rem', fontWeight: 700}}>Passos</h3>
@@ -364,40 +395,90 @@ export function AdminCasosTeste() {
         </div>
       )}
 
+      {/* --- LISTAGEM --- */}
       {view === 'list' && (
-        <section className="card">
-           {loading ? <p>Carregando...</p> : (
+        <section className="card" style={{marginTop: '20px'}}> {/* Margin top igual ao AdminCiclos */}
+           
+           {/* Header de Busca e Total - ESTRUTURA IGUAL A DE CICLOS */}
+           <div style={{paddingBottom: '15px', borderBottom: '1px solid #f1f5f9', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+               <span style={{fontWeight: 600, color: '#64748b'}}>
+                   {filteredCasos.length} caso(s) encontrado(s)
+               </span>
+               <div style={{position: 'relative'}}>
+                    <input 
+                        type="text" 
+                        placeholder="Buscar cenário ou prioridade..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{
+                            padding: '8px 30px 8px 10px', 
+                            borderRadius: '6px', 
+                            border: '1px solid #cbd5e1', 
+                            fontSize: '0.85rem',
+                            minWidth: '220px'
+                        }}
+                    />
+                    <span style={{position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8'}}>🔍</span>
+               </div>
+           </div>
+
+           {loading ? <p style={{padding:'20px', textAlign:'center'}}>Carregando...</p> : (
              <div className="table-wrap">
                {casos.length === 0 ? (
                  <div style={{textAlign: 'center', padding: '40px', color: '#94a3b8'}}>
-                    <p>Nenhum caso de teste.</p>
-                    {projetos.length > 0 && <button onClick={handleNew} className="btn primary" style={{marginTop:'10px'}}>Criar Primeiro</button>}
+                    <p>Nenhum caso de teste para este projeto.</p>
+                    {projetos.length > 0 && isProjectActive && <button onClick={handleNew} className="btn primary" style={{marginTop:'10px'}}>Criar Primeiro</button>}
                  </div>
                ) : (
                  <table>
                    <thead>
                      <tr>
-                       <th style={{width: '50px'}}>ID</th>
-                       <th>Cenário</th>
-                       <th>Prioridade</th>
-                       <th>Responsável</th>
+                       <th style={{width: '50px', textAlign: 'left'}}>ID</th>
+                       <th style={{textAlign: 'left'}}>Cenário</th>
+                       <th style={{textAlign: 'center'}}>Prioridade</th>
+                       <th style={{textAlign: 'left'}}>Responsável</th>
                        <th style={{textAlign: 'center'}}>Passos</th>
                        <th style={{textAlign: 'right'}}>Ações</th>
                      </tr>
                    </thead>
                    <tbody>
-                     {casos.map(c => (
-                       <tr key={c.id} className="hover-row" onClick={() => handleEdit(c)}>
-                         <td style={{color: '#64748b'}}>#{c.id}</td>
-                         <td><div style={{fontWeight: 600}}>{c.nome}</div></td>
-                         <td><span className="badge" style={{backgroundColor: '#f3f4f6'}}>{c.prioridade}</span></td>
-                         <td>{c.responsavel ? c.responsavel.nome : '-'}</td>
-                         <td style={{textAlign: 'center'}}>{c.passos?.length || 0}</td>
-                         <td style={{textAlign: 'right'}}>
-                            <button onClick={(e) => { e.stopPropagation(); requestDelete(c); }} className="btn danger small">🗑️</button>
-                         </td>
-                       </tr>
-                     ))}
+                     {filteredCasos.length === 0 ? (
+                        <tr><td colSpan="6" style={{textAlign:'center', padding:'20px', color: '#64748b'}}>Nenhum caso encontrado para "{searchTerm}".</td></tr>
+                     ) : (
+                        filteredCasos.map(c => (
+                            <tr key={c.id} className="hover-row" onClick={() => handleEdit(c)} title="Clique para editar">
+                                <td style={{color: '#64748b', verticalAlign: 'middle'}}>#{c.id}</td>
+                                <td style={{verticalAlign: 'middle'}}>
+                                    <div style={{fontWeight: 600}} title={c.nome}>
+                                        {truncate(c.nome, 45)}
+                                    </div>
+                                </td>
+                                <td style={{textAlign: 'center', verticalAlign: 'middle'}}>
+                                    <span className="badge" style={{backgroundColor: '#f3f4f6'}}>
+                                        {c.prioridade}
+                                    </span>
+                                </td>
+                                <td style={{verticalAlign: 'middle'}}>
+                                    {c.responsavel ? truncate(c.responsavel.nome, 20) : '-'}
+                                </td>
+                                <td style={{textAlign: 'center', verticalAlign: 'middle'}}>
+                                    {c.passos?.length || 0}
+                                </td>
+                                <td style={{textAlign: 'right', verticalAlign: 'middle'}}>
+                                    <button 
+                                        onClick={(e) => { 
+                                            e.stopPropagation(); 
+                                            requestDelete(c); 
+                                        }} 
+                                        className="btn danger small"
+                                        title="Excluir"
+                                    >
+                                        🗑️
+                                    </button>
+                                </td>
+                            </tr>
+                        ))
+                     )}
                    </tbody>
                  </table>
                )}

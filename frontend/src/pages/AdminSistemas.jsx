@@ -7,18 +7,29 @@ import { ConfirmationModal } from '../components/ConfirmationModal';
    COMPONENTE: ADMIN SISTEMAS
    ========================================================================== */
 export function AdminSistemas() {
+  // --- ESTADOS ---
   const [sistemas, setSistemas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ nome: '', descricao: '' });
   const [editingId, setEditingId] = useState(null);
-
-  // --- ESTADOS DO MODAL DE EXCLUSÃO ---
+  
+  // Estados para Modal e Busca
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [sistemaToDelete, setSistemaToDelete] = useState(null);
-
+  const [searchTerm, setSearchTerm] = useState('');
+  
   const LIMITS = { nome: 50, descricao: 100 };
 
-  // Carregamento Inicial
+  // --- FILTRO DE BUSCA ---
+  const filteredSistemas = sistemas.filter(s => 
+      s.nome.toLowerCase().includes(searchTerm.toLowerCase()) );
+
+  // --- FUNÇÃO AUXILIAR DE TRUNCATE ---
+  const truncate = (str, n = 40) => {
+    return (str && str.length > n) ? str.substr(0, n - 1) + '...' : str;
+  };
+
+  // --- CARREGAMENTO INICIAL ---
   useEffect(() => { loadSistemas(); }, []);
 
   const loadSistemas = async () => {
@@ -34,11 +45,11 @@ export function AdminSistemas() {
     }
   };
 
-  // Salvar (Criar ou Editar)
+  // --- HANDLERS (AÇÕES) ---
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // --- NOVA VALIDAÇÃO DE DUPLICIDADE ---
+    // Validação de Duplicidade
     const nomeNormalizado = form.nome.trim().toLowerCase();
     const duplicado = sistemas.some(s => 
         s.nome.trim().toLowerCase() === nomeNormalizado && 
@@ -48,7 +59,6 @@ export function AdminSistemas() {
     if (duplicado) {
         return toast.warning("Já existe um Sistema com este nome.");
     }
-    // -------------------------------------
 
     try {
       if (editingId) {
@@ -80,13 +90,13 @@ export function AdminSistemas() {
           const novoStatus = !sistema.ativo;
           await api.put(`/sistemas/${sistema.id}`, { ativo: novoStatus });
           toast.success(`Sistema ${novoStatus ? 'ativado' : 'desativado'}.`);
-          loadSistemas();
+          // Atualiza localmente para evitar re-fetch completo (opcional, mas mais rápido)
+          setSistemas(prev => prev.map(s => s.id === sistema.id ? {...s, ativo: novoStatus} : s));
       } catch(e) { 
           toast.error("Erro ao alterar status."); 
       }
   };
 
-  // --- LÓGICA DO MODAL ---
   const requestDelete = (sistema) => {
       setSistemaToDelete(sistema);
       setIsDeleteModalOpen(true);
@@ -94,7 +104,6 @@ export function AdminSistemas() {
 
   const confirmDelete = async () => {
       if (!sistemaToDelete) return;
-      
       try {
           await api.delete(`/sistemas/${sistemaToDelete.id}`);
           toast.success(`Sistema excluído com sucesso.`);
@@ -106,10 +115,10 @@ export function AdminSistemas() {
           setSistemaToDelete(null); 
       }
   };
-  const truncate = (str, n = 40) => {
-    return (str && str.length > n) ? str.substr(0, n - 1) + '...' : str;
-  };
 
+  /* ==========================================================================
+     RENDERIZAÇÃO (JSX)
+     ========================================================================== */
   return (
     <main className="container grid">
       <style>{`
@@ -118,7 +127,6 @@ export function AdminSistemas() {
         tr.selected { background-color: #e0f2fe !important; }
       `}</style>
       
-      {/* O componente Modal fica aqui, invisível até ser chamado */}
       <ConfirmationModal 
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -129,7 +137,7 @@ export function AdminSistemas() {
         isDanger={true}
       />
 
-      {/* Formulário */}
+      {/* --- FORMULÁRIO DE CADASTRO --- */}
       <section className="card">
         <h2 className="section-title">{editingId ? 'Editar' : 'Novo Sistema'}</h2>
         <form onSubmit={handleSubmit}>
@@ -150,67 +158,89 @@ export function AdminSistemas() {
         </form>
       </section>
 
+      {/* --- TABELA DE LISTAGEM --- */}
       <section className="card">
-        <h2 className="section-title">Sistemas</h2>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+            <h2 className="section-title" style={{margin: 0}}>Sistemas</h2>
+            
+            {/* Input de Busca */}
+            <div style={{position: 'relative'}}>
+                <input 
+                    type="text" 
+                    placeholder="Pesquisar sistema..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{
+                        padding: '8px 35px 8px 12px', 
+                        borderRadius: '6px', 
+                        border: '1px solid #cbd5e1', 
+                        fontSize: '0.9rem',
+                        minWidth: '250px'
+                    }}
+                />
+                <span style={{position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8'}}>
+                    🔍
+                </span>
+            </div>
+        </div>
+
         <div className="table-wrap">
-            {loading ? <p>Carregando...</p> : (
+            {loading ? <p style={{padding:'20px', textAlign:'center'}}>Carregando...</p> : (
                 <table>
                     <thead>
                         <tr>
-                            {/* Coluna Nome (Alinhada à Esquerda - Padrão) */}
                             <th style={{textAlign: 'left'}}>Nome</th>
-                            
-                            {/* Coluna Status (Alinhada à Direita para bater com o badge) */}
                             <th style={{textAlign: 'right'}}>Status</th>
-                            
-                            {/* Coluna Ações (Alinhada à Direita) */}
                             <th style={{textAlign: 'right'}}>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {sistemas.map(s => (
-                            <tr 
-                                key={s.id} 
-                                onClick={() => handleSelectRow(s)} 
-                                className={editingId === s.id ? 'selected' : 'selectable'} 
-                                style={{opacity: s.ativo ? 1 : 0.6}}
-                            >
-                                {/* Célula do Nome: Adicionado verticalAlign middle */}
-                                <td style={{verticalAlign: 'middle'}}>
-                                    <strong title={s.nome}>
-                                        {truncate(s.nome)} 
-                                    </strong>
-                                    <div className="muted" style={{fontSize: '0.8rem'}} title={s.descricao}>
-                                        {truncate(s.descricao, 40)}
-                                    </div>
-                                </td>
-
-                                {/* Célula do Status: Adicionado verticalAlign middle e Mantido right */}
-                                <td style={{textAlign: 'right', whiteSpace: 'nowrap', verticalAlign: 'middle'}}>
-                                    <span 
-                                        onClick={(e) => { e.stopPropagation(); toggleActive(s); }} 
-                                        className={`badge ${s.ativo ? 'on' : 'off'}`} 
-                                        style={{marginRight:'10px', cursor:'pointer'}}
-                                    >
-                                        {s.ativo ? 'Ativo' : 'Inativo'}
-                                    </span>
-                                </td>
-
-                                {/* Célula de Ações: Adicionado align right e verticalAlign middle */}
-                                <td style={{textAlign: 'right', verticalAlign: 'middle'}}>
-                                    <button 
-                                        onClick={(e) => { 
-                                            e.stopPropagation(); 
-                                            requestDelete(s); 
-                                        }}
-                                        className="btn danger small"
-                                        title="Excluir"
-                                    >
-                                        🗑️
-                                    </button>
+                        {filteredSistemas.length === 0 ? (
+                            <tr>
+                                <td colSpan="3" style={{textAlign: 'center', padding: '20px', color: '#64748b'}}>
+                                    {sistemas.length === 0 ? "Nenhum sistema cadastrado." : `Nenhum resultado para "${searchTerm}"`}
                                 </td>
                             </tr>
-                        ))}
+                        ) : (
+                            filteredSistemas.map(s => (
+                                <tr 
+                                    key={s.id} 
+                                    onClick={() => handleSelectRow(s)} 
+                                    className={editingId === s.id ? 'selected' : 'selectable'} 
+                                    style={{opacity: s.ativo ? 1 : 0.6}}
+                                >
+                                    <td style={{verticalAlign: 'middle'}}>
+                                        <strong title={s.nome}>{truncate(s.nome)}</strong>
+                                        <div className="muted" style={{fontSize: '0.8rem'}} title={s.descricao}>
+                                            {truncate(s.descricao, 40)}
+                                        </div>
+                                    </td>
+
+                                    <td style={{textAlign: 'right', whiteSpace: 'nowrap', verticalAlign: 'middle'}}>
+                                        <span 
+                                            onClick={(e) => { e.stopPropagation(); toggleActive(s); }} 
+                                            className={`badge ${s.ativo ? 'on' : 'off'}`} 
+                                            style={{marginRight:'10px', cursor:'pointer'}}
+                                        >
+                                            {s.ativo ? 'Ativo' : 'Inativo'}
+                                        </span>
+                                    </td>
+
+                                    <td style={{textAlign: 'right', verticalAlign: 'middle'}}>
+                                        <button 
+                                            onClick={(e) => { 
+                                                e.stopPropagation(); 
+                                                requestDelete(s); 
+                                            }}
+                                            className="btn danger small"
+                                            title="Excluir"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             )}

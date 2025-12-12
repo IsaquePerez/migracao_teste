@@ -5,12 +5,8 @@ import { ConfirmationModal } from '../components/ConfirmationModal';
 
 /* ==========================================================================
    COMPONENTE: ADMIN PROJETOS
-   Gerenciamento de projetos de teste (vinculados a módulos).
    ========================================================================== */
 export function AdminProjetos() {
-  /* ==========================================================================
-     ESTADOS
-     ========================================================================== */
   const [projetos, setProjetos] = useState([]);
   const [modulos, setModulos] = useState([]);
   const [usuarios, setUsuarios] = useState([]); 
@@ -26,6 +22,21 @@ export function AdminProjetos() {
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState(null);
+  
+  // 1. ESTADO DE BUSCA
+  const [searchTerm, setSearchTerm] = useState('');
+
+  /* ==========================================================================
+     LÓGICA DE FILTRAGEM E AUXILIARES
+     ========================================================================== */
+  // 2. FILTRO
+  const filteredProjetos = projetos.filter(p => 
+      p.nome.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const truncate = (str, n = 40) => {
+    return (str && str.length > n) ? str.substr(0, n - 1) + '...' : str;
+  };
 
   /* ==========================================================================
      CARREGAMENTO DE DADOS
@@ -62,26 +73,21 @@ export function AdminProjetos() {
   };
 
   /* ==========================================================================
-     PERSISTÊNCIA DE DADOS (CRIAR / ATUALIZAR)
+     AÇÕES DE FORMULÁRIO
      ========================================================================== */
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!form.modulo_id) {
-        return toast.warning("Por favor, selecione um Módulo.");
-    }    
+    if (!form.modulo_id) return toast.warning("Por favor, selecione um Módulo.");
+
+    // Validação de Duplicidade
+    const nomeNormalizado = form.nome.trim().toLowerCase();
     const duplicado = projetos.some(p => 
-        p.nome.trim().toLowerCase() === form.nome.trim().toLowerCase() && 
+        p.nome.trim().toLowerCase() === nomeNormalizado && 
         p.id !== editingId
     );
-    if (duplicado) {
-        return toast.warning("Já existe um projeto com este nome. Escolha outro.");
-    }
+    if (duplicado) return toast.warning("Já existe um projeto com este nome. Escolha outro.");
 
-    /* Validação de Integridade:
-       Impede a edição se o status atual na lista for 'finalizado', 
-       prevenindo inconsistência de estado entre formulário e banco.
-    */
     if (editingId) {
         const projetoReal = projetos.find(p => p.id === editingId);
         if (projetoReal && projetoReal.status === 'finalizado') {
@@ -121,7 +127,6 @@ export function AdminProjetos() {
       if (projeto.status === 'finalizado') {
           return toast.info("Reative o projeto clicando no status para editá-lo.");
       }
-
       setForm({
           nome: projeto.nome,
           descricao: projeto.descricao || '',
@@ -132,9 +137,6 @@ export function AdminProjetos() {
       setEditingId(projeto.id);
   };
 
-  /* ==========================================================================
-     GESTÃO DE STATUS E EXCLUSÃO
-     ========================================================================== */
   const cycleStatus = async (projeto) => {
       const fluxo = { 'ativo': 'pausado', 'pausado': 'finalizado', 'finalizado': 'ativo' };
       const novoStatus = fluxo[projeto.status] || 'ativo';
@@ -146,10 +148,7 @@ export function AdminProjetos() {
           setProjetos(prev => prev.map(p => 
               p.id === projeto.id ? { ...p, status: novoStatus } : p
           ));
-          
-          if (editingId === projeto.id) {
-              setForm(prev => ({ ...prev, status: novoStatus }));
-          }
+          if (editingId === projeto.id) setForm(prev => ({ ...prev, status: novoStatus }));
 
       } catch(e) { 
           toast.error("Erro ao mudar status."); 
@@ -163,7 +162,6 @@ export function AdminProjetos() {
 
   const confirmDelete = async () => {
       if (!projectToDelete) return;
-
       try {
           await api.delete(`/projetos/${projectToDelete.id}`);
           toast.success("Projeto e dados vinculados excluídos.");
@@ -177,28 +175,18 @@ export function AdminProjetos() {
   };
 
   /* ==========================================================================
-     HELPERS DE RENDERIZAÇÃO
+     HELPERS VISUAIS
      ========================================================================== */
   const renderModuloBadge = (id) => {
       const mod = modulos.find(m => m.id === id);
       if (!mod) return <span style={{color: '#cbd5e1'}}>-</span>;
-
-      if (mod.ativo === false) {
-          return (
-              <span className="badge" style={{
-                  backgroundColor: '#fee2e2', color: '#b91c1c',
-                  border: '1px solid rgba(185, 28, 28, 0.2)'
-              }}>
-                  {mod.nome} (Inativo)
-              </span>
-          );
-      }
       return (
           <span className="badge" style={{
-              backgroundColor: '#eef2ff', color: '#3730a3',
-              border: '1px solid rgba(55, 48, 163, 0.2)'
+              backgroundColor: mod.ativo === false ? '#fee2e2' : '#eef2ff', 
+              color: mod.ativo === false ? '#b91c1c' : '#3730a3',
+              border: `1px solid ${mod.ativo === false ? 'rgba(185, 28, 28, 0.2)' : 'rgba(55, 48, 163, 0.2)'}`
           }}>
-              {mod.nome}
+              {truncate(mod.nome, 25)} {mod.ativo === false ? '(Inativo)' : ''}
           </span>
       );
   };
@@ -222,18 +210,11 @@ export function AdminProjetos() {
             backgroundColor: user.ativo ? '#f3f4f6' : '#fee2e2', 
             color: user.ativo ? '#374151' : '#b91c1c'
         }}>
-            {user.nome} {user.ativo ? '' : '(Inativo)'}
+            {truncate(user.nome, 20)}
         </span>
       );
   };
 
-  const truncate = (str, n = 40) => {
-    return (str && str.length > n) ? str.substr(0, n - 1) + '...' : str;
-  };
-
-  /* ==========================================================================
-     INTERFACE (JSX)
-     ========================================================================== */
   return (
     <main className="container grid">
       <style>{`
@@ -260,17 +241,10 @@ export function AdminProjetos() {
           <div className="form-grid">
             <div>
                 <label>Módulo Pai</label>
-                <select 
-                    value={form.modulo_id} 
-                    onChange={e => setForm({...form, modulo_id: e.target.value})}
-                >
+                <select value={form.modulo_id} onChange={e => setForm({...form, modulo_id: e.target.value})}>
                     <option value="">Selecione...</option>
                     {modulos.map(m => (
-                        <option 
-                            key={m.id} 
-                            value={m.id}
-                            style={{color: m.ativo === false ? '#991b1b' : 'inherit'}}
-                        >
+                        <option key={m.id} value={m.id} style={{color: m.ativo === false ? '#991b1b' : 'inherit'}}>
                             {truncate(m.nome, 30)} {m.ativo === false ? '(Inativo)' : ''}
                         </option>
                     ))}
@@ -280,10 +254,9 @@ export function AdminProjetos() {
                 <label>Responsável</label>
                 <select value={form.responsavel_id} onChange={e => setForm({...form, responsavel_id: e.target.value})}>
                     <option value="">Sem responsável</option>
-                    {usuarios.filter(u => u.ativo !== false && u.nivel_acesso?.nome === 'admin').map(u => (<option key={u.id} value={u.id}>{truncate(u.nome, 20)}
-                    </option>
-                ))
-            }
+                    {usuarios.filter(u => u.ativo !== false && u.nivel_acesso?.nome === 'admin').map(u => (
+                        <option key={u.id} value={u.id}>{truncate(u.nome, 20)}</option>
+                    ))}
                 </select>
             </div>
             <div style={{gridColumn: '1/-1'}}>
@@ -303,21 +276,42 @@ export function AdminProjetos() {
       </section>
 
       <section className="card">
-        <h2 className="section-title">Lista de Projetos</h2>
+        {/* 3. CABEÇALHO DA TABELA COM BUSCA */}
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+            <h2 className="section-title" style={{margin: 0}}>Lista de Projetos</h2>
+            <div style={{position: 'relative'}}>
+                <input 
+                    type="text" 
+                    placeholder="Pesquisar projeto..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{
+                        padding: '8px 35px 8px 12px', 
+                        borderRadius: '6px', 
+                        border: '1px solid #cbd5e1', 
+                        fontSize: '0.9rem',
+                        minWidth: '250px'
+                    }}
+                />
+                <span style={{position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8'}}>🔍</span>
+            </div>
+        </div>
+
         <div className="table-wrap">
             {projetos.length === 0 ? <p className="muted" style={{textAlign:'center', padding:'20px'}}>Nenhum projeto encontrado.</p> : (
                 <table>
                     <thead>
                         <tr>
-                            <th>Projeto</th>
-                            <th>Módulo</th>
-                            <th>Status</th>
-                            <th>Responsável</th>
-                            <th>Ações</th>
+                            <th style={{textAlign: 'left'}}>Projeto</th>
+                            <th style={{textAlign: 'left'}}>Módulo</th>
+                            <th style={{textAlign: 'center'}}>Status</th>
+                            <th style={{textAlign: 'left'}}>Responsável</th>
+                            <th style={{textAlign: 'right'}}>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {projetos.map(p => {
+                        {/* 4. USA A LISTA FILTRADA */}
+                        {filteredProjetos.map(p => {
                             const style = getStatusStyle(p.status);
                             const isFinalizado = p.status === 'finalizado';
                             
@@ -331,13 +325,14 @@ export function AdminProjetos() {
                                         backgroundColor: isFinalizado ? '#f9fafb' : 'transparent'
                                     }}
                                 >
-                                    <td>
-                                        <strong title={p.nome}>
-                                            {truncate(p.nome, 40)}
-                                        </strong>
+                                    <td style={{verticalAlign: 'middle'}}>
+                                        <strong title={p.nome}>{truncate(p.nome, 40)}</strong>
+                                        <div className="muted" style={{fontSize: '0.8rem'}} title={p.descricao}>
+                                            {truncate(p.descricao, 40)}
+                                        </div>
                                     </td>
-                                    <td>{renderModuloBadge(p.modulo_id)}</td>
-                                    <td>
+                                    <td style={{verticalAlign: 'middle'}}>{renderModuloBadge(p.modulo_id)}</td>
+                                    <td style={{textAlign: 'center', verticalAlign: 'middle'}}>
                                         <span 
                                             onClick={(e) => { e.stopPropagation(); cycleStatus(p); }}
                                             className="badge status-hover"
@@ -351,8 +346,8 @@ export function AdminProjetos() {
                                             {p.status.toUpperCase()}
                                         </span>
                                     </td>
-                                    <td>{renderResponsavel(p.responsavel_id)}</td>
-                                    <td>
+                                    <td style={{verticalAlign: 'middle'}}>{renderResponsavel(p.responsavel_id)}</td>
+                                    <td style={{textAlign: 'right', verticalAlign: 'middle'}}>
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); requestDelete(p); }}
                                             className="btn danger small"
@@ -363,6 +358,9 @@ export function AdminProjetos() {
                                 </tr>
                             );
                         })}
+                        {filteredProjetos.length === 0 && (
+                            <tr><td colSpan="5" style={{textAlign:'center', padding:'20px'}}>Nenhum projeto encontrado para "{searchTerm}"</td></tr>
+                        )}
                     </tbody>
                 </table>
             )}

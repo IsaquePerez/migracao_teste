@@ -12,6 +12,19 @@ export function AdminModulos() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [moduloToDelete, setModuloToDelete] = useState(null);
 
+  // Estado para busca
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Filtro
+  const filteredModulos = modulos.filter(m => 
+      m.nome.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Função auxiliar de truncate
+  const truncate = (str, n = 40) => {
+    return (str && str.length > n) ? str.substr(0, n - 1) + '...' : str;
+  };
+
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
@@ -43,25 +56,20 @@ export function AdminModulos() {
         return toast.warning("Selecione um Sistema Pai.");
     }
 
-    // --- NOVA VALIDAÇÃO DE DUPLICIDADE ---
+    // Validação de Duplicidade
     const nomeNormalizado = form.nome.trim().toLowerCase();
     const sistemaIdSelecionado = parseInt(form.sistema_id);
 
     const duplicado = modulos.some(m => {
-        // 1. Verifica se é do mesmo sistema
         const mesmoSistema = m.sistema_id === sistemaIdSelecionado;
-        // 2. Verifica se o nome é igual (ignorando maiúsculas/minúsculas)
         const mesmoNome = m.nome.trim().toLowerCase() === nomeNormalizado;
-        // 3. Se estiver editando, ignora o próprio ID para não bloquear a si mesmo
         const naoEhOProprio = m.id !== editingId;
-
         return mesmoSistema && mesmoNome && naoEhOProprio;
     });
 
     if (duplicado) {
         return toast.warning("Já existe um módulo com este nome neste sistema.");
     }
-    // -------------------------------------
 
     try {
       const payload = { ...form, sistema_id: sistemaIdSelecionado };
@@ -75,7 +83,6 @@ export function AdminModulos() {
       }
       
       handleCancel();
-      // Recarrega a lista para garantir sincronia
       const updatedMods = await api.get("/modulos/");
       setModulos(updatedMods);
 
@@ -97,14 +104,14 @@ export function AdminModulos() {
       });
       setEditingId(modulo.id);
   };
-
-  // ... (RESTANTE DO CÓDIGO PERMANECE IGUAL: toggleActive, delete, render, etc.)
   
   const toggleActive = async (modulo) => {
       try {
-          await api.put(`/modulos/${modulo.id}`, { ativo: !modulo.ativo });
-          toast.success(`Módulo ${!modulo.ativo ? 'ativado' : 'desativado'}.`);
-          setModulos(prev => prev.map(m => m.id === modulo.id ? { ...m, ativo: !m.ativo } : m));
+          const novoStatus = !modulo.ativo;
+          await api.put(`/modulos/${modulo.id}`, { ativo: novoStatus });
+          toast.success(`Módulo ${novoStatus ? 'ativado' : 'desativado'}.`);
+          // Atualiza localmente para feedback instantâneo
+          setModulos(prev => prev.map(m => m.id === modulo.id ? { ...m, ativo: novoStatus } : m));
       } catch(e) { 
           toast.error("Erro ao alterar status."); 
       }
@@ -131,9 +138,7 @@ export function AdminModulos() {
 
   const getSistemaName = (id) => sistemas.find(s => s.id === id)?.nome || 'Sistema Removido';
   const sistemasAtivos = sistemas.filter(s => s.ativo);
-  const truncate = (str, n = 40) => {
-    return (str && str.length > n) ? str.substr(0, n - 1) + '...' : str;
-};
+
   return (
     <main className="container grid">
       <ConfirmationModal 
@@ -193,53 +198,86 @@ export function AdminModulos() {
       </section>
 
       <section className="card">
-        <h2 className="section-title">Módulos Cadastrados</h2>
+        {/* Cabeçalho da Tabela com Busca */}
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
+            <h2 className="section-title" style={{margin: 0}}>Módulos Cadastrados</h2>
+            <div style={{position: 'relative'}}>
+                <input 
+                    type="text" 
+                    placeholder="Pesquisar módulo..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{
+                        padding: '8px 35px 8px 12px', 
+                        borderRadius: '6px', 
+                        border: '1px solid #cbd5e1', 
+                        fontSize: '0.9rem',
+                        minWidth: '250px'
+                    }}
+                />
+                <span style={{position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8'}}>🔍</span>
+            </div>
+        </div>
+
         <div className="table-wrap">
             {modulos.length === 0 ? <p className="muted" style={{textAlign:'center', padding:'20px'}}>Nenhum módulo cadastrado.</p> : (
                 <table>
-                    <thead><tr><th>Módulo</th><th>Sistema</th><th>Status</th><th>Ações</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th style={{textAlign: 'left'}}>Módulo</th>
+                            <th style={{textAlign: 'left'}}>Sistema</th>
+                            <th style={{textAlign: 'center'}}>Status</th>
+                            <th style={{textAlign: 'right'}}>Ações</th>
+                        </tr>
+                    </thead>
                     <tbody>
-                        {modulos.map(m => (
-                            <tr 
-                                key={m.id} 
-                                onClick={() => handleSelectRow(m)}
-                                className={editingId === m.id ? 'selected' : 'selectable'}
-                                style={{opacity: m.ativo ? 1 : 0.6}}
-                            >
-                                <td>
-                                    <strong title={m.nome }>
-                                        {truncate(m.nome )} 
-                                    </strong>
-                                    <div className="muted" style={{fontSize: '0.8rem'}} title={m.descricao }>
-                                        {truncate(m.descricao, 40)}
-                                    </div>
-                                </td>
-                                <td>
-                                    <span className="badge" style={{backgroundColor: '#e0f2fe', color: '#0369a1'}}>
-                                        {truncate(getSistemaName(m.sistema_id), 20)}
-                                    </span>
-                                </td>
-                                <td style={{textAlign: 'right', whiteSpace: 'nowrap'}}>
-                                    <span 
-                                        onClick={(e) => { e.stopPropagation(); toggleActive(m); }}
-                                        className={`badge ${m.ativo ? 'on' : 'off'}`}
-                                        title="Clique para alternar"
-                                        style={{cursor: 'pointer', marginRight: '40%'}}
-                                    >
-                                        {m.ativo ? 'Ativo' : 'Inativo'}
-                                    </span>                                    
-                                </td>
-                                <td>
-                                    <button 
-                                        onClick={(e) => { e.stopPropagation(); requestDelete(m); }}
-                                        className="btn danger small"
-                                        title="Excluir"
-                                    >
-                                        🗑️
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                        {filteredModulos.length === 0 ? (
+                             <tr><td colSpan="4" style={{textAlign:'center', padding:'20px'}}>Nenhum módulo encontrado para "{searchTerm}".</td></tr>
+                        ) : (
+                            filteredModulos.map(m => (
+                                <tr 
+                                    key={m.id} 
+                                    onClick={() => handleSelectRow(m)}
+                                    className={editingId === m.id ? 'selected' : 'selectable'}
+                                    style={{opacity: m.ativo ? 1 : 0.6}}
+                                >
+                                    <td style={{verticalAlign: 'middle'}}>
+                                        <strong title={m.nome}>{truncate(m.nome)}</strong>
+                                        <div className="muted" style={{fontSize: '0.8rem'}} title={m.descricao}>
+                                            {truncate(m.descricao, 40)}
+                                        </div>
+                                    </td>
+                                    <td style={{verticalAlign: 'middle'}}>
+                                        <span className="badge" style={{backgroundColor: '#e0f2fe', color: '#0369a1'}} title={getSistemaName(m.sistema_id)}>
+                                            {truncate(getSistemaName(m.sistema_id), 20)}
+                                        </span>
+                                    </td>
+                                    
+                                    {/* Status Centralizado */}
+                                    <td style={{textAlign: 'center', verticalAlign: 'middle'}}>
+                                        <span 
+                                            onClick={(e) => { e.stopPropagation(); toggleActive(m); }}
+                                            className={`badge ${m.ativo ? 'on' : 'off'}`}
+                                            title="Clique para alternar"
+                                            style={{cursor: 'pointer'}}
+                                        >
+                                            {m.ativo ? 'Ativo' : 'Inativo'}
+                                        </span>                                    
+                                    </td>
+                                    
+                                    {/* Ações Alinhadas à Direita */}
+                                    <td style={{textAlign: 'right', verticalAlign: 'middle'}}>
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); requestDelete(m); }}
+                                            className="btn danger small"
+                                            title="Excluir"
+                                        >
+                                            🗑️
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             )}
