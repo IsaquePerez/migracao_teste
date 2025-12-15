@@ -241,7 +241,7 @@ export function AdminUsers() {
       {/* COLUNA 1: FORMULÁRIO */}
       <section className="card">
         <h2 className="section-title">
-          {selectedUser ? 'Editar Utilizador' : 'Novo User'}
+          {selectedUser ? 'Editar Utilizador' : 'Novo Usuário'}
         </h2>
         <form onSubmit={handleSubmit}>
           <div className="form-grid" style={{gridTemplateColumns: '1fr'}}>
