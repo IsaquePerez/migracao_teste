@@ -1,15 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
 from typing import List
 
 from app.core.database import get_db
 from app.services.defeito_service import DefeitoService
 from app.schemas.defeito import DefeitoCreate, DefeitoResponse, DefeitoUpdate
-from app.models.testing import Defeito, ExecucaoTeste, CasoTeste, ExecucaoPasso
 from app.models.usuario import Usuario 
-from app.api.deps import get_current_user # <--- Importar segurança
+from app.api.deps import get_current_user
 
 router = APIRouter()
 
@@ -30,34 +27,13 @@ async def listar_defeitos_execucao(
 ):
     return await service.listar_por_execucao(execucao_id)
 
-# --- ENDPOINT ALTERADO COM FILTRO INTELIGENTE ---
+# --- ENDPOINT LIMPO ---
 @router.get("/", response_model=List[DefeitoResponse])
 async def listar_todos_defeitos(
-    db: AsyncSession = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user) # Identifica quem chama
+    current_user: Usuario = Depends(get_current_user),
+    service: DefeitoService = Depends(get_service)
 ):
-    # Query base com os carregamentos necessários
-    query = (
-        select(Defeito)
-        .join(Defeito.execucao) # Join necessário para filtrar por responsável
-        .options(
-            selectinload(Defeito.execucao).selectinload(ExecucaoTeste.caso_teste).selectinload(CasoTeste.passos),
-            selectinload(Defeito.execucao).selectinload(ExecucaoTeste.responsavel).selectinload(Usuario.nivel_acesso),
-            selectinload(Defeito.execucao).selectinload(ExecucaoTeste.passos_executados).selectinload(ExecucaoPasso.passo_template)
-        )
-        .order_by(Defeito.id.desc())
-    )
-
-    # REGRA DE NEGÓCIO:
-    # Se NÃO for admin, filtra apenas defeitos das execuções atribuídas ao usuário logado.
-    if current_user.nivel_acesso.nome != 'admin':
-        query = query.where(ExecucaoTeste.responsavel_id == current_user.id)
-
-    # (Opcional: Remover o limit para o testador ver todo o seu histórico)
-    # query = query.limit(50) 
-
-    result = await db.execute(query)
-    return result.scalars().all()
+    return await service.listar_todos(current_user)
 
 @router.put("/{id}", response_model=DefeitoResponse)
 async def atualizar_defeito(

@@ -1,65 +1,49 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import List, Optional
-from app.models.testing import PrioridadeEnum
 
-# --- 1. NOVO SCHEMA PARA O USUÁRIO (Adicione isto no topo) ---
+# Schema Simples para Usuário (dentro do caso de teste)
 class UsuarioSimple(BaseModel):
     id: int
     nome: str
-    email: Optional[str] = None
+    username: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
-# --- PASSO DO CASO DE TESTE ---
-class PassoCasoTesteBase(BaseModel):
+class PassoTeste(BaseModel):
+    id: Optional[int] = None # Adicionado ID para permitir updates
     ordem: int
     acao: str
     resultado_esperado: str
+    model_config = ConfigDict(from_attributes=True) # Importante para ler do ORM
 
-class PassoCasoTesteCreate(PassoCasoTesteBase):
-    pass
-
-class PassoCasoTesteUpdate(BaseModel):
-    id: Optional[int] = None 
-    ordem: int
-    acao: str
-    resultado_esperado: str
-
-class PassoCasoTesteResponse(PassoCasoTesteBase):
-    id: int
-    model_config = ConfigDict(from_attributes=True)
-
-# --- CASO DE TESTE ---
 class CasoTesteBase(BaseModel):
     nome: str
-    descricao: Optional[str] = None
-    pre_condicoes: Optional[str] = None
-    criterios_aceitacao: Optional[str] = None
-    prioridade: PrioridadeEnum = PrioridadeEnum.media
-    projeto_id: int
-    responsavel_id: Optional[int] = None
+    descricao: str | None = None
+    pre_condicoes: str | None = None
+    criterios_aceitacao: str | None = None
+    prioridade: str = "media"
+    passos: List[PassoTeste] = []
 
 class CasoTesteCreate(CasoTesteBase):
-    passos: List[PassoCasoTesteCreate] = []
-    ciclo_id: Optional[int] = None 
+    ciclo_id: int | None = None
+    responsavel_id: int | None = None
 
-class CasoTesteUpdate(BaseModel): 
-    nome: Optional[str] = None
-    descricao: Optional[str] = None
-    pre_condicoes: Optional[str] = None
-    criterios_aceitacao: Optional[str] = None
-    prioridade: Optional[PrioridadeEnum] = None
-    responsavel_id: Optional[int] = None
-    passos: Optional[List[PassoCasoTesteUpdate]] = None 
+class CasoTesteUpdate(BaseModel):
+    nome: str | None = None
+    descricao: str | None = None
+    pre_condicoes: str | None = None
+    criterios_aceitacao: str | None = None
+    prioridade: str | None = None
+    passos: List[PassoTeste] | None = None
+    responsavel_id: int | None = None
 
-# --- 2. ATUALIZAÇÃO NO RESPONSE ---
 class CasoTesteResponse(CasoTesteBase):
     id: int
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-    passos: List[PassoCasoTesteResponse] = []
-    
-    # ADICIONADO: Isso permite que o objeto "responsavel" apareça no JSON
+    projeto_id: int
+    responsavel_id: int | None = None
     responsavel: Optional[UsuarioSimple] = None 
+    
+    created_at: datetime
+    updated_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)

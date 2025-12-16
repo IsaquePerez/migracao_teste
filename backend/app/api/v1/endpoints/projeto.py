@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.schemas.projeto import ProjetoCreate, ProjetoUpdate, ProjetoResponse
 from app.services.projeto_service import ProjetoService
+from app.schemas.projeto import ProjetoCreate, ProjetoResponse, ProjetoUpdate
 
 router = APIRouter()
 
@@ -12,44 +12,45 @@ def get_service(db: AsyncSession = Depends(get_db)) -> ProjetoService:
     return ProjetoService(db)
 
 @router.post("/", response_model=ProjetoResponse, status_code=status.HTTP_201_CREATED)
-async def create(
-    data: ProjetoCreate, 
+async def create_projeto(
+    projeto_in: ProjetoCreate,
     service: ProjetoService = Depends(get_service)
 ):
-    return await service.create(data)
+    return await service.create_projeto(projeto_in)
 
 @router.get("/", response_model=List[ProjetoResponse])
-async def get_all(
+async def get_projetos(
     service: ProjetoService = Depends(get_service)
 ):
-    return await service.get_all()
+    # CORREÇÃO AQUI: get_all -> get_all_projetos
+    return await service.get_all_projetos()
 
-@router.get("/{id}", response_model=ProjetoResponse)
-async def get_one(
-    id: int, 
+@router.get("/{projeto_id}", response_model=ProjetoResponse)
+async def get_projeto(
+    projeto_id: int,
     service: ProjetoService = Depends(get_service)
 ):
-    item = await service.get_by_id(id)
-    if not item:
+    projeto = await service.get_projeto_by_id(projeto_id)
+    if not projeto:
         raise HTTPException(status_code=404, detail="Projeto não encontrado")
-    return item
+    return projeto
 
-@router.put("/{id}", response_model=ProjetoResponse)
-async def update(
-    id: int, 
-    data: ProjetoUpdate, 
+@router.put("/{projeto_id}", response_model=ProjetoResponse)
+async def update_projeto(
+    projeto_id: int,
+    projeto_in: ProjetoUpdate,
     service: ProjetoService = Depends(get_service)
 ):
-    item = await service.update(id, data)
-    if not item:
+    projeto = await service.update_projeto(projeto_id, projeto_in)
+    if not projeto:
         raise HTTPException(status_code=404, detail="Projeto não encontrado")
-    return item
+    return projeto
 
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete(
-    id: int, 
+@router.delete("/{projeto_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_projeto(
+    projeto_id: int,
     service: ProjetoService = Depends(get_service)
 ):
-    deleted = await service.delete(id)
-    if not deleted:
+    success = await service.delete_projeto(projeto_id)
+    if not success:
         raise HTTPException(status_code=404, detail="Projeto não encontrado")

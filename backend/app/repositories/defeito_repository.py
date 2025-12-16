@@ -1,7 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
-from sqlalchemy import update, delete
 from typing import Sequence, Optional
 
 from app.models.testing import Defeito, ExecucaoTeste, CasoTeste, ExecucaoPasso
@@ -13,29 +12,11 @@ class DefeitoRepository:
         self.db = db
 
     async def create(self, dados: DefeitoCreate) -> Defeito:
-        db_obj = Defeito(**dados.model_dump())
-        self.db.add(db_obj)
+        novo_defeito = Defeito(**dados.model_dump())
+        self.db.add(novo_defeito)
         await self.db.commit()
-        
-        return await self.get_by_id_full(db_obj.id)
-
-    async def get_by_id(self, id: int) -> Optional[Defeito]:
-        query = select(Defeito).where(Defeito.id == id)
-        result = await self.db.execute(query)
-        return result.scalars().first()
-    
-    async def get_by_id_full(self, id: int) -> Optional[Defeito]:
-        query = (
-            select(Defeito)
-            .options(
-                selectinload(Defeito.execucao).selectinload(ExecucaoTeste.caso_teste).selectinload(CasoTeste.passos),
-                selectinload(Defeito.execucao).selectinload(ExecucaoTeste.responsavel).selectinload(Usuario.nivel_acesso),
-                selectinload(Defeito.execucao).selectinload(ExecucaoTeste.passos_executados).selectinload(ExecucaoPasso.passo_template)
-            )
-            .where(Defeito.id == id)
-        )
-        result = await self.db.execute(query)
-        return result.scalars().first()
+        await self.db.refresh(novo_defeito)
+        return novo_defeito
 
     async def get_by_execucao(self, execucao_id: int) -> Sequence[Defeito]:
         query = select(Defeito).where(Defeito.execucao_teste_id == execucao_id)
@@ -43,22 +24,32 @@ class DefeitoRepository:
         return result.scalars().all()
 
     async def update(self, id: int, dados: dict) -> Optional[Defeito]:
+        defeito = await self.db.get(Defeito, id)
+        if not defeito:
+            return None
+        for key, value in dados.items():
+            setattr(defeito, key, value)
+        await self.db.commit()
+        await self.db.refresh(defeito)
+        return defeito
+
+    # --- NOVO MÉTODO OTIMIZADO ---
+    async def get_all(self, responsavel_id: Optional[int] = None) -> Sequence[Defeito]:
         query = (
-            update(Defeito)
-            .where(Defeito.id == id)
-            .values(**dados)
-            .returning(Defeito.id) 
+            select(Defeito)
+            .join(Defeito.execucao)
+            .options(
+                # Carregamento otimizado para evitar N+1
+                selectinload(Defeito.execucao).selectinload(ExecucaoTeste.caso_teste).selectinload(CasoTeste.passos),
+                selectinload(Defeito.execucao).selectinload(ExecucaoTeste.responsavel).selectinload(Usuario.nivel_acesso),
+                selectinload(Defeito.execucao).selectinload(ExecucaoTeste.passos_executados).selectinload(ExecucaoPasso.passo_template)
+            )
+            .order_by(Defeito.id.desc())
         )
+
+        # Aplica o filtro se um ID for passado (Testador vendo seus defeitos)
+        if responsavel_id:
+            query = query.where(ExecucaoTeste.responsavel_id == responsavel_id)
+
         result = await self.db.execute(query)
-        await self.db.commit()
-        
-        updated_id = result.scalars().first()
-        if updated_id:
-             return await self.get_by_id_full(updated_id)
-        return None
-    
-    async def delete(self, id: int) -> bool:
-        query = delete(Defeito).where(Defeito.id == id)
-        result = await self.db.execute(query)
-        await self.db.commit()
-        return result.rowcount > 0
+        return result.scalars().all()

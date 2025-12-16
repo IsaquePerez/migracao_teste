@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional
 
@@ -9,7 +9,7 @@ class SistemaBase(BaseModel):
 
 # Schema para a criação de um novo Sistema (o que a API recebe)
 class SistemaCreate(SistemaBase):
-    pass # Não há campos extras para a criação, herda tudo de SistemaBase
+    pass 
 
 class SistemaUpdate(BaseModel):
     nome: Optional[str] = None
@@ -23,8 +23,4 @@ class SistemaResponse(SistemaBase):
     ativo: bool
     created_at: datetime
     updated_at: datetime
-
-    # Configuração para que o Pydantic consiga ler os dados
-    # a partir de um objeto SQLAlchemy (o nosso modelo Sistema)
-class Config:
-    from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
