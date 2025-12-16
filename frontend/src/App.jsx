@@ -4,6 +4,9 @@ import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Login } from './pages/Login';
 import { AdminUsers } from './pages/AdminUsers';
+import './styles/index.css';
+
+// Imports das páginas
 import { AdminSistemas } from './pages/AdminSistemas';
 import { AdminModulos } from './pages/AdminModulos';
 import { AdminProjetos } from './pages/AdminProjetos';
@@ -12,7 +15,6 @@ import { AdminCiclos } from './pages/AdminCiclos';
 import { QADefeitos } from './pages/QADefeitos';
 import { QARunner } from './pages/QARunner';
 import { Dashboard } from './pages/Dashboard'; 
-import './index.css';
 
 /* ==========================================================================
    COMPONENTE: CABEÇALHO SUPERIOR (TOP HEADER)

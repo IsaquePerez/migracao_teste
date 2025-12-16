@@ -158,11 +158,6 @@ body {
   margin: 0 auto;
 }
 
-.container.narrow { 
-  max-width: 500px; 
-  margin: 60px auto; 
-}
-
 .container.grid { 
   display: grid; 
   grid-template-columns: 1fr 1fr; 
@@ -321,31 +316,6 @@ tr.selected {
 
 .badge.on { background-color: #DCFCE7; color: #166534; }
 .badge.off { background-color: #FEE2E2; color: #991B1B; }
-
-/* ==========================================================================
-   ESTILOS ESPECÍFICOS: PÁGINA DE LOGIN
-   ========================================================================== */
-.page-login-wrapper {
-  display: flex;
-  flex-direction: column;
-  background-color: #F8FAFC;
-  min-height: 100vh;
-}
-
-.page-login-wrapper .topbar {
-  background-color: var(--dark-blue);
-  color: var(--white);
-  padding: 15px 30px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.page-login-wrapper .brand-logo {
-  height: 28px;
-  width: auto;
-  filter: brightness(0) invert(1);
-}
 
 .info-block {
   background-color: #F0F9FF;
