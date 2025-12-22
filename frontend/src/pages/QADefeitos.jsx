@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
-import { api } from '../services/api';
+import { api, getSession } from '../services/api';
 
 export function QADefeitos() {
+  const isAdmin = getSession().role === 'admin';
   const [defeitos, setDefeitos] = useState([]);
-  const [loading, setLoading] = useState(false);
-  // openMenuId controla qual dropdown está aberto no momento
+  const [loading, setLoading] = useState(false);  
   const [openMenuId, setOpenMenuId] = useState(null);
   const [galleryImages, setGalleryImages] = useState(null);
 
   useEffect(() => { loadDefeitos(); }, []);
-
+    
   const loadDefeitos = async () => {
     setLoading(true);
     try {
@@ -18,15 +18,12 @@ export function QADefeitos() {
     } catch (error) { console.error(error); alert("Erro ao carregar defeitos."); }
     finally { setLoading(false); }
   };
-
-  // Agora recebe o novo status diretamente ao clicar na opção
-  const handleUpdateStatus = async (id, newStatus) => {
-    // UI otimista: fecha o menu imediatamente
+  
+  const handleUpdateStatus = async (id, newStatus) => {    
     setOpenMenuId(null); 
     
     try {
-        await api.put(`/defeitos/${id}`, { status: newStatus });
-        // Recarrega lista para confirmar
+        await api.put(`/defeitos/${id}`, { status: newStatus });        
         loadDefeitos(); 
     } catch (e) { 
         alert("Erro ao atualizar status."); 
@@ -34,7 +31,7 @@ export function QADefeitos() {
     }
   };
 
-  // --- HELPERS VISUAIS ---
+  //HELPERS VISUAIS
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
@@ -74,7 +71,7 @@ export function QADefeitos() {
         case 'aberto': return { bg: '#fee2e2', color: '#b91c1c' };
         case 'corrigido': return { bg: '#d1fae5', color: '#065f46' };
         case 'fechado': return { bg: '#f1f5f9', color: '#475569' };
-        default: return { bg: '#eff6ff', color: '#1e40af' }; // em_teste e outros
+        default: return { bg: '#eff6ff', color: '#1e40af' }; 
     }
   };
 
@@ -96,6 +93,7 @@ export function QADefeitos() {
   };
 
   const toggleMenu = (id) => {
+    if (!isAdmin) return;
     if (openMenuId === id) setOpenMenuId(null);
     else setOpenMenuId(id);
   };
@@ -107,7 +105,7 @@ export function QADefeitos() {
         <button onClick={loadDefeitos} className="btn">Atualizar Lista</button>
       </div>
 
-      <section className="card" style={{overflow: 'visible'}}> {/* overflow visible para o menu não cortar */}
+      <section className="card" style={{overflow: 'visible'}}>
         {loading ? <p>A carregar...</p> : (
           <div className="table-wrap" style={{overflowX: 'visible'}}>
             {defeitos.length === 0 ? <p className="muted">Nenhum defeito registado.</p> : (
@@ -119,9 +117,8 @@ export function QADefeitos() {
                     <th>Erro</th>
                     <th>Evidências</th>
                     <th>Severidade</th>
-                    <th>Status & Ações</th> {/* Coluna fundida */}
-                    <th>Registado em</th>
-                    {/* Coluna Ações removida */}
+                    <th>Status & Ações</th> 
+                    <th>Registado em</th>                    
                   </tr>
                 </thead>
                 <tbody>
@@ -161,62 +158,80 @@ export function QADefeitos() {
                                 <span style={{color: getSeveridadeColor(d.severidade), fontWeight: 'bold', textTransform: 'uppercase', fontSize: '0.75rem'}}>
                                     {d.severidade}
                                 </span>
-                            </td>
+                            </td>                            
                             
-                            {/* --- COLUNA DE STATUS INTERATIVA --- */}
                             <td style={{ position: 'relative' }}> 
-                                <button 
-                                    onClick={() => toggleMenu(d.id)}
-                                    className="badge"
-                                    style={{
-                                        backgroundColor: styleStatus.bg,
-                                        color: styleStatus.color,
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '5px',
-                                        fontSize: '0.75rem',
-                                        fontWeight: 'bold',
-                                        
-                                    }}
-                                >
-                                    {d.status} <span style={{fontSize: '0.6rem'}}>▼</span>
-                                </button>
+                                {isAdmin ? (                                    
+                                    <>
+                                        <button 
+                                            onClick={() => toggleMenu(d.id)}
+                                            className="badge"
+                                            style={{
+                                                backgroundColor: styleStatus.bg,
+                                                color: styleStatus.color,
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '5px',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 'bold',
+                                            }}
+                                        >
+                                            {d.status} <span style={{fontSize: '0.6rem'}}>▼</span>
+                                        </button>
 
-                                {/* MENU SUSPENSO (DROPDOWN) */}
-                                {openMenuId === d.id && (
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: '100%',
-                                        left: 0,
-                                        backgroundColor: 'white',
-                                        border: '1px solid #e2e8f0',
-                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                        borderRadius: '6px',
-                                        zIndex: 50,
-                                        minWidth: '120px',
-                                        overflow: 'hidden'
-                                    }}>
-                                        {['aberto', 'em_teste', 'corrigido', 'fechado'].map(opt => (
-                                            <div 
-                                                key={opt}
-                                                onClick={() => handleUpdateStatus(d.id, opt)}
-                                                style={{
-                                                    padding: '8px 12px',
-                                                    cursor: 'pointer',
-                                                    fontSize: '0.85rem',
-                                                    color: '#334155',
-                                                    borderBottom: '1px solid #f1f5f9',
-                                                    backgroundColor: d.status === opt ? '#f8fafc' : 'white'
-                                                }}
-                                                onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
-                                                onMouseLeave={(e) => e.target.style.backgroundColor = d.status === opt ? '#f8fafc' : 'white'}
-                                            >
-                                                {opt.replace('_', ' ')}
+                                        {openMenuId === d.id && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '100%',
+                                                left: 0,
+                                                backgroundColor: 'white',
+                                                border: '1px solid #e2e8f0',
+                                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                                                borderRadius: '6px',
+                                                zIndex: 50,
+                                                minWidth: '120px',
+                                                overflow: 'hidden'
+                                            }}>
+                                                {['aberto', 'em_teste', 'corrigido', 'fechado'].map(opt => (
+                                                    <div 
+                                                        key={opt}
+                                                        onClick={() => handleUpdateStatus(d.id, opt)}
+                                                        style={{
+                                                            padding: '8px 12px',
+                                                            cursor: 'pointer',
+                                                            fontSize: '0.85rem',
+                                                            color: '#334155',
+                                                            borderBottom: '1px solid #f1f5f9',
+                                                            backgroundColor: d.status === opt ? '#f8fafc' : 'white'
+                                                        }}
+                                                        onMouseEnter={(e) => e.target.style.backgroundColor = '#f1f5f9'}
+                                                        onMouseLeave={(e) => e.target.style.backgroundColor = d.status === opt ? '#f8fafc' : 'white'}
+                                                    >
+                                                        {opt.replace('_', ' ')}
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
-                                    </div>
+                                        )}
+                                    </>
+                                ) : (                                    
+                                    <span 
+                                        className="badge"
+                                        style={{
+                                            backgroundColor: styleStatus.bg,
+                                            color: styleStatus.color,
+                                            border: 'none',
+                                            display: 'inline-block',
+                                            fontSize: '0.75rem',
+                                            fontWeight: 'bold',
+                                            padding: '4px 8px',
+                                            borderRadius: '15px',
+                                            cursor: 'default' 
+                                        }}
+                                    >
+                                        {d.status}
+                                    </span>
                                 )}
                             </td>
 

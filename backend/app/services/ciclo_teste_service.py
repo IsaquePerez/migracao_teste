@@ -12,15 +12,18 @@ class CicloTesteService:
         self.repo = CicloTesteRepository(db)
 
     async def criar_ciclo(self, projeto_id: int, dados: CicloTesteCreate):
-        # 1. Validação de Duplicidade
         existente = await self.repo.get_by_nome_projeto(dados.nome, projeto_id)
         if existente:
              raise HTTPException(status_code=400, detail="Já existe um Ciclo com este nome neste projeto.")
         
-        # 2. Validação de Data (Regra de Negócio)
         if dados.data_inicio:
             hoje = datetime.now().date()
-            if dados.data_inicio < hoje:
+            
+            data_inicio_check = dados.data_inicio
+            if isinstance(data_inicio_check, datetime):
+                data_inicio_check = data_inicio_check.date()
+                
+            if data_inicio_check < hoje:
                 raise HTTPException(status_code=400, detail="A data de início do ciclo não pode ser no passado.")
         
         try:

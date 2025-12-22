@@ -31,7 +31,8 @@ class CicloTesteRepository:
         return result.unique().scalars().all()
 
     async def create(self, projeto_id: int, ciclo_data: CicloTesteCreate) -> CicloTeste:
-        db_ciclo = CicloTeste(projeto_id=projeto_id, **ciclo_data.model_dump())
+        dados_ciclo = ciclo_data.model_dump(exclude={'projeto_id'})        
+        db_ciclo = CicloTeste(projeto_id=projeto_id, **dados_ciclo)        
         self.db.add(db_ciclo)
         await self.db.commit()
         return await self.get_by_id(db_ciclo.id)

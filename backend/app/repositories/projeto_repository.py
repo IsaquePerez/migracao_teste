@@ -8,11 +8,13 @@ class ProjetoRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(self, projeto: Projeto) -> Projeto:
-        self.db.add(projeto)
+    async def create(self, projeto_data: Projeto) -> Projeto:
+        db_projeto = Projeto(**projeto_data.model_dump())
+        
+        self.db.add(db_projeto)
         await self.db.commit()
-        await self.db.refresh(projeto)
-        return projeto
+        await self.db.refresh(db_projeto)
+        return db_projeto
     
     async def get_all(self) -> Sequence[Projeto]:
         query = select(Projeto)

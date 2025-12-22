@@ -4,7 +4,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy import delete, update as sqlalchemy_update
 from typing import Sequence, Optional
 
-from app.models.testing import CasoTeste, PassoCasoTeste, ExecucaoTeste, ExecucaoPasso, Defeito
+from app.models.testing import CasoTeste, PassoCasoTeste, ExecucaoTeste, StatusExecucaoEnum, ExecucaoPasso, Defeito
 from app.models.usuario import Usuario
 from app.schemas.caso_teste import CasoTesteCreate
 
@@ -31,21 +31,51 @@ class CasoTesteRepository:
         return result.scalars().all()
 
     async def create(self, projeto_id: int, caso_data: CasoTesteCreate) -> CasoTeste:
+        # 1. Cria a "Receita" (Caso de Teste)
         db_caso = CasoTeste(
             projeto_id=projeto_id,
-            **caso_data.model_dump(exclude={'passos', 'ciclo_id'})
+            **caso_data.model_dump(exclude={'passos', 'ciclo_id'}) 
         )
         self.db.add(db_caso)
-        await self.db.flush()
+        await self.db.flush() 
 
+        # 2. Cria os Passos (Receita)
+        passos_objs = [] # Lista para guardar os objetos criados
         if caso_data.passos:
             passos_objs = [
                 PassoCasoTeste(caso_teste_id=db_caso.id, **p.model_dump()) 
                 for p in caso_data.passos
             ]
             self.db.add_all(passos_objs)
+            await self.db.flush() # Importante: flush para gerar os IDs dos passos (p.id)
         
+        # 3. Alocação Automática (CORRIGIDA)
+        if caso_data.ciclo_id and caso_data.responsavel_id:
+            nova_execucao = ExecucaoTeste(
+                ciclo_teste_id=caso_data.ciclo_id,
+                caso_teste_id=db_caso.id,
+                responsavel_id=caso_data.responsavel_id,
+                status_geral=StatusExecucaoEnum.pendente
+            )
+            self.db.add(nova_execucao)
+            await self.db.flush() # Gera o ID da execução
+
+            # --- AQUI ESTAVA A FALTA: Criação dos Passos da Execução ---
+            if passos_objs:
+                passos_execucao = [
+                    ExecucaoPasso(
+                        execucao_teste_id=nova_execucao.id,
+                        passo_caso_teste_id=p.id, # Vincula ao passo original criado acima
+                        status="pendente",
+                        resultado_obtido=""
+                    )
+                    for p in passos_objs
+                ]
+                self.db.add_all(passos_execucao)
+
+        # 4. Salva tudo
         await self.db.commit()
+        
         return await self.get_by_id(db_caso.id)
 
     async def get_by_id(self, caso_id: int) -> Optional[CasoTeste]:

@@ -1,6 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import shutil
+import uuid
+import os
+import json
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Sequence
+from typing import List, Optional
 
 from app.core.database import get_db
 from app.api.deps import get_current_user
@@ -15,7 +19,12 @@ from app.services.execucao_teste_service import ExecucaoTesteService
 # Schemas
 from app.schemas.caso_teste import CasoTesteCreate, CasoTesteResponse, CasoTesteUpdate
 from app.schemas.ciclo_teste import CicloTesteCreate, CicloTesteResponse, CicloTesteUpdate
-from app.schemas.execucao_teste import ExecucaoTesteResponse, ExecucaoPassoResponse, ExecucaoPassoUpdate
+from app.schemas.execucao_teste import (
+    ExecucaoTesteCreate, # Certifique-se de ter criado este schema conforme orientação anterior
+    ExecucaoTesteResponse, 
+    ExecucaoPassoResponse, 
+    ExecucaoPassoUpdate
+)
 
 router = APIRouter()
 
@@ -34,7 +43,6 @@ def get_execucao_service(db: AsyncSession = Depends(get_db)) -> ExecucaoTesteSer
 # GESTÃO DE CASOS DE TESTE (BIBLIOTECA)
 # ==============================================================================
 
-# [NOVO] Rota para listar casos
 @router.get("/projetos/{projeto_id}/casos", response_model=List[CasoTesteResponse])
 async def listar_casos_projeto(
     projeto_id: int,
@@ -48,6 +56,7 @@ async def criar_caso_teste(
     dados: CasoTesteCreate,
     service: CasoTesteService = Depends(get_caso_service)
 ):
+    # A mágica da alocação automática (se vier ciclo_id) acontece aqui dentro do service/repo
     return await service.criar_caso_teste(projeto_id, dados)
 
 @router.put("/casos/{caso_id}", response_model=CasoTesteResponse)
@@ -74,7 +83,6 @@ async def remover_caso_teste(
 # GESTÃO DE CICLOS DE TESTE (SPRINTS)
 # ==============================================================================
 
-# [NOVO] Rota para listar ciclos
 @router.get("/projetos/{projeto_id}/ciclos", response_model=List[CicloTesteResponse])
 async def listar_ciclos_projeto(
     projeto_id: int,
@@ -114,22 +122,37 @@ async def remover_ciclo(
 # EXECUÇÃO E PLANEJAMENTO
 # ==============================================================================
 
-@router.post("/execucoes/alocar", response_model=ExecucaoTesteResponse)
-async def alocar_teste(
-    ciclo_id: int,
-    caso_id: int,
-    responsavel_id: int,
+# [NOVO] Endpoint Padronizado para Criar Execução (Substitui /alocar)
+# Use este endpoint quando quiser reutilizar um caso de teste existente em um novo ciclo.
+@router.post("/execucoes/", response_model=ExecucaoTesteResponse, status_code=status.HTTP_201_CREATED)
+async def criar_execucao(
+    dados: ExecucaoTesteCreate,
     service: ExecucaoTesteService = Depends(get_execucao_service)
 ):
-    return await service.alocar_teste(ciclo_id, caso_id, responsavel_id)
+    # O service deve ter um método 'criar_execucao' ou 'alocar_teste' que aceita o schema
+    # Se seu service ainda usa alocar_teste(id, id, id), você pode adaptar aqui:
+    return await service.alocar_teste(dados.ciclo_teste_id, dados.caso_teste_id, dados.responsavel_id)
 
-@router.get("/execucoes/meus-testes", response_model=List[ExecucaoTesteResponse])
+@router.get("/minhas-tarefas", response_model=List[ExecucaoTesteResponse]) 
 async def listar_meus_testes(
+    status: Optional[StatusExecucaoEnum] = None,
+    skip: int = 0,
+    limit: int = 20,
     current_user: Usuario = Depends(get_current_user),
     service: ExecucaoTesteService = Depends(get_execucao_service)
 ):
-    return await service.listar_tarefas_usuario(current_user.id)
+    return await service.listar_tarefas_usuario(current_user.id, status, skip, limit)
 
+@router.get("/execucoes/{execucao_id}", response_model=ExecucaoTesteResponse)
+async def obter_execucao(
+    execucao_id: int,
+    service: ExecucaoTesteService = Depends(get_execucao_service)
+):
+    execucao = await service.obter_execucao(execucao_id)
+    if not execucao:
+        raise HTTPException(status_code=404, detail="Execução de teste não encontrada")
+    return execucao
+    
 @router.put("/execucoes/passos/{passo_id}", response_model=ExecucaoPassoResponse)
 async def registrar_passo(
     passo_id: int,
@@ -141,10 +164,20 @@ async def registrar_passo(
 @router.put("/execucoes/{execucao_id}/finalizar")
 async def finalizar_execucao_manual(
     execucao_id: int,
-    status_final: StatusExecucaoEnum,
+    status: StatusExecucaoEnum,
     service: ExecucaoTesteService = Depends(get_execucao_service)
 ):
-    execucao = await service.finalizar_execucao(execucao_id, status_final)
+    execucao = await service.finalizar_execucao(execucao_id, status_final=status)
+    
     if not execucao:
         raise HTTPException(status_code=404, detail="Execução não encontrada")
-    return {"message": "Execução atualizada", "status": status_final}
+        
+    return {"message": "Execução atualizada", "status": status}
+
+@router.post("/execucoes/passos/{passo_id}/evidencia")
+async def upload_evidencia_passo(
+    passo_id: int,
+    file: UploadFile = File(...),
+    service: ExecucaoTesteService = Depends(get_execucao_service)
+):
+    return await service.upload_evidencia(passo_id, file)

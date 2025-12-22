@@ -26,28 +26,47 @@ export function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
+
     try {
-      const data = await api.post("/login", { username, password });
+      // 1. Prepara os dados (Padrão OAuth2)
+      const params = new URLSearchParams();
+      params.append('username', username); // O backend exige 'username', mesmo sendo email
+      params.append('password', password);
+
+      // 2. Envia com HEADER EXPLÍCITO
+      // Isso garante que o backend entenda o formato, não deixando pro navegador decidir
+      const response = await api.post("/login/", params, {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        }
+      });
       
-      // Normalização de dados (caso o backend não envie tudo)
+      // O seu api.js atualizado já retorna o data diretamente se response.ok for true
+      // Mas por segurança, garantimos que temos o objeto
+      const data = response; 
+
+      // 3. Normalização (Caso o backend não mande tudo)
       if (!data.role) data.role = username.toLowerCase().includes("admin") ? "admin" : "user";
       if (!data.username) data.username = username;
 
+      // 4. Salva login e redireciona
       login(data);
+      
       if (data.role === 'admin') {
-          navigate('/admin', { replace: true });
+           navigate('/admin', { replace: true });
       } else {
-          navigate('/qa/runner', { replace: true });
+           navigate('/qa/runner', { replace: true });
       }
 
     } catch (err) {
-      console.error(err);
-      setError(err.message || "Falha no login. Verifique as credenciais.");
+      console.error("Login Error:", err);
+      // Tratamento de erro robusto
+      const msg = err.message || "Falha no login. Verifique as credenciais.";
+      setError(msg);
     } finally {
       setLoading(false);
     }
   };
-
   return (
     <div className="page-login-wrapper">
 

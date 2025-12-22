@@ -88,7 +88,7 @@ export function QARunner() {
 
   const updatePasso = async (passoId, status) => {
       try {
-          await api.put(`/testes/passos/${passoId}`, { status });
+          await api.put(`/testes/execucoes/passos/${passoId}`, { status });
           
           const updatedPassos = activeExecucao.passos_executados.map(p => {
               if(p.id === passoId) return { ...p, status };
@@ -102,7 +102,9 @@ export function QARunner() {
 
   // --- FINALIZAÇÃO DO TESTE ---
   const requestFinishExecution = () => {
-    const allPassed = activeExecucao.passos_executados.every(p => p.status === 'aprovado');
+    // Verificação de segurança: garante que passos_executados existe antes de usar 'every'
+    const passos = activeExecucao?.passos_executados || [];
+    const allPassed = passos.length > 0 && passos.every(p => p.status === 'aprovado');
     const statusFinal = allPassed ? 'passou' : 'falhou';
 
     setConfirmModal({
@@ -303,76 +305,93 @@ export function QARunner() {
                           )}
                       </div>
 
+                      {/* --- CORREÇÃO DE SEGURANÇA AQUI (Prevent White Screen) --- */}
                       <div className="steps-list">
-                          {[...activeExecucao.passos_executados].sort((a,b) => a.passo_template.ordem - b.passo_template.ordem).map((p) => {
-                              const evidenciasList = parseEvidencias(p.evidencias);
-                              return (
-                                  <div key={p.id} style={{
-                                      display: 'grid', gridTemplateColumns: '40px 1fr 140px', 
-                                      gap: '20px', padding: '20px', borderBottom: '1px solid #f1f5f9',
-                                      backgroundColor: p.status === 'aprovado' ? '#f0fdf4' : (p.status === 'reprovado' ? '#fef2f2' : 'white'),
-                                      borderRadius: '8px', marginBottom: '10px', transition: 'background-color 0.3s'
-                                  }}>
-                                      <div style={{fontWeight:'bold', color:'#001C42', fontSize: '1.2rem'}}>#{p.passo_template.ordem}</div>
-                                      
-                                      {/* DETALHES DO PASSO */}
-                                      <div>
-                                          <div style={{fontWeight:600, fontSize: '1.05rem', marginBottom:'5px'}}>{p.passo_template.acao}</div>
-                                          <div style={{color:'#059669', fontSize:'0.95rem', marginBottom:'15px', padding:'8px', backgroundColor:'rgba(16, 185, 129, 0.1)', borderRadius:'6px'}}>
-                                              <strong>Esperado:</strong> {p.passo_template.resultado_esperado}
-                                          </div>
-                                          
-                                          {/* EVIDÊNCIAS */}
-                                          <div style={{display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center'}}>
-                                              {evidenciasList.length < 3 && (
-                                                  <label className="btn small" style={{backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px'}}>
-                                                      <span>📷</span> Anexar
-                                                      <input type="file" accept="image/*" style={{display:'none'}} onChange={(e) => handleFileUpload(e, p.id)} />
-                                                  </label>
-                                              )}
-                                              {evidenciasList.map((url, idx) => (
-                                                  <div key={idx} className="evidence-chip">
-                                                      <span style={{cursor: 'pointer', textDecoration: 'underline'}} onClick={() => setGalleryImages(evidenciasList)}>Imagem {idx + 1}</span>
-                                                      <button 
-                                                        className="delete-btn" 
-                                                        onClick={(e) => { e.stopPropagation(); requestDeleteEvidence(p.id, url); }}
-                                                        title="Remover imagem"
-                                                      >
-                                                        ✕
-                                                      </button>
-                                                  </div>
-                                              ))}
-                                          </div>
-                                      </div>
+                        {Array.isArray(activeExecucao.passos_executados) && activeExecucao.passos_executados.length > 0 ? (
+                            [...activeExecucao.passos_executados]
+                                .sort((a, b) => {
+                                    // Fallback caso passo_template não tenha carregado
+                                    const ordemA = a.passo_template?.ordem || 0;
+                                    const ordemB = b.passo_template?.ordem || 0;
+                                    return ordemA - ordemB;
+                                })
+                                .map((p) => {
+                                    const evidenciasList = parseEvidencias(p.evidencias);
+                                    // Fallback caso o template seja nulo
+                                    const template = p.passo_template || { acao: "Erro ao carregar passo", resultado_esperado: "---", ordem: 0 };
 
-                                      {/* AÇÕES */}
-                                      <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
-                                          <button 
-                                            onClick={() => handleStepAction(p.id, 'aprovado')} 
-                                            className="btn btn-approve"
-                                            disabled={p.status === 'aprovado'}
-                                            style={{opacity: p.status === 'aprovado' ? 0.5 : 1}}
-                                          >
-                                            {p.status === 'aprovado' ? 'Aprovado' : 'Aprovar'}
-                                          </button>
-                                          
-                                          <button 
-                                            onClick={() => handleStepAction(p.id, 'reprovado')} 
-                                            className="btn btn-reject"
-                                            disabled={p.status === 'reprovado'}
-                                            style={{opacity: p.status === 'reprovado' ? 0.5 : 1}}
-                                          >
-                                            {p.status === 'reprovado' ? 'Falhou' : 'Falhar'}
-                                          </button>
-                                      </div>
-                                  </div>
-                              );
-                          })}
+                                    return (
+                                        <div key={p.id} style={{
+                                            display: 'grid', gridTemplateColumns: '40px 1fr 140px',
+                                            gap: '20px', padding: '20px', borderBottom: '1px solid #f1f5f9',
+                                            backgroundColor: p.status === 'aprovado' ? '#f0fdf4' : (p.status === 'reprovado' ? '#fef2f2' : 'white'),
+                                            borderRadius: '8px', marginBottom: '10px', transition: 'background-color 0.3s'
+                                        }}>
+                                            <div style={{ fontWeight: 'bold', color: '#001C42', fontSize: '1.2rem' }}>#{template.ordem}</div>
+
+                                            {/* DETALHES DO PASSO */}
+                                            <div>
+                                                <div style={{ fontWeight: 600, fontSize: '1.05rem', marginBottom: '5px' }}>{template.acao}</div>
+                                                <div style={{ color: '#059669', fontSize: '0.95rem', marginBottom: '15px', padding: '8px', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderRadius: '6px' }}>
+                                                    <strong>Esperado:</strong> {template.resultado_esperado}
+                                                </div>
+
+                                                {/* EVIDÊNCIAS */}
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+                                                    {evidenciasList.length < 3 && (
+                                                        <label className="btn small" style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                            <span>📷</span> Anexar
+                                                            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e, p.id)} />
+                                                        </label>
+                                                    )}
+                                                    {evidenciasList.map((url, idx) => (
+                                                        <div key={idx} className="evidence-chip">
+                                                            <span style={{ cursor: 'pointer', textDecoration: 'underline' }} onClick={() => setGalleryImages(evidenciasList)}>Imagem {idx + 1}</span>
+                                                            <button
+                                                                className="delete-btn"
+                                                                onClick={(e) => { e.stopPropagation(); requestDeleteEvidence(p.id, url); }}
+                                                                title="Remover imagem"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            {/* AÇÕES */}
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                <button
+                                                    onClick={() => handleStepAction(p.id, 'aprovado')}
+                                                    className="btn btn-approve"
+                                                    disabled={p.status === 'aprovado'}
+                                                    style={{ opacity: p.status === 'aprovado' ? 0.5 : 1 }}
+                                                >
+                                                    {p.status === 'aprovado' ? 'Aprovado' : 'Aprovar'}
+                                                </button>
+
+                                                <button
+                                                    onClick={() => handleStepAction(p.id, 'reprovado')}
+                                                    className="btn btn-reject"
+                                                    disabled={p.status === 'reprovado'}
+                                                    style={{ opacity: p.status === 'reprovado' ? 0.5 : 1 }}
+                                                >
+                                                    {p.status === 'reprovado' ? 'Falhou' : 'Falhar'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                        ) : (
+                            <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+                                Nenhum passo de teste encontrado para esta execução.
+                            </div>
+                        )}
                       </div>
                   </div>
               ) : (
                 <div className="card muted" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '1.2rem' }}>
-                    👈 Selecione uma tarefa para iniciar
+                    Selecione uma tarefa para iniciar
                 </div>
               )}
           </div>

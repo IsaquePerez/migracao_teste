@@ -1,38 +1,38 @@
 # app/api/v1/endpoints/login.py
 from datetime import timedelta
+from typing import Any
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
+from fastapi.security import OAuth2PasswordRequestForm # <--- O IMPORT MÁGICO
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db 
 from app.models.usuario import Usuario
-from app.core.security import verify_password, create_access_token # Importa a criação do token
+from app.core.security import verify_password, create_access_token
 from app.core.config import settings
-from app.schemas.token import Token # Seu schema de resposta
+from app.schemas.token import Token
 
 router = APIRouter()
 
-class LoginRequest(BaseModel):
-    username: str
-    password: str
+# Não precisamos mais da classe LoginRequest, o FastAPI já tem uma pronta
 
-# Rota alterada de "/login" para "/" (pois api.py já tem prefix="/login")
 # URL Final: POST /api/v1/login/
 @router.post("/", response_model=Token, summary="Login e Geração de Token")
 async def login_access_token(
-    data: LoginRequest, 
-    db: AsyncSession = Depends(get_db)
-):
+    db: AsyncSession = Depends(get_db),
+    # SUBSTITUÍMOS 'data: LoginRequest' POR ISSO AQUI:
+    form_data: OAuth2PasswordRequestForm = Depends()
+) -> Any:
+    
     # 1. Busca usuário no banco
-    query = select(Usuario).options(selectinload(Usuario.nivel_acesso)).where(Usuario.email == data.username)
+    # O form_data sempre coloca o login no campo 'username', mesmo que seja email
+    query = select(Usuario).options(selectinload(Usuario.nivel_acesso)).where(Usuario.email == form_data.username)
     result = await db.execute(query)
     user = result.scalars().first()
 
     # 2. Validação de Segurança
-    if not user or not verify_password(data.password, user.senha_hash):
-         # Retornar sempre a mesma mensagem para não vazar se o email existe ou não
+    if not user or not verify_password(form_data.password, user.senha_hash):
          raise HTTPException(status_code=401, detail="Email ou senha incorretos")
 
     if not user.ativo:
@@ -41,7 +41,6 @@ async def login_access_token(
     # 3. Criação do Token JWT Profissional
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
-    # O 'sub' (subject) geralmente é o ID ou Email (string)
     access_token = create_access_token(
         data={"sub": str(user.id), "role": user.nivel_acesso.nome, "email": user.email},
         expires_delta=access_token_expires
