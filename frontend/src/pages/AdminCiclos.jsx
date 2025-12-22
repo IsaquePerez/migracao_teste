@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from 'react'; // 1. Adicionado useRef
-import { createPortal } from 'react-dom';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { api } from '../services/api';
 import { ConfirmationModal } from '../components/ConfirmationModal';
@@ -20,28 +19,22 @@ export function AdminCiclos() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [cicloToDelete, setCicloToDelete] = useState(null);
 
-  // --- ESTADOS DA BUSCA CUSTOMIZADA (NOVO) ---
+  //ESTADOS DA BUSCA 
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef(null);
 
-  // --- LÓGICA DO DROPDOWN ---
-  // Se vazio: mostra os 5 últimos (ID decrescente)
-  // Se tem texto: filtra e mostra até 8 resultados
+  //LÓGICA DE FILTRO E BUSCA
   const opcoesParaMostrar = searchTerm === '' 
     ? [...ciclos].sort((a, b) => b.id - a.id).slice(0, 5) 
     : ciclos.filter(c => c.nome.toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 8);
 
-  // --- FILTRO DA LISTA ---
   const filteredCiclos = ciclos.filter(c => 
       c.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // --- AUXILIARES ---
-  const truncate = (str, n = 40) => {
-    return (str && str.length > n) ? str.substr(0, n - 1) + '...' : str;
-  };
-
+  const truncate = (str, n = 40) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str;
   const formatForInput = (dateString) => dateString ? dateString.split('T')[0] : '';
   const formatDateTable = (dateString) => dateString ? new Date(dateString).toLocaleDateString('pt-BR', { timeZone: 'UTC' }) : '-';
   const getHojeISO = () => new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
@@ -74,7 +67,7 @@ export function AdminCiclos() {
       );
   };
 
-  // --- EFEITOS (Data Fetching & Click Outside) ---
+  //DATA FETCHING 
   useEffect(() => {
     const fetchProjetos = async () => {
         try {
@@ -84,7 +77,7 @@ export function AdminCiclos() {
             if (ativos.length > 0) setSelectedProjeto(ativos[0].id);
         } catch (e) {
             console.error(e);
-            toast.error("Erro ao carregar lista de projetos.");
+            toast.error("Erro ao carregar projetos.");
         }
     };
     fetchProjetos();
@@ -94,7 +87,6 @@ export function AdminCiclos() {
     if (selectedProjeto) loadCiclos(selectedProjeto);
   }, [selectedProjeto]);
 
-  // Fecha sugestões ao clicar fora
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -111,7 +103,6 @@ export function AdminCiclos() {
       const data = await api.get(`/testes/projetos/${projId}/ciclos`);
       setCiclos(Array.isArray(data) ? data : []);
     } catch (error) { 
-        console.error(error); 
         toast.error("Erro ao carregar ciclos.");
     } finally { 
         setLoading(false); 
@@ -121,11 +112,9 @@ export function AdminCiclos() {
   const currentProject = projetos.find(p => p.id == selectedProjeto);
   const isProjectActive = currentProject?.status === 'ativo';
 
-  // --- HANDLERS ---
+  // --- ACTIONS ---
   const handleNew = () => {
-      if (!isProjectActive) {
-          return toast.warning(`Projeto ${currentProject?.status?.toUpperCase()}. Criação de ciclos bloqueada.`);
-      }
+      if (!isProjectActive) return toast.warning(`Projeto ${currentProject?.status?.toUpperCase()}. Criação bloqueada.`);
       setView('form'); 
       setEditingId(null);
       setForm({ nome: '', descricao: '', data_inicio: '', data_fim: '', status: 'planejado' });
@@ -143,15 +132,12 @@ export function AdminCiclos() {
     setView('form');
   };
 
-  const handleCancel = () => { setView('list'); setEditingId(null); };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!selectedProjeto) return toast.warning("Selecione um projeto!");
-    if (!form.nome.trim()) return toast.warning("O nome do ciclo é obrigatório.");
-    if (!form.data_inicio || !form.data_fim) return toast.warning("As datas de início e fim são obrigatórias.");
-    if (form.data_inicio > form.data_fim) return toast.warning("A data de início não pode ser maior que a data fim.");
+    if (!form.nome.trim()) return toast.warning("Nome obrigatório.");
+    if (!form.data_inicio || !form.data_fim) return toast.warning("Datas obrigatórias.");
+    if (form.data_inicio > form.data_fim) return toast.warning("Início não pode ser maior que fim.");
 
     try {
       const payload = { 
@@ -162,141 +148,70 @@ export function AdminCiclos() {
       
       if (editingId) { 
           await api.put(`/testes/ciclos/${editingId}`, payload); 
-          toast.success("Ciclo atualizado com sucesso!"); 
+          toast.success("Ciclo atualizado!"); 
       } else { 
           await api.post(`/testes/projetos/${selectedProjeto}/ciclos`, payload); 
-          toast.success("Ciclo criado com sucesso!"); 
+          toast.success("Ciclo criado!"); 
       }
-      
-      handleCancel(); 
+      setView('list'); setEditingId(null);
       loadCiclos(selectedProjeto);
     } catch (error) { 
-        toast.error(error.message || "Erro ao salvar ciclo."); 
+        toast.error(error.message || "Erro ao salvar."); 
     }
   };
 
-  const requestDelete = (ciclo) => {
-      setCicloToDelete(ciclo);
-      setIsDeleteModalOpen(true);
-  };
-
-  const confirmDelete = async () => {
+  const handleDelete = async () => {
       if (!cicloToDelete) return;
       try { 
           await api.delete(`/testes/ciclos/${cicloToDelete.id}`); 
           toast.success("Ciclo excluído."); 
           loadCiclos(selectedProjeto); 
       } catch (e) { 
-          toast.error("Erro ao excluir ciclo (verifique execuções vinculadas)."); 
+          toast.error("Erro ao excluir."); 
       } finally {
+          setIsDeleteModalOpen(false);
           setCicloToDelete(null);
       }
   };
 
-  const navbarTarget = document.getElementById('header-actions');
-
   return (
     <main className="container">
       <style>{`
-        tr.hover-row:hover { background-color: #f1f5f9 !important; cursor: pointer; }
-
-        /* CSS DO DROPDOWN (Igual aos outros) */
+        tr.hover-row:hover { background-color: #f8fafc !important; cursor: pointer; }
         .custom-dropdown {
-          position: absolute;
-          top: 105%;
-          left: 0;
-          width: 100%;
-          background: white;
-          border: 1px solid #e2e8f0;
-          border-radius: 6px;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-          z-index: 50;
-          max-height: 250px;
-          overflow-y: auto;
-          list-style: none;
-          padding: 5px 0;
-          margin: 0;
+          position: absolute; top: 105%; left: 0; width: 100%;
+          background: white; border: 1px solid #e2e8f0; border-radius: 6px;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 50;
+          max-height: 250px; overflow-y: auto; padding: 5px 0;
         }
         .custom-dropdown li {
-          padding: 10px 15px;
-          border-bottom: 1px solid #f1f5f9;
-          cursor: pointer;
-          font-size: 0.9rem;
-          color: #334155;
-          display: flex;
-          align-items: center;
+          padding: 10px 15px; border-bottom: 1px solid #f1f5f9; cursor: pointer;
+          font-size: 0.9rem; color: #334155; display: flex; align-items: center;
         }
-        .custom-dropdown li:last-child { border-bottom: none; }
-        .custom-dropdown li:hover { 
-            background-color: #f1f5f9; 
-            color: #0f172a; 
-            font-weight: 500;
-        }
+        .custom-dropdown li:hover { background-color: #f1f5f9; color: #0f172a; font-weight: 500; }
       `}</style>
 
       <ConfirmationModal 
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={confirmDelete}
+        onConfirm={handleDelete}
         title="Excluir Ciclo?"
-        message={`Tem a certeza que deseja excluir o ciclo "${cicloToDelete?.nome}"? Todo o histórico de execução vinculado será perdido.`}
+        message={`Deseja excluir "${cicloToDelete?.nome}"? O histórico será perdido.`}
         confirmText="Sim, Excluir"
         isDanger={true}
       />
-      
-      {/* PORTAL DO HEADER (PROJETO SELECTOR) */}
-      {navbarTarget && createPortal(
-        <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-           <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-             <span style={{fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase'}}>Projeto:</span>
-             <select 
-                value={selectedProjeto} 
-                onChange={e => setSelectedProjeto(e.target.value)}
-                style={{
-                    padding: '6px 10px', 
-                    borderRadius: '4px', 
-                    border: '1px solid #cbd5e1', 
-                    fontSize: '0.9rem', 
-                    backgroundColor: '#fff',
-                    maxWidth: '300px'
-                }}
-             >
-                {projetos.filter(p => p.status === 'ativo').map(p => (
-                    <option key={p.id} value={p.id} title={p.nome}>
-                        {truncate(p.nome, 30)}
-                    </option>
-                ))}
-             </select>
-           </div>
-           {view === 'list' ? (
-             <button 
-                onClick={handleNew} 
-                className="btn primary" 
-                disabled={!isProjectActive} 
-                style={{height: '34px', opacity: isProjectActive ? 1 : 0.5, cursor: isProjectActive ? 'pointer' : 'not-allowed', fontSize: '0.9rem'}}
-             >
-                Novo Ciclo
-             </button>
-           ) : (
-             <button onClick={handleCancel} className="btn" style={{height: '34px', fontSize: '0.9rem'}}>Voltar</button>
-           )}
-        </div>,
-        navbarTarget
-      )}
 
       {/* FORMULÁRIO */}
       {view === 'form' && (
         <section className="card">
-          <h3 style={{marginTop:0}}>{editingId ? 'Editar Ciclo' : 'Novo Ciclo'}</h3>
+          <div style={{borderBottom:'1px solid #f1f5f9', paddingBottom:'15px', marginBottom:'20px'}}>
+             <h3 style={{margin:0, color: '#1e293b'}}>{editingId ? 'Editar Ciclo' : 'Novo Ciclo'}</h3>
+          </div>
           <form onSubmit={handleSubmit}>
             <div className="form-grid">
                <div style={{gridColumn: '1/-1'}}>
                  <label>Nome do Ciclo / Sprint</label>
-                 <input 
-                   value={form.nome} 
-                   onChange={e => setForm({...form, nome: e.target.value})} 
-                   placeholder="Ex: Sprint 32" 
-                 />
+                 <input value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} placeholder="Ex: Sprint 32" />
                </div>
                <div style={{gridColumn: '1/-1'}}>
                  <label>Descrição</label>
@@ -304,21 +219,11 @@ export function AdminCiclos() {
                </div>
                <div>
                  <label>Início</label>
-                 <input 
-                   type="date" 
-                   value={form.data_inicio} 
-                   onChange={e => setForm({...form, data_inicio: e.target.value})} 
-                   min={!editingId ? getHojeISO() : undefined}
-                 />
+                 <input type="date" value={form.data_inicio} onChange={e => setForm({...form, data_inicio: e.target.value})} min={!editingId ? getHojeISO() : undefined} />
                </div>
                <div>
                  <label>Fim</label>
-                 <input 
-                   type="date" 
-                   value={form.data_fim} 
-                   onChange={e => setForm({...form, data_fim: e.target.value})} 
-                   min={form.data_inicio}
-                 />
+                 <input type="date" value={form.data_fim} onChange={e => setForm({...form, data_fim: e.target.value})} min={form.data_inicio} />
                </div>
                <div>
                  <label>Status</label>
@@ -332,117 +237,177 @@ export function AdminCiclos() {
             </div>
             <div className="actions" style={{marginTop: '20px', display: 'flex', gap: '10px'}}>
               <button type="submit" className="btn primary">{editingId ? 'Salvar' : 'Criar'}</button>
-              <button type="button" onClick={handleCancel} className="btn">Cancelar</button>
+              <button type="button" onClick={() => {setView('list'); setEditingId(null);}} className="btn">Cancelar</button>
             </div>
           </form>
         </section>
       )}
 
-      {/* LISTA */}
+      {/* --- LISTA --- */}
       {view === 'list' && (
-        <section className="card" style={{marginTop:'20px'}}>
-           {/* HEADER DA TABELA COM BUSCA DROPDOWN */}
-           <div style={{paddingBottom: '15px', borderBottom: '1px solid #f1f5f9', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-               <span style={{fontWeight: 600, color: '#64748b'}}>
-                   {ciclos.length} ciclo(s) encontrado(s)
-               </span>
+        <section className="card" style={{marginTop: 0}}>
+           
+           {/* HEADER TOOLBAR */}
+           <div style={{
+               paddingBottom: '15px', 
+               borderBottom: '1px solid #f1f5f9', 
+               marginBottom: '15px', 
+               display: 'flex', 
+               justifyContent: 'space-between', 
+               alignItems: 'center', 
+               flexWrap: 'wrap', 
+               gap: '15px'
+           }}>
                
-               <div ref={wrapperRef} style={{position: 'relative', width: '250px'}}>
-                    <input 
-                        type="text" 
-                        placeholder="Buscar por nome..." 
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        onFocus={() => setShowSuggestions(true)}
+               {/* LADO ESQUERDO: Apenas o Título */}
+               <h3 style={{margin: 0, fontSize: '1.25rem', color: '#1e293b'}}>Gestão de Ciclos</h3>
+               
+               {/* LADO DIREITO: Agrupamento de Ferramentas (Projeto -> Novo -> Busca) */}
+               <div style={{display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap'}}>
+
+                   {/* 1. Seletor de Projeto */}
+                   <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                       <span style={{fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px'}}>PROJETO:</span>
+                       <select 
+                        value={selectedProjeto} 
+                        onChange={e => setSelectedProjeto(e.target.value)}
                         style={{
-                            width: '100%',
-                            padding: '8px 30px 8px 10px', 
+                            padding: '6px 10px', 
                             borderRadius: '6px', 
                             border: '1px solid #cbd5e1', 
-                            fontSize: '0.85rem',
-                            height: '36px',
-                            boxSizing: 'border-box'
+                            fontSize: '0.85rem', 
+                            backgroundColor: '#f8fafc',
+                            cursor: 'pointer',
+                            minWidth: '160px',
+                            fontWeight: 500,
+                            color: '#334155'
                         }}
-                    />
-                    <span style={{position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)'}}>🔍</span>
+                       >
+                        {projetos.filter(p => p.status === 'ativo').map(p => (
+                            <option key={p.id} value={p.id}>{truncate(p.nome, 25)}</option>
+                        ))}
+                       </select>
+                   </div>
 
-                    {/* MENU SUSPENSO */}
-                    {showSuggestions && opcoesParaMostrar.length > 0 && (
-                        <ul className="custom-dropdown">
-                            {opcoesParaMostrar.map(c => (
-                                <li 
-                                    key={c.id} 
-                                    onClick={() => {
-                                        setSearchTerm(c.nome);
-                                        setShowSuggestions(false);
-                                    }}
-                                >
-                                    <span>
-                                        {truncate(c.nome, 25)}
-                                        <span style={{fontSize:'0.75rem', color:'#9ca3af', marginLeft:'8px'}}>
-                                            ({c.status?.replace('_', ' ')})
+                   {/* 2. Botão Novo (agora ao lado do seletor) */}
+                   <button 
+                        onClick={handleNew} 
+                        className="btn primary" 
+                        disabled={!isProjectActive} 
+                        style={{
+                            height: '34px', 
+                            padding: '0 15px',
+                            opacity: isProjectActive ? 1 : 0.5, 
+                            cursor: isProjectActive ? 'pointer' : 'not-allowed', 
+                            fontSize: '0.85rem',
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        }}
+                   >
+                        Novo Ciclo
+                   </button>
+
+                   {/* Divisor Visual Vertical */}
+                   <div style={{width: '1px', height: '24px', backgroundColor: '#e2e8f0', margin: '0 5px'}}></div>
+
+                   {/* 3. Busca */}
+                   <div ref={wrapperRef} style={{position: 'relative', width: '220px'}}>
+                        <input 
+                            type="text" 
+                            placeholder="Buscar..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onFocus={() => setShowSuggestions(true)}
+                            style={{
+                                width: '100%',
+                                padding: '8px 30px 8px 12px', 
+                                borderRadius: '6px', 
+                                border: '1px solid #cbd5e1', 
+                                fontSize: '0.85rem',
+                                height: '34px', // Mesma altura do botão
+                                boxSizing: 'border-box',
+                                backgroundColor: '#fff'
+                            }}
+                        />
+                        <span style={{position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4, fontSize: '0.85rem'}}>🔍</span>
+
+                        {/* Sugestões */}
+                        {showSuggestions && opcoesParaMostrar.length > 0 && (
+                            <ul className="custom-dropdown">
+                                {opcoesParaMostrar.map(c => (
+                                    <li key={c.id} onClick={() => { setSearchTerm(c.nome); setShowSuggestions(false); }}>
+                                        <span>
+                                            {truncate(c.nome, 20)}
+                                            <span style={{fontSize:'0.75rem', color:'#9ca3af', marginLeft:'8px'}}>
+                                                ({c.status?.replace('_', ' ')})
+                                            </span>
                                         </span>
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                   </div>
                </div>
            </div>
 
-           {loading ? <p>Carregando...</p> : (
+           {/* TABELA DE DADOS */}
+           {loading ? <div style={{padding:'20px', textAlign:'center', color:'#64748b'}}>Carregando dados...</div> : (
              <div className="table-wrap">
                {ciclos.length === 0 ? (
-                   <div style={{textAlign: 'center', padding: '40px', color: '#94a3b8'}}>
-                       <p>Nenhum ciclo encontrado.</p>
-                       {isProjectActive && <button onClick={handleNew} className="btn primary">Criar primeiro ciclo</button>}
+                   <div style={{textAlign: 'center', padding: '40px', color: '#94a3b8', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed #e2e8f0'}}>
+                       <p style={{marginBottom: '10px'}}>Nenhum ciclo encontrado para este projeto.</p>
+                       {isProjectActive && <button onClick={handleNew} className="btn primary small">Criar o primeiro ciclo</button>}
                    </div>
                ) : (
                  <table>
                    <thead>
                        <tr>
-                           <th>Nome</th>
-                           <th>Período</th>
-                           <th>Status</th>
-                           <th>Progresso</th>
-                           <th style={{textAlign: 'right'}}>Ações</th>
+                           <th style={{width: '35%'}}>Nome & Descrição</th>
+                           <th style={{width: '20%'}}>Período</th>
+                           <th style={{width: '15%'}}>Status</th>
+                           <th style={{width: '20%'}}>Progresso</th>
+                           <th style={{width: '10%', textAlign: 'right'}}>Ações</th>
                        </tr>
                    </thead>
                    <tbody>
                      {filteredCiclos.length === 0 ? (
-                        <tr><td colSpan="5" style={{textAlign:'center', padding:'20px'}}>Nenhum ciclo encontrado para "{searchTerm}".</td></tr>
+                       <tr><td colSpan="5" style={{textAlign:'center', padding:'20px', color: '#64748b'}}>Nenhum resultado para "{searchTerm}"</td></tr>
                      ) : (
                         filteredCiclos.map(c => (
-                            <tr key={c.id} className="hover-row" onClick={() => handleEdit(c)} title="Clique para editar">
-                                <td>
-                                    <div style={{fontWeight:600, color:'#334155'}}>{truncate(c.nome, 30)}</div>
-                                    <div style={{fontSize:'0.8rem', color:'#94a3b8'}}>#{c.id} • {truncate(c.descricao, 40)}</div>
-                                </td>
-                                <td style={{whiteSpace: 'nowrap', fontSize: '0.85rem'}}>
-                                    {formatDateTable(c.data_inicio)} até {formatDateTable(c.data_fim)}
-                                </td>
-                                <td>
-                                    <span className="badge" style={{backgroundColor: getStatusColor(c.status)}}>
-                                        {c.status.replace('_', ' ').toUpperCase()}
-                                    </span>
-                                </td>
-                                <td style={{minWidth: '140px'}}>
-                                    {renderProgress(c.testes_concluidos, c.total_testes)}
-                                </td>
-                                <td style={{textAlign: 'right'}}>
-                                    <button 
-                                        onClick={(e) => { 
-                                            e.stopPropagation(); 
-                                            requestDelete(c); 
-                                        }} 
-                                        className="btn danger small" 
-                                        style={{fontSize: '0.8rem', padding: '4px 8px'}}
-                                    >
-                                        Excluir
-                                    </button>
-                                </td>
-                            </tr>
-                        ))
+                           <tr key={c.id} className="hover-row" onClick={() => handleEdit(c)}>
+                               <td>
+                                   <div style={{fontWeight:600, color:'#334155', marginBottom:'2px'}}>{truncate(c.nome, 35)}</div>
+                                   <div style={{fontSize:'0.75rem', color:'#94a3b8'}}>{truncate(c.descricao, 50) || 'Sem descrição'}</div>
+                               </td>
+                               <td style={{whiteSpace: 'nowrap', fontSize: '0.85rem', color: '#475569'}}>
+                                   {formatDateTable(c.data_inicio)} <span style={{color:'#cbd5e1', margin:'0 4px'}}>→</span> {formatDateTable(c.data_fim)}
+                               </td>
+                               <td>
+                                   <span className="badge" style={{
+                                       backgroundColor: getStatusColor(c.status),
+                                       fontSize: '0.7rem',
+                                       fontWeight: 600,
+                                       padding: '3px 8px',
+                                       borderRadius: '12px'
+                                   }}>
+                                       {c.status.replace('_', ' ').toUpperCase()}
+                                   </span>
+                               </td>
+                               <td>
+                                   {renderProgress(c.testes_concluidos, c.total_testes)}
+                               </td>
+                               <td style={{textAlign: 'right'}}>
+                                   <button 
+                                       onClick={(e) => { e.stopPropagation(); setCicloToDelete(c); setIsDeleteModalOpen(true); }} 
+                                       className="btn danger small" 
+                                       style={{padding: '6px 10px', lineHeight: 1}}
+                                       title="Excluir Ciclo"
+                                   >
+                                       🗑️
+                                   </button>
+                               </td>
+                           </tr>
+                       ))
                      )}
                    </tbody>
                  </table>

@@ -222,7 +222,7 @@ export function AdminSistemas() {
             <div ref={wrapperRef} style={{position: 'relative', width: '250px'}}>
                 <input 
                     type="text" 
-                    placeholder="Pesquisar..." 
+                    placeholder="Buscar..." 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onFocus={() => setShowSuggestions(true)}

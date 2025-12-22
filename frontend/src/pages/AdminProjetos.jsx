@@ -328,12 +328,12 @@ export function AdminProjetos() {
       <section className="card">
         {/* HEADER COM BUSCA DROPDOWN */}
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-            <h2 className="section-title" style={{margin: 0}}>Lista de Projetos</h2>
+            <h2 className="section-title" style={{margin: 0}}>Projetos</h2>
             
             <div ref={wrapperRef} style={{position: 'relative', width: '250px'}}>
                 <input 
                     type="text" 
-                    placeholder="Pesquisar..." 
+                    placeholder="Buscar..." 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onFocus={() => setShowSuggestions(true)}

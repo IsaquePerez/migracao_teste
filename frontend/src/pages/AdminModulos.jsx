@@ -212,12 +212,12 @@ export function AdminModulos() {
       <section className="card">
         {/* BUSCA COM DROPDOWN CUSTOMIZADO */}
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '15px'}}>
-            <h2 className="section-title" style={{margin: 0, whiteSpace: 'nowrap'}}>Módulos Cadastrados</h2>
+            <h2 className="section-title" style={{margin: 0, whiteSpace: 'nowrap'}}>Módulos</h2>
             
             <div ref={wrapperRef} style={{position: 'relative', width: '300px'}}>
                 <input 
                     type="text" 
-                    placeholder="Pesquisar..." 
+                    placeholder="Buscar..." 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onFocus={() => setShowSuggestions(true)}
