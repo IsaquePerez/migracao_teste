@@ -109,3 +109,109 @@ body {
     padding-bottom: 30px; border-bottom: 1px solid #f3f4f6;
     color: #A8DADC; text-align: center;
 }
+
+.snackbar {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 280px;
+    max-width: 90%;
+    padding: 14px 20px;
+    border-radius: 8px;
+    border-left: 6px solid;
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-align: center;
+    z-index: 9999;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    animation: slideUpFade 0.4s ease-out;
+}
+
+.snackbar-error {
+    background-color: #ff8e8e;
+    color: #ff0000;
+    border-left-color: #ff2121;
+}
+
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+@media (max-width: 1024px) {
+    .page-login-wrapper {
+        grid-template-columns: 1fr;
+    }
+
+    .container.narrow {
+        position: static;
+        width: 100%;
+        grid-column: 1 / -1;
+        top: auto;
+        transform: none;
+    }
+
+    .image-half {
+        display: none;
+    }
+
+    .login-card {
+        width: 90%;
+        max-width: 450px;
+        margin: 40px auto;
+    }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    body {
+        font-size: 14px;
+    }
+
+    .page-login-wrapper {
+        min-height: 100dvh;
+        padding: 20px;
+    }
+
+    .container {
+        padding: 10px;
+    }
+
+    .login-card {
+        width: 100%;
+        height: auto;
+        padding: 20px;
+        margin: 20px auto;
+    }
+
+    .login-form-grid input,
+    .login-btn {
+        width: 100%;
+    }
+
+    .login-section-title {
+        font-size: 1.2rem;
+        margin-bottom: 30px;
+    }
+}
+
+/* Very small screens */
+@media (max-width: 480px) {
+    .login-card {
+        width: 70%;
+        margin-left: 5%;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    }
+
+    .page-login-wrapper .brand-logo {
+        width: 100px;
+    }
+}

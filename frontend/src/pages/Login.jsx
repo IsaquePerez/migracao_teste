@@ -13,6 +13,13 @@ export function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(''), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]); 
+  
   // EFEITO DE SEGURANÇA:
   // Se o utilizador chegar a esta página (ex: clicando em "Voltar" no navegador)
   // e ainda estiver autenticado, fazemos logout forçado.
@@ -74,12 +81,6 @@ export function Login() {
         <section className="login-card">
           <h1 className="login-section-title">Login</h1>
 
-          {error && (
-            <div style={{ backgroundColor: '#fee2e2', color: '#dc2626', padding: '10px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.9rem' }}>
-              {error}
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="login-form-grid">
             <div>
               <input 
@@ -114,6 +115,12 @@ export function Login() {
       <div className="image-half">
         <img src="/logoveritus-login.png" alt="Veritus" className="right-half-image" />
       </div>
+
+      {error && (
+        <div className="snackbar snackbar-error">
+          {error}
+        </div>
+      )}
 
     </div>
   );
