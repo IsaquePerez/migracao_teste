@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { api } from '../services/api';
-import { ConfirmationModal } from '../components/ConfirmationModal';
+import { api } from '../../services/api';
+import { ConfirmationModal } from '../../components/ConfirmationModal';
+import './styles.css';
 
 export function AdminModulos() {
   const [modulos, setModulos] = useState([]);
@@ -12,23 +13,18 @@ export function AdminModulos() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [moduloToDelete, setModuloToDelete] = useState(null);
     
-  // Busca
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef(null); 
 
-  // Filtro da tabela
   const filteredModulos = modulos.filter(m => 
       m.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const truncate = (str, n = 30) => {
-    return (str && str.length > n) ? str.substr(0, n - 1) + '...' : str;
-  };
+  const truncate = (str, n = 30) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str;
 
   useEffect(() => { loadData(); }, []);
 
-  // Fecha dropdown se clicar fora
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -48,13 +44,11 @@ export function AdminModulos() {
         setModulos(mods);
         setSistemas(sis);
         
-        // Seleciona o primeiro sistema ativo por padrao
         const ativos = sis.filter(s => s.ativo);
         if (ativos.length > 0 && !form.sistema_id) {
             setForm(f => ({ ...f, sistema_id: ativos[0].id }));
         }
     } catch (e) { 
-        console.error(e); 
         toast.error("Erro ao carregar dados.");
     }
   };
@@ -66,13 +60,11 @@ export function AdminModulos() {
     const nomeNormalizado = form.nome.trim().toLowerCase();
     const sistemaIdSelecionado = parseInt(form.sistema_id);
 
-    // Valida duplicidade
-    const duplicado = modulos.some(m => {
-        const mesmoSistema = m.sistema_id === sistemaIdSelecionado;
-        const mesmoNome = m.nome.trim().toLowerCase() === nomeNormalizado;
-        const naoEhOProprio = m.id !== editingId;
-        return mesmoSistema && mesmoNome && naoEhOProprio;
-    });
+    const duplicado = modulos.some(m => 
+        m.sistema_id === sistemaIdSelecionado && 
+        m.nome.trim().toLowerCase() === nomeNormalizado && 
+        m.id !== editingId
+    );
 
     if (duplicado) return toast.warning("Já existe um módulo com este nome.");
 
@@ -124,14 +116,13 @@ export function AdminModulos() {
           toast.success("Excluído.");
           setModulos(prev => prev.filter(m => m.id !== moduloToDelete.id));
           if (editingId === moduloToDelete.id) handleCancel();
-      } catch (error) { toast.error(error.message || "Não foi possível excluir."); } 
+      } catch (error) { toast.error("Não foi possível excluir."); } 
       finally { setModuloToDelete(null); }
   };
 
   const getSistemaName = (id) => sistemas.find(s => s.id === id)?.nome || '-';
   const sistemasAtivos = sistemas.filter(s => s.ativo);
 
-  // Dropdown: 5 recentes ou filtrados pela busca
   const opcoesParaMostrar = searchTerm === '' 
     ? [...modulos].sort((a, b) => b.id - a.id).slice(0, 5) 
     : modulos.filter(m => m.nome.toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 8);
@@ -148,27 +139,27 @@ export function AdminModulos() {
         isDanger={true}
       />
 
-      <section className="card">
+      <section className="card form-card">
         <h2 className="section-title">{editingId ? 'Editar Módulo' : 'Novo Módulo'}</h2>
         <form onSubmit={handleSubmit}>
-          <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
+          <div className="form-grid">
             <div>
-                <label>Sistema Pai</label>
-                <select value={form.sistema_id} onChange={e => setForm({...form, sistema_id: e.target.value})}>
+                <label className="input-label">Sistema Pai</label>
+                <select value={form.sistema_id} onChange={e => setForm({...form, sistema_id: e.target.value})} className="form-control">
                     <option value="">Selecione...</option>
                     {sistemasAtivos.map(s => <option key={s.id} value={s.id}>{truncate(s.nome)}</option>)}
                 </select>
             </div>
             <div>
-                <label>Nome do Módulo</label>
-                <input required value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} placeholder="Ex: Contas a Pagar" />
+                <label className="input-label">Nome do Módulo</label>
+                <input required value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} placeholder="Ex: Contas a Pagar" className="form-control" />
             </div>
             <div>
-                <label>Descrição</label>
-                <input value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} placeholder="Descrição opcional..." />
+                <label className="input-label">Descrição</label>
+                <input value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} placeholder="Descrição opcional..." className="form-control" />
             </div>
           </div>
-          <div className="actions" style={{marginTop: '15px', display: 'flex', gap: '10px'}}>
+          <div className="form-actions">
             <button type="submit" className="btn primary">{editingId ? 'Atualizar' : 'Salvar'}</button>
             {editingId && <button type="button" onClick={handleCancel} className="btn">Cancelar</button>}
           </div>
@@ -176,10 +167,8 @@ export function AdminModulos() {
       </section>
 
       <section className="card">
-        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '15px'}}>
-            <h2 className="section-title" style={{margin: 0, whiteSpace: 'nowrap'}}>Módulos</h2>
-            
-            {/* Wrapper padrao do index.css */}
+        <div className="toolbar">
+            <h2 className="page-title">Módulos</h2>
             <div ref={wrapperRef} className="search-wrapper">
                 <input 
                     type="text" 
@@ -187,28 +176,13 @@ export function AdminModulos() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onFocus={() => setShowSuggestions(true)}
-                    style={{
-                        width: '100%',
-                        padding: '10px 40px 10px 15px', 
-                        borderRadius: '6px', 
-                        border: '1px solid #333',
-                        fontSize: '0.9rem',
-                        height: '42px',
-                        boxSizing: 'border-box'
-                    }}
+                    className="search-input"
                 />
-                <span style={{position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8'}}>🔍</span>
-                
+                <span className="search-icon">🔍</span>
                 {showSuggestions && opcoesParaMostrar.length > 0 && (
                     <ul className="custom-dropdown">
                         {opcoesParaMostrar.map(m => (
-                            <li 
-                                key={m.id} 
-                                onClick={() => {
-                                    setSearchTerm(m.nome);
-                                    setShowSuggestions(false);
-                                }}
-                            >
+                            <li key={m.id} onClick={() => { setSearchTerm(m.nome); setShowSuggestions(false); }}>
                                 {truncate(m.nome, 30)}
                             </li>
                         ))}
@@ -218,7 +192,7 @@ export function AdminModulos() {
         </div>
 
         <div className="table-wrap">
-            {modulos.length === 0 ? <p className="muted" style={{textAlign:'center', padding:'20px'}}>Nenhum módulo cadastrado.</p> : (
+            {modulos.length === 0 ? <p className="no-results">Nenhum módulo cadastrado.</p> : (
                 <table>
                     <thead>
                         <tr>
@@ -230,23 +204,23 @@ export function AdminModulos() {
                     </thead>
                     <tbody>
                         {filteredModulos.length === 0 ? (
-                             <tr><td colSpan="4" style={{textAlign:'center', padding:'20px'}}>Nada encontrado.</td></tr>
+                             <tr><td colSpan="4" className="no-results">Nada encontrado.</td></tr>
                         ) : (
                             filteredModulos.map(m => (
                                 <tr key={m.id} onClick={() => handleSelectRow(m)} className={editingId === m.id ? 'selected' : 'selectable'} style={{opacity: m.ativo ? 1 : 0.6}}>
-                                    <td style={{verticalAlign: 'middle'}}>
+                                    <td className="cell-name">
                                         <strong title={m.nome}>{truncate(m.nome)}</strong>
-                                        <div className="muted" style={{fontSize: '0.8rem'}} title={m.descricao}>{truncate(m.descricao, 40)}</div>
+                                        <div title={m.descricao}>{truncate(m.descricao, 40)}</div>
                                     </td>
                                     <td style={{verticalAlign: 'middle'}}>
-                                        <span className="badge" style={{backgroundColor: '#e0f2fe', color: '#0369a1'}}>{truncate(getSistemaName(m.sistema_id), 20)}</span>
+                                        <span className="badge system">{truncate(getSistemaName(m.sistema_id), 20)}</span>
                                     </td>
                                     <td style={{textAlign: 'center', verticalAlign: 'middle'}}>
-                                        <span onClick={(e) => { e.stopPropagation(); toggleActive(m); }} className={`badge ${m.ativo ? 'on' : 'off'}`} style={{cursor: 'pointer'}}>
+                                        <span onClick={(e) => { e.stopPropagation(); toggleActive(m); }} className={`badge ${m.ativo ? 'on' : 'off'}`}>
                                             {m.ativo ? 'Ativo' : 'Inativo'}
                                         </span>                                        
                                     </td>
-                                    <td style={{textAlign: 'right', verticalAlign: 'middle'}}>
+                                    <td className="cell-actions">
                                         <button onClick={(e) => { e.stopPropagation(); requestDelete(m); }} className="btn danger small">🗑️</button>
                                     </td>
                                 </tr>

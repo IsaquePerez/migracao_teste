@@ -1,5 +1,3 @@
-// frontend/src/services/api.js
-
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
 
 export const getSession = () => ({
@@ -17,14 +15,10 @@ export const clearSession = () => {
 async function request(endpoint, options = {}) {
   const { token } = getSession();
   
-  // Mescla headers passados (do Login.jsx) com os padrões
   const headers = new Headers(options.headers || {});
   
   if (token) headers.append("Authorization", `Bearer ${token}`);
   
-  // --- CORREÇÃO DE OURO ---
-  // Só adiciona application/json se NÃO for FormData nem URLSearchParams
-  // e se o cabeçalho ainda não tiver sido definido manualmente.
   const isFormData = options.body instanceof FormData || options.body instanceof URLSearchParams;
   
   if (!headers.has("Content-Type") && !isFormData) {
@@ -46,17 +40,23 @@ async function request(endpoint, options = {}) {
       throw new Error("Sessão expirada.");
     }
 
-    // Tenta fazer parse do JSON, mas não falha se não houver corpo (ex: 204 No Content)
-    // Se der erro no parse (como um erro HTML do servidor), retorna objeto vazio ou texto
-    const data = response.status !== 204 
-      ? await response.json().catch(() => ({})) 
-      : {};
+    let data = null;
+    const contentType = response.headers.get("content-type");
+
+    if (response.status !== 204) {
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        data = { message: await response.text() };
+      }
+    } else {
+      data = {};
+    }
     
     if (!response.ok) {
-        // Tenta pegar o detalhe do erro do FastAPI (geralmente data.detail)
-        const errorMessage = data.detail 
+        const errorMessage = data?.detail 
             ? (typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail))
-            : (data.message || "Erro na requisição");
+            : (data?.message || "Erro na requisição");
             
         throw new Error(errorMessage);
     }
@@ -67,9 +67,6 @@ async function request(endpoint, options = {}) {
     throw error;
   }
 }
-
-// --- CORREÇÃO NOS MÉTODOS DE ENVIO ---
-// Agora aceitam 'options' extra e não convertem pra JSON se não precisar
 
 export const api = {
   get: (endpoint, options = {}) => request(endpoint, { method: "GET", ...options }),
@@ -93,7 +90,6 @@ export const api = {
   },
   
   delete: (endpoint, body, options = {}) => {
-      // Delete pode ter corpo opcional
       const isBinary = body instanceof FormData || body instanceof URLSearchParams;
       return request(endpoint, { 
           method: "DELETE", 

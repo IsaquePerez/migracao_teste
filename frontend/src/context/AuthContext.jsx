@@ -1,42 +1,36 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { getSession, clearSession } from '../services/api';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // Restaura sessão ao recarregar a página
+  const [user, setUser] = useState(() => {
     const session = getSession();
-    if (session.token) {
-      setUser(session);
-    }
-    setLoading(false);
-  }, []);
+    return session.token ? session : null;
+  });
 
   const login = (apiResponse) => {
-    // Guarda no sessionStorage como o script.js original fazia
-    sessionStorage.setItem("token", apiResponse.access_token);
-    sessionStorage.setItem("role", apiResponse.role);
-    sessionStorage.setItem("username", apiResponse.username);
-    sessionStorage.setItem("nome", apiResponse.nome);
+   
+    const sessionData = {
+        token: apiResponse.access_token || apiResponse.token,
+        role: apiResponse.role,
+        username: apiResponse.username,
+        nome: apiResponse.nome
+    };
+
+
+    sessionStorage.setItem("token", sessionData.token);
+    sessionStorage.setItem("role", sessionData.role);
+    sessionStorage.setItem("username", sessionData.username);
+    sessionStorage.setItem("nome", sessionData.nome);
     
-    setUser({
-      token: apiResponse.access_token,
-      role: apiResponse.role,
-      username: apiResponse.username,
-      nome: apiResponse.nome
-    });
+    setUser(sessionData);
   };
 
   const logout = () => {
     clearSession();
     setUser(null);
   };
-
-  if (loading) return <div>A carregar...</div>;
 
   return (
     <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>

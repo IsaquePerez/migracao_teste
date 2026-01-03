@@ -1,0 +1,275 @@
+
+
+.container {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 20px;
+  height: calc(100vh - 100px);
+  overflow: hidden;
+}
+
+
+.sidebar {
+  overflow-y: auto;
+  height: 100%;
+  padding-right: 5px;
+}
+
+.taskCard {
+  background-color: white;
+  border-radius: 6px;
+  padding: 15px;
+  margin-bottom: 15px;
+  cursor: pointer;
+  border-left: 5px solid #cbd5e1;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.taskCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.active {
+  background-color: #eff6ff;
+  border-color: #3b82f6;
+}
+
+
+.statusPassed { border-left-color: #10b981; }
+.statusFailed { border-left-color: #ef4444; }
+.statusInProgress { border-left-color: #3b82f6; }
+
+.taskHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.taskTitle {
+  margin: 0;
+  font-size: 1rem;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.taskBadge {
+  font-size: 0.7rem;
+  background-color: #f3f4f6;
+  color: #334155;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.taskProject {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+
+.playerArea {
+  height: 100%;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.playerCard {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  min-height: 100%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.executionHeader {
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 20px;
+  margin-bottom: 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.executionTitle {
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  color: #0f172a;
+}
+
+.executionDesc {
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+
+.stepsList {
+  display: flex;
+  flex-direction: column;
+}
+
+.stepItem {
+  display: grid;
+  grid-template-columns: 40px 1fr 140px;
+  gap: 20px;
+  padding: 25px;
+  border-bottom: 1px solid #f1f5f9;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  background-color: white;
+  transition: background-color 0.3s;
+  border: 1px solid transparent;
+}
+
+.stepApproved {
+  background-color: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.stepFailed {
+  background-color: #fef2f2;
+  border-color: #fecaca;
+}
+
+.stepNumber {
+  font-weight: 700;
+  color: #001C42;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.stepAction {
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin-bottom: 8px;
+  color: #334155;
+}
+
+.stepExpected {
+  color: #059669;
+  font-size: 0.95rem;
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: rgba(16, 185, 129, 0.1);
+  border-radius: 6px;
+  border-left: 3px solid #059669;
+}
+
+.evidenceArea {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.btnUpload {
+  background-color: #f8fafc;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.btnUpload:hover {
+  background-color: #e2e8f0;
+}
+
+.evidenceChip {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  padding: 4px 8px;
+  border-radius: 15px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.evidenceLink {
+  color: #2563eb;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.evidenceLink:hover {
+  text-decoration: underline;
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0;
+}
+
+.deleteBtn:hover {
+  color: #ef4444;
+}
+
+.stepActionsCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #94a3b8;
+  font-size: 1.1rem;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border: 2px dashed #e2e8f0;
+}
+
+
+.galleryOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.9);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.galleryTrack {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  max-width: 90%;
+  padding: 20px;
+  scroll-snap-type: x mandatory;
+}
+
+.galleryItem {
+  text-align: center;
+  color: white;
+  min-width: 100%;
+  scroll-snap-align: center;
+}
+
+.galleryImg {
+  max-height: 80vh;
+  max-width: 100%;
+  border: 2px solid white;
+  border-radius: 4px;
+}

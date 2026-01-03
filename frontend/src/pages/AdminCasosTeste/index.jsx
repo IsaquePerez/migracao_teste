@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { api } from '../services/api';
-import { ConfirmationModal } from '../components/ConfirmationModal';
+import { api } from '../../services/api';
+import { ConfirmationModal } from '../../components/ConfirmationModal';
+import './styles.css';
 
 export function AdminCasosTeste() {
   const [projetos, setProjetos] = useState([]);
@@ -28,7 +29,6 @@ export function AdminCasosTeste() {
     passos: [{ ordem: 1, acao: '', resultado_esperado: '' }]
   });
 
-  // Busca e Autocomplete
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef(null);
@@ -44,11 +44,6 @@ export function AdminCasosTeste() {
 
   const truncate = (str, n = 30) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str || '';
   
-  const inputStyle = {
-    width: '100%', padding: '10px', border: '1px solid #d1d5db', borderRadius: '4px',
-    fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box'
-  };
-
   useEffect(() => {
     const loadBasics = async () => {
       try {
@@ -59,7 +54,6 @@ export function AdminCasosTeste() {
         setProjetos(projData || []);
         setUsuarios(userData || []);
         
-        // Seleciona o primeiro projeto ativo
         const ativos = (projData || []).filter(p => p.status === 'ativo');
         if (ativos.length > 0) {
           setSelectedProjeto(ativos[0].id);
@@ -75,7 +69,6 @@ export function AdminCasosTeste() {
     if (selectedProjeto) loadDadosProjeto(selectedProjeto);
   }, [selectedProjeto]);
 
-  // Fecha dropdown ao clicar fora
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -216,18 +209,17 @@ export function AdminCasosTeste() {
         <div style={{maxWidth: '100%', margin: '0 auto'}}>
           <form onSubmit={handleSubmit}>
             
-            {/* Bloco de Detalhes */}
-            <section className="card" style={{marginBottom: '20px'}}>
-              <div style={{borderBottom:'1px solid #f1f5f9', paddingBottom:'15px', marginBottom:'20px'}}>
-                 <h3 style={{margin:0, color: '#1e293b'}}>{editingId ? 'Editar Cenário' : 'Novo Cenário'}</h3>
+            <section className="card form-section">
+              <div className="form-header">
+                 <h3 className="form-title">{editingId ? 'Editar Cenário' : 'Novo Cenário'}</h3>
               </div>
               <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
                   <div>
-                    <label style={{display: 'block', marginBottom: '8px', fontWeight: 600, color: '#374151'}}>Título do Cenário <span style={{color:'#ef4444'}}>*</span></label>
+                    <label className="input-label">Título do Cenário <span className="required-asterisk">*</span></label>
                     <input 
                        value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} 
                        placeholder="Ex: Validar fluxo de checkout"
-                       style={{...inputStyle, fontSize: '1rem'}}
+                       className="form-control"
                     />
                   </div>
                   <div className="form-grid">
@@ -235,7 +227,7 @@ export function AdminCasosTeste() {
                         <label>Prioridade</label>
                         <select 
                             value={form.prioridade} onChange={e => setForm({...form, prioridade: e.target.value})}
-                            style={{...inputStyle, backgroundColor: '#f9fafb'}}
+                            className="form-control bg-gray"
                         >
                            <option value="alta">Alta</option>
                            <option value="media">Média</option>
@@ -244,25 +236,24 @@ export function AdminCasosTeste() {
                       </div>
                       <div>
                         <label>Pré-condições</label>
-                        <input value={form.pre_condicoes} onChange={e => setForm({...form, pre_condicoes: e.target.value})} style={inputStyle} />
+                        <input value={form.pre_condicoes} onChange={e => setForm({...form, pre_condicoes: e.target.value})} className="form-control" />
                       </div>
                   </div>
                   <div>
                     <label>Objetivo / Critérios</label>
-                    <input value={form.criterios_aceitacao} onChange={e => setForm({...form, criterios_aceitacao: e.target.value})} style={inputStyle} />
+                    <input value={form.criterios_aceitacao} onChange={e => setForm({...form, criterios_aceitacao: e.target.value})} className="form-control" />
                   </div>
               </div>
             </section>
 
-            {/* Alocação */}
-            <section className="card" style={{marginBottom: '20px'}}>
-              <h3 style={{marginTop: 0, marginBottom: '20px', color: '#334155', fontSize: '1.1rem'}}>Alocação (Opcional)</h3>
+            <section className="card form-section">
+              <h3 className="section-subtitle">Alocação (Opcional)</h3>
               <div className="form-grid">
                   <div>
                     <label>Ciclo (Sprint)</label>
                     <select 
                         value={form.ciclo_id} onChange={e => setForm({...form, ciclo_id: e.target.value})}
-                        style={{...inputStyle, backgroundColor: '#f9fafb'}}
+                        className="form-control bg-gray"
                         disabled={!!editingId}
                     >
                        <option value="">Apenas Salvar na Biblioteca</option>
@@ -273,7 +264,7 @@ export function AdminCasosTeste() {
                     <label>Responsável</label>
                     <select 
                         value={form.responsavel_id} onChange={e => setForm({...form, responsavel_id: e.target.value})}
-                        style={{...inputStyle, backgroundColor: '#f9fafb'}}
+                        className="form-control bg-gray"
                     >
                         <option value="">Definir depois</option>
                         {usuarios.filter(u => u.ativo).map(u => (
@@ -284,33 +275,32 @@ export function AdminCasosTeste() {
               </div>
             </section>
 
-            {/* Steps do Teste */}
             <section className="card">
-               <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
-                 <h3 style={{margin: 0, color: '#334155', fontSize: '1.1rem'}}>Passos do Teste</h3>
-                 <button type="button" onClick={addStep} className="btn" style={{backgroundColor: '#eef2ff', color: '#3730a3', border:'none'}}>+ Passo</button>
+               <div className="steps-header-row">
+                 <h3 className="section-subtitle" style={{marginBottom: 0}}>Passos do Teste</h3>
+                 <button type="button" onClick={addStep} className="btn btn-add-step">+ Passo</button>
                </div>
-               <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+               <div className="steps-container">
                  {form.passos.map((passo, idx) => (
-                   <div key={idx} style={{display: 'grid', gridTemplateColumns: '30px 1fr 1fr 40px', gap: '10px', alignItems: 'center', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0'}}>
-                      <div style={{fontWeight: 'bold', color: '#94a3b8', textAlign: 'center'}}>{idx + 1}</div>
+                   <div key={idx} className="step-row">
+                      <div className="step-index">{idx + 1}</div>
                       <input 
                         placeholder="Ação (Ex: Clicar em Entrar)" 
                         value={passo.acao} 
                         onChange={e => updateStep(idx, 'acao', e.target.value)}
-                        style={{...inputStyle, backgroundColor: 'white', fontSize:'0.9rem'}} 
+                        className="form-control small-text" 
                       />
                       <input 
                         placeholder="Resultado Esperado" 
                         value={passo.resultado_esperado} 
                         onChange={e => updateStep(idx, 'resultado_esperado', e.target.value)}
-                        style={{...inputStyle, backgroundColor: 'white', fontSize:'0.9rem'}} 
+                        className="form-control small-text" 
                       />
-                      <button type="button" onClick={() => removeStep(idx)} className="btn danger small" style={{padding:0, width:'30px', height:'30px', display:'flex', alignItems:'center', justifyContent:'center'}}>✕</button>
+                      <button type="button" onClick={() => removeStep(idx)} className="btn danger small btn-remove-step">✕</button>
                    </div>
                  ))}
                </div>
-               <div className="actions" style={{marginTop: '30px', borderTop: '1px solid #f1f5f9', paddingTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
+               <div className="form-actions">
                   <button type="button" onClick={handleReset} className="btn">Cancelar</button>
                   <button type="submit" className="btn primary">{editingId ? 'Salvar Alterações' : 'Salvar Cenário'}</button>
                </div>
@@ -319,33 +309,20 @@ export function AdminCasosTeste() {
         </div>
       )}
 
-      {/* --- LISTAGEM --- */}
       {view === 'list' && (
         <section className="card" style={{marginTop: 0}}>
            
-           {/* Toolbar de Filtros */}
-           <div style={{paddingBottom: '15px', borderBottom: '1px solid #f1f5f9', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px'}}>
+           <div className="toolbar">
                
-               <h3 style={{margin: 0, fontSize: '1.25rem', color: '#1e293b'}}>Casos de Teste</h3>
+               <h3 className="page-title">Casos de Teste</h3>
                
-               <div style={{display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap'}}>
+               <div className="toolbar-actions">
                    
-                   {/* Filtro de Projeto */}
-                   <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                       <span style={{fontSize: '0.75rem', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase'}}>PROJETO:</span>
+                   <div className="filter-group">
+                       <span className="filter-label">PROJETO:</span>
                        <select 
                         value={selectedProjeto} onChange={e => setSelectedProjeto(e.target.value)}
-                        style={{
-                            padding: '6px 10px', 
-                            borderRadius: '6px', 
-                            border: '1px solid #cbd5e1', 
-                            fontSize: '0.85rem', 
-                            backgroundColor: '#f8fafc', 
-                            cursor: 'pointer', 
-                            minWidth: '160px', 
-                            fontWeight: 500, 
-                            color: '#334155'
-                        }}
+                        className="select-filter"
                        >
                         {projetos.filter(p => p.status === 'ativo').map(p => (
                             <option key={p.id} value={p.id}>{truncate(p.nome, 25)}</option>
@@ -354,37 +331,24 @@ export function AdminCasosTeste() {
                    </div>
                    
                    <button 
-                        onClick={handleNew} className="btn primary" disabled={!isProjectActive} 
+                        onClick={handleNew} className="btn primary btn-new" disabled={!isProjectActive} 
                         style={{
-                            height: '34px', 
-                            padding: '0 15px', 
                             opacity: isProjectActive ? 1 : 0.5, 
-                            cursor: isProjectActive ? 'pointer' : 'not-allowed', 
-                            fontSize: '0.85rem', 
-                            display: 'flex', alignItems: 'center', gap: '6px'
+                            cursor: isProjectActive ? 'pointer' : 'not-allowed'
                         }}
                    >
                     Novo Cenário
                    </button>
                    
-                   <div style={{width: '1px', height: '24px', backgroundColor: '#e2e8f0', display: 'none', '@media (min-width: 768px)': {display: 'block'}}}></div>
+                   <div className="separator"></div>
 
-                   {/* Busca com Dropdown Global */}
-                   <div ref={wrapperRef} className="search-wrapper" style={{width: '220px'}}>
+                   <div ref={wrapperRef} className="search-wrapper">
                         <input 
                             type="text" placeholder="Buscar..." value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)} onFocus={() => setShowSuggestions(true)}
-                            style={{
-                                width: '100%', 
-                                padding: '8px 30px 8px 12px', 
-                                borderRadius: '6px', 
-                                border: '1px solid #cbd5e1', 
-                                fontSize: '0.85rem', 
-                                height: '34px', 
-                                boxSizing: 'border-box'
-                            }}
+                            className="search-input"
                         />
-                        <span style={{position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', opacity: 0.4, fontSize: '0.9rem'}}>🔍</span>
+                        <span className="search-icon">🔍</span>
                         
                         {showSuggestions && opcoesParaMostrar.length > 0 && (
                             <ul className="custom-dropdown">
@@ -402,10 +366,10 @@ export function AdminCasosTeste() {
                </div>
            </div>
 
-           {loading ? <div style={{padding:'20px', textAlign:'center', color:'#64748b'}}>Carregando dados...</div> : (
+           {loading ? <div className="loading-text">Carregando dados...</div> : (
              <div className="table-wrap">
                {casos.length === 0 ? (
-                 <div style={{textAlign: 'center', padding: '40px', color: '#94a3b8', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed #e2e8f0'}}>
+                 <div className="empty-container">
                     <p style={{marginBottom: '10px'}}>Nenhum caso de teste encontrado.</p>
                     {isProjectActive && <button onClick={handleNew} className="btn primary small">Criar o primeiro</button>}
                  </div>
@@ -423,28 +387,27 @@ export function AdminCasosTeste() {
                    </thead>
                    <tbody>
                      {filteredCasos.length === 0 ? (
-                       <tr><td colSpan="6" style={{textAlign:'center', padding:'20px', color: '#64748b'}}>Sem resultados para "{searchTerm}"</td></tr>
+                       <tr><td colSpan="6" className="no-results">Sem resultados para "{searchTerm}"</td></tr>
                      ) : (
                        filteredCasos.map(c => (
                            <tr key={c.id} className="selectable" onClick={() => handleEdit(c)}>
-                               <td style={{color: '#64748b'}}>#{c.id}</td>
+                               <td className="cell-id">#{c.id}</td>
                                <td>
-                                   <div style={{fontWeight: 600, color:'#334155'}} title={c.nome}>{truncate(c.nome, 40)}</div>
+                                   <div className="cell-name" title={c.nome}>{truncate(c.nome, 40)}</div>
                                </td>
-                               <td style={{textAlign: 'center'}}>
-                                   <span className="badge" style={{backgroundColor: '#f1f5f9', color: '#475569'}}>{c.prioridade}</span>
+                               <td className="cell-priority">
+                                   <span className="badge priority-badge">{c.prioridade}</span>
                                </td>
                                <td>
-                                   <span style={{color: '#475569', fontSize: '0.85rem'}}>{c.responsavel ? truncate(c.responsavel.nome, 20) : '-'}</span>
+                                   <span className="cell-resp">{c.responsavel ? truncate(c.responsavel.nome, 20) : '-'}</span>
                                </td>
-                               <td style={{textAlign: 'center', color: '#64748b'}}>
+                               <td className="cell-steps">
                                    {c.passos?.length || 0}
                                </td>
-                               <td style={{textAlign: 'right'}}>
+                               <td className="cell-actions">
                                    <button 
                                        onClick={(e) => { e.stopPropagation(); setCasoToDelete(c); setIsDeleteModalOpen(true); }} 
-                                       className="btn danger small"
-                                       style={{padding: '6px 10px', lineHeight: 1}}
+                                       className="btn danger small btn-action-icon"
                                        title="Excluir"
                                    >
                                        🗑️

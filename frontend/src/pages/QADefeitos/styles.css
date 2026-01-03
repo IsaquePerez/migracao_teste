@@ -1,0 +1,43 @@
+.toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.section-title { margin: 0; }
+.table-wrap { width: 100%; overflow-x: auto; }
+.muted { color: #64748b; }
+
+
+.status-badge { font-size: 0.75rem; font-weight: bold; padding: 4px 8px; border-radius: 15px; border: none; display: flex; align-items: center; gap: 5px; }
+.status-aberto { background-color: #fee2e2; color: #b91c1c; }
+.status-corrigido { background-color: #d1fae5; color: #065f46; }
+.status-fechado { background-color: #f1f5f9; color: #475569; }
+.status-em_teste { background-color: #eff6ff; color: #1e40af; }
+.status-dropdown-btn { cursor: pointer; }
+
+
+.dropdown-menu { position: absolute; top: 110%; left: 0; background: white; border: 1px solid #e2e8f0; border-radius: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 140px; z-index: 100; }
+.dropdown-item { padding: 10px; cursor: pointer; font-size: 0.85rem; color: #334155; border-bottom: 1px solid #f1f5f9; }
+.dropdown-item:last-child { border-bottom: none; }
+.dropdown-item:hover { background-color: #f1f5f9; }
+.dropdown-item.active { background-color: #f8fafc; font-weight: 600; }
+
+
+.resp-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; }
+.resp-active { background-color: #eef2ff; color: #3730a3; }
+.resp-inactive { background-color: #fee2e2; color: #b91c1c; }
+.resp-unknown { color: #94a3b8; font-size: 0.8rem; }
+
+
+.col-id { color: #64748b; }
+.col-origin strong { font-weight: 600; color: #334155; display: block; margin-bottom: 4px; }
+.col-error strong { display: block; }
+.col-error .desc { font-size: 0.85em; color: #6b7280; margin-top: 2px; max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.col-severity { font-weight: bold; text-transform: uppercase; font-size: 0.75rem; }
+.col-date { font-size: 0.85rem; color: #475569; white-space: nowrap; text-align: right; }
+
+
+.btn-view { background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 0.75rem; padding: 4px 8px; border-radius: 4px; cursor: pointer; }
+.btn-view:hover { background-color: #bae6fd; }
+
+
+.gallery-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.85); z-index: 2000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.gallery-track { display: flex; gap: 20px; overflow-x: auto; max-width: 90%; padding: 20px; }
+.gallery-item { text-align: center; color: white; }
+.gallery-img { max-height: 80vh; border: 2px solid white; border-radius: 8px; cursor: default; }

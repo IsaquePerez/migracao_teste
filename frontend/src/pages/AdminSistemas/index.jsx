@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { api } from '../services/api';
-import { ConfirmationModal } from '../components/ConfirmationModal'; 
+import { api } from '../../services/api';
+import { ConfirmationModal } from '../../components/ConfirmationModal'; 
+import './styles.css';
 
 export function AdminSistemas() {
   const [sistemas, setSistemas] = useState([]);
@@ -12,14 +13,10 @@ export function AdminSistemas() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [sistemaToDelete, setSistemaToDelete] = useState(null);
   
-  // Busca
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef(null);
 
-  const LIMITS = { nome: 50, descricao: 100 };
-
-  // Dropdown: 5 recentes ou filtrados
   const opcoesParaMostrar = searchTerm === '' 
     ? [...sistemas].sort((a, b) => b.id - a.id).slice(0, 5) 
     : sistemas.filter(s => s.nome.toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 8);
@@ -28,13 +25,10 @@ export function AdminSistemas() {
       s.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const truncate = (str, n = 40) => {
-    return (str && str.length > n) ? str.substr(0, n - 1) + '...' : str;
-  };
+  const truncate = (str, n = 40) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str;
 
   useEffect(() => { loadSistemas(); }, []);
 
-  // Fecha dropdown ao clicar fora
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -51,7 +45,6 @@ export function AdminSistemas() {
       const data = await api.get("/sistemas/");
       setSistemas(Array.isArray(data) ? data : []);
     } catch (error) { 
-      console.error(error); 
       toast.error("Erro ao carregar sistemas."); 
     } finally { 
       setLoading(false); 
@@ -60,17 +53,10 @@ export function AdminSistemas() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Valida duplicidade
     const nomeNormalizado = form.nome.trim().toLowerCase();
-    const duplicado = sistemas.some(s => 
-        s.nome.trim().toLowerCase() === nomeNormalizado && 
-        s.id !== editingId
-    );
+    const duplicado = sistemas.some(s => s.nome.trim().toLowerCase() === nomeNormalizado && s.id !== editingId);
 
-    if (duplicado) {
-        return toast.warning("Já existe um Sistema com este nome.");
-    }
+    if (duplicado) return toast.warning("Já existe um Sistema com este nome.");
 
     try {
       if (editingId) {
@@ -121,7 +107,7 @@ export function AdminSistemas() {
           loadSistemas();
           if (editingId === sistemaToDelete.id) handleCancel();
       } catch (error) {
-          toast.error(error.message || "Erro ao excluir (verifique vínculos).");
+          toast.error("Erro ao excluir (verifique vínculos).");
       } finally {
           setSistemaToDelete(null); 
       }
@@ -139,20 +125,20 @@ export function AdminSistemas() {
         isDanger={true}
       />
 
-      <section className="card">
+      <section className="card form-card">
         <h2 className="section-title">{editingId ? 'Editar' : 'Novo Sistema'}</h2>
         <form onSubmit={handleSubmit}>
-          <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
+          <div className="form-grid">
             <div>
-                <label>Nome</label>
-                <input required maxLength={LIMITS.nome} value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} />
+                <label className="input-label">Nome</label>
+                <input required maxLength={50} value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className="form-control" />
             </div>
             <div>
-                <label>Descrição</label>
-                <input maxLength={LIMITS.descricao} value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} />
+                <label className="input-label">Descrição</label>
+                <input maxLength={100} value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} className="form-control" />
             </div>
           </div>
-          <div className="actions" style={{marginTop: '20px', display: 'flex', gap: '10px'}}>
+          <div className="form-actions">
             <button type="submit" className="btn primary">{editingId ? 'Salvar' : 'Criar'}</button>
             {editingId && <button type="button" onClick={handleCancel} className="btn">Cancelar</button>}
           </div>
@@ -160,41 +146,22 @@ export function AdminSistemas() {
       </section>
 
       <section className="card">
-        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px'}}>
-            <h2 className="section-title" style={{margin: 0}}>Sistemas</h2>
-            
-            {/* Input de Busca com Dropdown Global */}
-            <div ref={wrapperRef} className="search-wrapper" style={{width: '250px'}}>
+        <div className="toolbar">
+            <h2 className="page-title">Sistemas</h2>
+            <div ref={wrapperRef} className="search-wrapper">
                 <input 
                     type="text" 
                     placeholder="Buscar..." 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onFocus={() => setShowSuggestions(true)}
-                    style={{
-                        width: '100%',
-                        padding: '8px 35px 8px 12px', 
-                        borderRadius: '6px', 
-                        border: '1px solid #cbd5e1', 
-                        fontSize: '0.9rem',
-                        height: '38px',
-                        boxSizing: 'border-box'
-                    }}
+                    className="search-input"
                 />
-                <span style={{position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8'}}>
-                    🔍
-                </span>
-
+                <span className="search-icon">🔍</span>
                 {showSuggestions && opcoesParaMostrar.length > 0 && (
                     <ul className="custom-dropdown">
                         {opcoesParaMostrar.map(s => (
-                            <li 
-                                key={s.id} 
-                                onClick={() => {
-                                    setSearchTerm(s.nome);
-                                    setShowSuggestions(false);
-                                }}
-                            >
+                            <li key={s.id} onClick={() => { setSearchTerm(s.nome); setShowSuggestions(false); }}>
                                 {truncate(s.nome, 30)}
                             </li>
                         ))}
@@ -215,47 +182,21 @@ export function AdminSistemas() {
                     </thead>
                     <tbody>
                         {filteredSistemas.length === 0 ? (
-                            <tr>
-                                <td colSpan="3" style={{textAlign: 'center', padding: '20px', color: '#64748b'}}>
-                                    {sistemas.length === 0 ? "Nenhum sistema cadastrado." : `Nenhum resultado para "${searchTerm}"`}
-                                </td>
-                            </tr>
+                            <tr><td colSpan="3" className="no-results">Nenhum sistema encontrado.</td></tr>
                         ) : (
                             filteredSistemas.map(s => (
-                                <tr 
-                                    key={s.id} 
-                                    onClick={() => handleSelectRow(s)} 
-                                    className={editingId === s.id ? 'selected' : 'selectable'} 
-                                    style={{opacity: s.ativo ? 1 : 0.6}}
-                                >
-                                    <td style={{verticalAlign: 'middle'}}>
+                                <tr key={s.id} onClick={() => handleSelectRow(s)} className={editingId === s.id ? 'selected' : 'selectable'} style={{opacity: s.ativo ? 1 : 0.6}}>
+                                    <td className="cell-name">
                                         <strong title={s.nome}>{truncate(s.nome)}</strong>
-                                        <div className="muted" style={{fontSize: '0.8rem'}} title={s.descricao}>
-                                            {truncate(s.descricao, 40)}
-                                        </div>
+                                        <div title={s.descricao}>{truncate(s.descricao, 40)}</div>
                                     </td>
-
-                                    <td style={{textAlign: 'right', whiteSpace: 'nowrap', verticalAlign: 'middle'}}>
-                                        <span 
-                                            onClick={(e) => { e.stopPropagation(); toggleActive(s); }} 
-                                            className={`badge ${s.ativo ? 'on' : 'off'}`} 
-                                            style={{marginRight:'10px', cursor:'pointer'}}
-                                        >
+                                    <td style={{textAlign: 'right', whiteSpace: 'nowrap'}}>
+                                        <span onClick={(e) => { e.stopPropagation(); toggleActive(s); }} className={`badge ${s.ativo ? 'on' : 'off'}`}>
                                             {s.ativo ? 'Ativo' : 'Inativo'}
                                         </span>
                                     </td>
-
-                                    <td style={{textAlign: 'right', verticalAlign: 'middle'}}>
-                                        <button 
-                                            onClick={(e) => { 
-                                                e.stopPropagation(); 
-                                                requestDelete(s); 
-                                            }}
-                                            className="btn danger small"
-                                            title="Excluir"
-                                        >
-                                            🗑️
-                                        </button>
+                                    <td className="cell-actions">
+                                        <button onClick={(e) => { e.stopPropagation(); requestDelete(s); }} className="btn danger small">🗑️</button>
                                     </td>
                                 </tr>
                             ))

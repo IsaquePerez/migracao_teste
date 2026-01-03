@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { 
-  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
-} from 'recharts';
-import { api } from '../services/api';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { api } from '../../services/api';
+import './styles.css';
 
 export function Dashboard() {
   const [data, setData] = useState(null);
@@ -15,7 +14,6 @@ export function Dashboard() {
         const response = await api.get('/dashboard/');
         setData(response);
       } catch (error) {
-        console.error(error);
         toast.error("Erro ao carregar dashboard.");
       } finally {
         setLoading(false);
@@ -24,26 +22,23 @@ export function Dashboard() {
     loadDashboard();
   }, []);
 
-  if (loading) return <div className="container">Carregando...</div>;
-  if (!data) return <div className="container">Sem dados.</div>;
+  if (loading) return <div className="loading-container">Carregando indicadores...</div>;
+  if (!data) return <div className="no-data">Sem dados para exibir.</div>;
 
   return (
-    <main className="container">
+    <main className="container dashboard-container">
       <h2 className="section-title">Visão Geral do QA</h2>
 
-      {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' }}>
+      <div className="kpi-grid">
         <KpiCard value={data.kpis.total_projetos} label="PROJETOS ATIVOS" color="#3b82f6" />
         <KpiCard value={data.kpis.total_ciclos_ativos} label="CICLOS RODANDO" color="#10b981" />
         <KpiCard value={data.kpis.total_casos_teste} label="TOTAL DE TESTES" color="#8b5cf6" />
         <KpiCard value={data.kpis.total_defeitos_abertos} label="BUGS ABERTOS" color="#ef4444" />
       </div>
 
-      <div className="grid">
-        
-        {/* Status Execução */}
-        <div className="card" style={{ minHeight: '400px' }}>
-          <h3 style={{ marginTop: 0 }}>Status de Execução</h3>
+      <div className="charts-grid">
+        <div className="chart-card">
+          <h3 className="chart-title">Status de Execução</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -65,9 +60,8 @@ export function Dashboard() {
           </ResponsiveContainer>
         </div>
 
-        {/* Severidade dos Defeitos */}
-        <div className="card" style={{ minHeight: '400px' }}>
-          <h3 style={{ marginTop: 0 }}>Defeitos por Severidade</h3>
+        <div className="chart-card">
+          <h3 className="chart-title">Defeitos por Severidade</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={data.charts.defeitos_por_severidade}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -82,7 +76,6 @@ export function Dashboard() {
             </BarChart>
           </ResponsiveContainer>
         </div>
-
       </div>
     </main>
   );
@@ -90,13 +83,9 @@ export function Dashboard() {
 
 function KpiCard({ value, label, color }) {
   return (
-    <div className="card" style={{ textAlign: 'center', borderTop: `4px solid ${color}` }}>
-      <h3 style={{ margin: '10px 0 5px 0', fontSize: '2.5rem', color: '#1e293b' }}>
-        {value}
-      </h3>
-      <span className="muted" style={{ fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.5px' }}>
-        {label}
-      </span>
+    <div className="kpi-card" style={{ borderTopColor: color }}>
+      <h3 className="kpi-value">{value}</h3>
+      <span className="kpi-label">{label}</span>
     </div>
   );
 }

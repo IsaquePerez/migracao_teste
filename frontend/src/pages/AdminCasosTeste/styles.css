@@ -1,0 +1,248 @@
+
+
+.toolbar {
+  padding-bottom: 15px;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1e293b;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.select-filter {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.85rem;
+  background-color: #f8fafc;
+  cursor: pointer;
+  min-width: 160px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.btn-new {
+  height: 34px;
+  padding: 0 15px;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.separator {
+  width: 1px;
+  height: 24px;
+  background-color: #e2e8f0;
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .separator { display: block; }
+}
+
+
+.search-wrapper {
+  position: relative;
+  width: 220px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 30px 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.85rem;
+  height: 34px;
+  box-sizing: border-box;
+}
+
+.search-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.4;
+  font-size: 0.9rem;
+}
+
+
+.form-section {
+  margin-bottom: 20px;
+}
+
+.form-header {
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+}
+
+.form-title {
+  margin: 0;
+  color: #1e293b;
+}
+
+.section-subtitle {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #334155;
+  font-size: 1.1rem;
+}
+
+.input-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.required-asterisk {
+  color: #ef4444;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.form-control.small-text {
+  font-size: 0.9rem;
+  background-color: white;
+}
+
+.bg-gray {
+  background-color: #f9fafb;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 768px) {
+  .form-grid { grid-template-columns: 1fr 1fr; }
+}
+
+
+.steps-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.btn-add-step {
+  background-color: #eef2ff;
+  color: #3730a3;
+  border: none;
+}
+
+.steps-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.step-row {
+  display: grid;
+  grid-template-columns: 30px 1fr 1fr 40px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  background-color: #f8fafc;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.step-index {
+  font-weight: bold;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.btn-remove-step {
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-actions {
+  margin-top: 30px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+
+.empty-container {
+  text-align: center;
+  padding: 40px;
+  color: #94a3b8;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border: 1px dashed #e2e8f0;
+}
+
+.cell-id { color: #64748b; }
+.cell-name { font-weight: 600; color: #334155; }
+.cell-priority { text-align: center; }
+.priority-badge { background-color: #f1f5f9; color: #475569; }
+.cell-resp { color: #475569; font-size: 0.85rem; }
+.cell-steps { text-align: center; color: #64748b; }
+.cell-actions { text-align: right; }
+
+.btn-action-icon {
+  padding: 6px 10px;
+  line-height: 1;
+}
+
+.loading-text {
+  padding: 20px;
+  text-align: center;
+  color: #64748b;
+}
+
+.no-results {
+  text-align: center;
+  padding: 20px;
+  color: #64748b;
+}
