@@ -8,7 +8,7 @@ class Token(BaseModel):
     token_type: str
     username: str 
     nome: str
-    role: str # Importante pro front montar o menu de permissões (Admin vs User)
+    role: str # Importante pro front montar o menu de permissões
 
 # Estrutura interna do que vai codificado dentro do JWT.
 class TokenPayload(BaseModel):
