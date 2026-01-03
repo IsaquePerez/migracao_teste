@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 
-/* ==========================================================================
-   COMPONENTE: MODAL DE REGISTO DE DEFEITOS
-   Gerencia o formulário de reporte de bugs (título, descrição, severidade).
-   ========================================================================== */
+
 export function DefectModal({ isOpen, onClose, onConfirm }) {
   const INITIAL_FORM = { 
     titulo: '', 
@@ -13,7 +10,7 @@ export function DefectModal({ isOpen, onClose, onConfirm }) {
 
   const [form, setForm] = useState(INITIAL_FORM);
 
-  // Reseta o formulário sempre que o modal abre
+  
   useEffect(() => {
     if (isOpen) setForm(INITIAL_FORM);
   }, [isOpen]);

@@ -1,7 +1,4 @@
-/* ==========================================================================
-   COMPONENTE: MODAL DE CONFIRMAÇÃO
-   Substituto elegante para o window.confirm nativo.
-   ========================================================================== */
+
 export function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirmText = "Confirmar", cancelText = "Cancelar", isDanger = false }) {
   if (!isOpen) return null;
 
@@ -9,11 +6,10 @@ export function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, 
     <div style={{
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)', // Fundo escuro transparente
-      display: 'flex',
+      backgroundColor: 'rgba(0,0,0,0.5)', 
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 1100, // Acima de tudo
+      zIndex: 1100, 
       backdropFilter: 'blur(2px)'
     }} onClick={onClose}>
       
