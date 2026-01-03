@@ -185,7 +185,7 @@ export function AdminUsers() {
                <div className="toolbar-actions">
                    <div className="search-wrapper">
                         <input 
-                            type="text" placeholder="Buscar usuário..." value={searchTerm}
+                            type="text" placeholder="Buscar..." value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="search-input"
                         />
