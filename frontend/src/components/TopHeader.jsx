@@ -6,6 +6,21 @@ export function TopHeader({ toggleSidebar }) {
     <header className="top-header">
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <button className="btn-mobile-menu" onClick={toggleSidebar} title="Abrir Menu">☰</button>
+        
+        <div style={{ 
+            marginLeft: '-10px', 
+            display: 'flex', 
+            alignItems: 'center' 
+        }}>
+            <img 
+                src="/logoveritus.png" 
+                alt="Veritus" 
+                style={{ 
+                    height: '40px', 
+                    marginRight: '8px' 
+                }} 
+            />
+        </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <div className="header-user-badge">

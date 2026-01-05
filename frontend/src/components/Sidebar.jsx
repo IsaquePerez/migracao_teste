@@ -8,9 +8,6 @@ export function Sidebar({ role, isOpen, closeSidebar }) {
   return (
     <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
        <div className="brand-wrap"><img src="/logoge.svg" alt="GE" className="brand-logo-ge" /></div>
-       <div className="brand-wrap sidebar-brand-separator">
-         <img src="/logoveritus.png" alt="Veritus" className="brand-logo-vt" /><div className="brand">Veritus</div>
-       </div>
        <nav onClick={handleNavClick}>
          {role === 'admin' && (
            <>

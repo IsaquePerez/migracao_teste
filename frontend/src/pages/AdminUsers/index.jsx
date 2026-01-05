@@ -86,7 +86,7 @@ export function AdminUsers() {
     const loggedUser = storedUser ? JSON.parse(storedUser) : {};
 
     if (editingId === loggedUser.id && form.ativo === true) {
-        return toast.error("Você não pode inativar seu próprio usuário!");
+        return toast.error("Você não pode desativar seu próprio usuário!");
     }
     setForm({ ...form, ativo: !form.ativo });
   };
@@ -237,7 +237,7 @@ export function AdminUsers() {
                     className={`btn ${form.ativo ? 'danger' : 'success'}`}
                     style={{ marginRight: 'auto' }}
                   >
-                    {form.ativo ? 'Inativar Usuário' : 'Ativar Usuário'}
+                    {form.ativo ? 'Desativar Usuário' : 'Ativar Usuário'}
                   </button>
                   <button type="button" onClick={handleReset} className="btn">Cancelar</button>
                   <button type="submit" className="btn primary">Salvar</button>
