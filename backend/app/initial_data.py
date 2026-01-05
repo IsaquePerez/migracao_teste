@@ -8,16 +8,21 @@ try:
     from app.models.usuario import Usuario
     from app.core.security import get_password_hash
 except ImportError as e:
+    print(f"Erro de importação: {e}")
     sys.exit(1)
 
 async def seed_db():
     async with AsyncSessionLocal() as session:
-        # 1. Access Levels
+
         result_admin = await session.execute(select(NivelAcesso).where(NivelAcesso.nome == 'admin'))
         niv_admin = result_admin.scalars().first()
         
         if not niv_admin:
-            niv_admin = NivelAcesso(nome='admin', descricao='Administrador do Sistema')
+            niv_admin = NivelAcesso(
+                nome='admin', 
+                descricao='Administrador do Sistema',
+                permissoes={}
+            )
             session.add(niv_admin)
             await session.commit()
             await session.refresh(niv_admin)
@@ -26,12 +31,16 @@ async def seed_db():
         niv_user = result_user.scalars().first()
 
         if not niv_user:
-            niv_user = NivelAcesso(nome='user', descricao='Usuário Padrão')
+            niv_user = NivelAcesso(
+                nome='user', 
+                descricao='Usuário Padrão',
+                permissoes={}
+            )
             session.add(niv_user)
             await session.commit()
             await session.refresh(niv_user)
-
-        # 2. Users (Admin and Default Tester)
+        
+        # Usuario Admin
         result_u_admin = await session.execute(select(Usuario).where(Usuario.email == 'admin@example.com'))
         user_admin = result_u_admin.scalars().first()
         
@@ -46,6 +55,7 @@ async def seed_db():
             )
             session.add(user_admin)
 
+        # Usuario tester
         result_u_igor = await session.execute(select(Usuario).where(Usuario.email == 'igor@example.com'))
         user_igor = result_u_igor.scalars().first()
         
@@ -61,9 +71,11 @@ async def seed_db():
             session.add(user_igor)
 
         await session.commit()
+        print("Dados iniciais inseridos com sucesso.")
 
 if __name__ == "__main__":
     try:
         asyncio.run(seed_db())
-    except Exception:
+    except Exception as e:
+        print(f"Erro ao inserir dados iniciais: {e}")
         sys.exit(1)

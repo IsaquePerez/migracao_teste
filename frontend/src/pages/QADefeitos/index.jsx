@@ -115,12 +115,12 @@ export function QADefeitos() {
         isDanger={true}
       />
       
-      <div className="toolbar">
-        <h2 className="section-title">Gestão de Defeitos</h2>
-        <button onClick={loadDefeitos} className="btn">Atualizar</button>
-      </div>
 
       <section className="card">
+        <div className="toolbar">
+            <h2 className="section-title">Gestão de Defeitos</h2>
+            <button onClick={loadDefeitos} className="btn">Atualizar</button>
+        </div>
         {loading ? <p>Carregando...</p> : (
           <div className="table-wrap">
             {defeitos.length === 0 ? <p className="muted">Nenhum defeito registrado.</p> : (

@@ -4,6 +4,94 @@ import { api } from '../../services/api';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 import './styles.css';
 
+// Componente Reutilizável de Dropdown com Pesquisa
+const SearchableSelect = ({ options, value, onChange, placeholder, disabled, labelKey = 'nome' }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const wrapperRef = useRef(null);
+
+  // Sincroniza o texto do input com o valor selecionado (ex: ao carregar edição)
+  useEffect(() => {
+    const selectedOption = options.find(opt => String(opt.id) === String(value));
+    if (selectedOption) {
+      setSearchTerm(selectedOption[labelKey]);
+    } else if (!value) {
+      setSearchTerm('');
+    }
+  }, [value, options, labelKey]);
+
+  // Fecha o dropdown ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setIsOpen(false);
+        const selectedOption = options.find(opt => String(opt.id) === String(value));
+        setSearchTerm(selectedOption ? selectedOption[labelKey] : '');
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [wrapperRef, value, options, labelKey]);
+
+  const filteredOptions = options.filter(opt => 
+    opt[labelKey].toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSelect = (option) => {
+    onChange(option.id);
+    setSearchTerm(option[labelKey]);
+    setIsOpen(false);
+  };
+
+  return (
+    <div ref={wrapperRef} className="search-wrapper" style={{ width: '100%', position: 'relative' }}>
+      <input
+        type="text"
+        className={`form-control ${disabled ? 'bg-gray' : ''}`}
+        placeholder={placeholder}
+        value={searchTerm}
+        onChange={(e) => {
+          setSearchTerm(e.target.value);
+          setIsOpen(true);
+          if (e.target.value === '') onChange('');
+        }}
+        onFocus={() => !disabled && setIsOpen(true)}
+        disabled={disabled}
+        style={{ cursor: disabled ? 'not-allowed' : 'text' }}
+      />
+      <span 
+        className="search-icon" 
+        style={{ cursor: disabled ? 'not-allowed' : 'pointer', right: '10px', position: 'absolute', top: '50%', transform: 'translateY(-50%)' }} 
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+      >
+        ▼
+      </span>
+
+      {isOpen && !disabled && (
+        <ul className="custom-dropdown" style={{ width: '100%', top: '100%', zIndex: 1000 }}>
+          {filteredOptions.length === 0 ? (
+            <li style={{ color: '#999', cursor: 'default', padding: '10px' }}>Sem resultados</li>
+          ) : (
+            filteredOptions.map(opt => (
+              <li key={opt.id} onClick={() => handleSelect(opt)}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                  <span>{opt[labelKey]}</span>
+                  {opt.status && (
+                    <span style={{ fontSize: '0.75rem', color: '#9ca3af', marginLeft: '8px', fontStyle: 'italic' }}>
+                      ({opt.status})
+                    </span>
+                  )}
+                </div>
+              </li>
+            ))
+          )}
+        </ul>
+      )}
+    </div>
+  );
+};
+
+// Componente Principal
 export function AdminCasosTeste() {
   const [projetos, setProjetos] = useState([]);
   const [ciclos, setCiclos] = useState([]);
@@ -29,6 +117,7 @@ export function AdminCasosTeste() {
     passos: [{ ordem: 1, acao: '', resultado_esperado: '' }]
   });
 
+  // Lógica específica para o campo "Importar Modelo"
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef(null);
@@ -105,6 +194,7 @@ export function AdminCasosTeste() {
       passos: [{ ordem: 1, acao: '', resultado_esperado: '' }]
     });
     setEditingId(null);
+    setSearchTerm('');
     setView('list');
   };
 
@@ -122,7 +212,7 @@ export function AdminCasosTeste() {
       criterios_aceitacao: caso.criterios_aceitacao || '',
       prioridade: caso.prioridade,
       responsavel_id: caso.responsavel_id || '',
-      ciclo_id: '', 
+      ciclo_id: '',
       passos: caso.passos && caso.passos.length > 0 ? caso.passos.map(p => ({...p})) : [{ ordem: 1, acao: '', resultado_esperado: '' }]
     });
     setEditingId(caso.id);
@@ -193,6 +283,30 @@ export function AdminCasosTeste() {
       }
   };
 
+  const handleImportarModelo = (casoId) => {
+    const casoOrigem = casos.find(c => c.id === casoId);
+    
+    if (casoOrigem) {
+      setForm(prev => ({
+        ...prev,
+        nome: `${casoOrigem.nome} (Cópia)`,
+        descricao: casoOrigem.descricao || '',
+        pre_condicoes: casoOrigem.pre_condicoes || '',
+        criterios_aceitacao: casoOrigem.criterios_aceitacao || '',
+        prioridade: casoOrigem.prioridade,
+        passos: casoOrigem.passos && casoOrigem.passos.length > 0 
+          ? casoOrigem.passos.map((p, index) => ({
+              ordem: index + 1,
+              acao: p.acao,
+              resultado_esperado: p.resultado_esperado
+            }))
+          : [{ ordem: 1, acao: '', resultado_esperado: '' }]
+      }));
+      setSearchTerm('');
+      toast.success("Dados do modelo importados!");
+    }
+  };
+
   return (
     <main className="container">
       <ConfirmationModal 
@@ -211,8 +325,38 @@ export function AdminCasosTeste() {
             
             <section className="card form-section">
               <div className="form-header">
-                 <h3 className="form-title">{editingId ? 'Editar Cenário' : 'Novo Cenário'}</h3>
-              </div>
+                <h3 className="form-title">{editingId ? 'Editar Cenário' : 'Novo Cenário'}</h3>
+
+                {!editingId && (
+                    <div ref={wrapperRef} className="search-wrapper" style={{ marginLeft: 'auto', width: '300px' }}>
+                        <input 
+                            type="text" 
+                            placeholder="Buscar modelo..." 
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)} 
+                            onFocus={() => setShowSuggestions(true)}
+                            className="search-input"
+                        />
+                        <span className="search-icon">🔍</span>
+                        
+                        {showSuggestions && (
+                            <ul className="custom-dropdown">
+                                {opcoesParaMostrar.length === 0 ? (
+                                    <li style={{ color: '#999', cursor: 'default' }}>Nenhum modelo encontrado.</li>
+                                ) : (
+                                    opcoesParaMostrar.map(c => (
+                                        <li key={c.id} onClick={() => { handleImportarModelo(c.id); setShowSuggestions(false); }}>
+                                            <div style={{ fontWeight: 600, color: '#334155' }}>
+                                                {truncate(c.nome, 20)}
+                                            </div>
+                                        </li>
+                                    ))
+                                )}
+                            </ul>
+                        )}
+                    </div>
+                )}
+            </div>
               <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
                   <div>
                     <label className="input-label">Título do Cenário <span className="required-asterisk">*</span></label>
@@ -249,28 +393,28 @@ export function AdminCasosTeste() {
             <section className="card form-section">
               <h3 className="section-subtitle">Alocação (Opcional)</h3>
               <div className="form-grid">
+                  
                   <div>
                     <label>Ciclo (Sprint)</label>
-                    <select 
-                        value={form.ciclo_id} onChange={e => setForm({...form, ciclo_id: e.target.value})}
-                        className="form-control bg-gray"
+                    <SearchableSelect
+                        options={ciclos}
+                        value={form.ciclo_id}
+                        onChange={(val) => setForm({ ...form, ciclo_id: val })}
+                        placeholder="Selecione ou busque o ciclo..."
                         disabled={!!editingId}
-                    >
-                       <option value="">Apenas Salvar na Biblioteca</option>
-                       {ciclos.map(c => <option key={c.id} value={c.id}>{truncate(c.nome, 25)} ({c.status})</option>)}
-                    </select>
+                        labelKey="nome"
+                    />
                   </div>
+
                   <div>
                     <label>Responsável</label>
-                    <select 
-                        value={form.responsavel_id} onChange={e => setForm({...form, responsavel_id: e.target.value})}
-                        className="form-control bg-gray"
-                    >
-                        <option value="">Definir depois</option>
-                        {usuarios.filter(u => u.ativo).map(u => (
-                            <option key={u.id} value={u.id}>{truncate(u.nome, 30)}</option>
-                        ))}
-                    </select>
+                    <SearchableSelect
+                        options={usuarios.filter(u => u.ativo)}
+                        value={form.responsavel_id}
+                        onChange={(val) => setForm({ ...form, responsavel_id: val })}
+                        placeholder="Buscar responsável..."
+                        labelKey="nome"
+                    />
                 </div>
               </div>
             </section>
