@@ -29,14 +29,13 @@ class Metrica(Base):
     casos_reprovados = Column(Integer, nullable=False, default=0)
     casos_executados = Column(Integer, nullable=False, default=0)
     casos_aprovados = Column(Integer, nullable=False, default=0)
-    tempo_medio_resolucao = Column(Integer)    
     
-    # Registra o valor calculado da métrica, unidade e data de referência.
+    tempo_medio_resolucao = Column(Integer)    
     data_medicao = Column(DateTime(timezone=True), server_default=func.now())
-    nome_metrica = Column(String(255), nullable=False)
+    nome_metrica = Column(String(100), nullable=False)
     valor_metrica = Column(Numeric(10, 2), nullable=False)
-    unidade_medida = Column(String(255))
-    descricao = Column(Text)
+    unidade_medida = Column(String(50))
+    descricao = Column(String(255))
     
     # Auditoria para saber quando o registro foi criado ou alterado.
     created_at = Column(DateTime(timezone=True), server_default=func.now())

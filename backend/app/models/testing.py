@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime, Enum, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -44,13 +44,14 @@ class SeveridadeDefeitoEnum(str, enum.Enum):
     medio = "medio"
     bajo = "baixo"
 
-# --- Ciclos de Teste (Sprints de QA) ---
+# Ciclos de Teste
 class CicloTeste(Base):
     __tablename__ = "ciclos_teste"
 
     id = Column(Integer, primary_key=True, index=True)
     projeto_id = Column(Integer, ForeignKey("projetos.id"), nullable=False)
-    nome = Column(String)
+    nome = Column(String(100), nullable=False)
+    
     numero = Column(Integer) 
     descricao = Column(Text)
     
@@ -59,8 +60,13 @@ class CicloTeste(Base):
     data_fim = Column(DateTime(timezone=True))
     status = Column(Enum(StatusCicloEnum, name='status_ciclo_enum', create_type=False), default=StatusCicloEnum.planejado)    
     
+    # Auditoria
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('projeto_id', 'nome', name='uq_ciclo_nome_projeto'),
+    )
 
     projeto = relationship("Projeto", back_populates="ciclos")
     execucoes = relationship("ExecucaoTeste", back_populates="ciclo", cascade="all, delete-orphan")
@@ -75,19 +81,17 @@ class CicloTeste(Base):
     def testes_concluidos(self):
         if not self.execucoes:
             return 0
-        # Conta apenas o que já foi finalizado (passou/falhou/bloqueado).
         return sum(1 for e in self.execucoes if e.status_geral.value in ['passou', 'falhou', 'bloqueado'])
     
-# --- Casos de Teste (Biblioteca de Testes) ---
+# Casos de Teste
 class CasoTeste(Base):
     __tablename__ = "casos_teste"
 
     id = Column(Integer, primary_key=True, index=True)
     projeto_id = Column(Integer, ForeignKey("projetos.id"), nullable=False)
     responsavel_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    nome = Column(String(255), nullable=False)
     
-    # Dados descritivos do teste (BDD ou passo-a-passo).
-    nome = Column(String, nullable=False)
     descricao = Column(Text)
     pre_condicoes = Column(Text)
     criterios_aceitacao = Column(Text) 
@@ -96,9 +100,14 @@ class CasoTeste(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+    __table_args__ = (
+        UniqueConstraint('projeto_id', 'nome', name='uq_casoteste_nome_projeto'),
+    )
+
     projeto = relationship("Projeto", back_populates="casos_teste")
     responsavel = relationship("Usuario")   
-    passos = relationship("PassoCasoTeste", back_populates="caso_teste", cascade="all, delete-orphan")
+    
+    passos = relationship("PassoCasoTeste", back_populates="caso_teste", cascade="all, delete-orphan", order_by="PassoCasoTeste.ordem")
     execucoes = relationship("ExecucaoTeste", back_populates="caso_teste")
 
 # Detalhe dos passos de um Caso de Teste.
@@ -107,6 +116,7 @@ class PassoCasoTeste(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     caso_teste_id = Column(Integer, ForeignKey("casos_teste.id"), nullable=False)
+    
     ordem = Column(Integer, nullable=False)
     acao = Column(Text, nullable=False)
     resultado_esperado = Column(Text, nullable=False)
@@ -114,15 +124,18 @@ class PassoCasoTeste(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+    __table_args__ = (
+        UniqueConstraint('caso_teste_id', 'ordem', name='uq_passo_ordem'),
+    )
+
     caso_teste = relationship("CasoTeste", back_populates="passos")
     execucoes_deste_passo = relationship("ExecucaoPasso", back_populates="passo_template")
 
-# --- Execução (Ocorrência de um teste em um ciclo) ---
+# Execução
 class ExecucaoTeste(Base):
     __tablename__ = "execucoes_teste"
 
     id = Column(Integer, primary_key=True, index=True)
-    # Vincula o caso de teste (biblioteca) ao ciclo (sprint) atual.
     ciclo_teste_id = Column(Integer, ForeignKey("ciclos_teste.id"), nullable=False)
     caso_teste_id = Column(Integer, ForeignKey("casos_teste.id"), nullable=False)
     responsavel_id = Column(Integer, ForeignKey("usuarios.id"))
@@ -131,11 +144,12 @@ class ExecucaoTeste(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+# Relacionamentos
     ciclo = relationship("CicloTeste", back_populates="execucoes")
     caso_teste = relationship("CasoTeste", back_populates="execucoes")
     responsavel = relationship("Usuario", back_populates="execucoes_atribuidas")
     
-    passos_executados = relationship("ExecucaoPasso", back_populates="execucao_pai", cascade="all, delete-orphan")
+    passos_executados = relationship("ExecucaoPasso", back_populates="execucao_pai", cascade="all, delete-orphan", order_by="ExecucaoPasso.id")
     defeitos = relationship("Defeito", back_populates="execucao", cascade="all, delete-orphan")
 
 # Registro do resultado de cada passo na execução.
@@ -148,20 +162,19 @@ class ExecucaoPasso(Base):
     
     resultado_obtido = Column(Text)
     status = Column(Enum(StatusPassoEnum, name='status_passo_enum', create_type=False), default=StatusPassoEnum.pendente)
-    evidencias = Column(Text) # Pode ser URL ou Path da imagem
+    evidencias = Column(Text) 
     
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     execucao_pai = relationship("ExecucaoTeste", back_populates="passos_executados")
     passo_template = relationship("PassoCasoTeste", back_populates="execucoes_deste_passo")
 
-# --- Defeitos ---
+# Defeitos
 class Defeito(Base):
     __tablename__ = "defeitos"
 
     id = Column(Integer, primary_key=True, index=True)
     execucao_teste_id = Column(Integer, ForeignKey("execucoes_teste.id"), nullable=False)
-    
     titulo = Column(String(255), nullable=False)
     descricao = Column(Text, nullable=False)
     evidencias = Column(Text)

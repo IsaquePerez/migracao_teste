@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { api } from '../../services/api';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
@@ -21,11 +21,35 @@ export function AdminProjetos() {
     status: 'ativo'
   });
 
+  // Lógica de Pesquisa e Dropdown 
   const [searchTerm, setSearchTerm] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const wrapperRef = useRef(null);
+
+  // Helper para cortar texto
+  const truncate = (str, n = 25) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str || '';
+
+  // Define o que mostrar no dropdown: 
+  // Se busca vazia -> últimos 5 projetos (por ID).
+  // Se digitando -> filtra e pega os 5 primeiros matches.
+  const opcoesParaMostrar = searchTerm === '' 
+    ? [...projetos].sort((a, b) => b.id - a.id).slice(0, 5) 
+    : projetos.filter(p => p.nome.toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 5);
 
   const filteredData = projetos.filter(p => 
       p.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Fecha o dropdown ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [wrapperRef]);
 
   useEffect(() => {
     loadData();
@@ -59,6 +83,8 @@ export function AdminProjetos() {
     });
     setEditingId(item.id);
     setView('form');
+    // Fecha sugestões ao entrar na edição
+    setShowSuggestions(false);
   };
 
   const handleSubmit = async (e) => {
@@ -168,14 +194,40 @@ export function AdminProjetos() {
            <div className="toolbar">
                <h3 className="page-title">Projetos</h3>
                <div className="toolbar-actions">
-                   <div className="search-wrapper">
+                   
+                   <div ref={wrapperRef} className="search-wrapper">
                         <input 
-                            type="text" placeholder="Buscar..." value={searchTerm}
+                            type="text" 
+                            placeholder="Buscar..." 
+                            value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
+                            onFocus={() => setShowSuggestions(true)}
                             className="search-input"
                         />
                         <span className="search-icon">🔍</span>
+
+                        {showSuggestions && (
+                            <ul className="custom-dropdown">
+                                {opcoesParaMostrar.length === 0 ? (
+                                    <li style={{ color: '#999', cursor: 'default' }}>Nenhum projeto encontrado.</li>
+                                ) : (
+                                    opcoesParaMostrar.map(p => (
+                                        <li key={p.id} onClick={() => { setSearchTerm(p.nome); setShowSuggestions(false); }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                                                <span style={{ fontWeight: 600, color: '#334155' }}>
+                                                    {truncate(p.nome, 20)}
+                                                </span>
+                                                <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontStyle:'italic' }}>
+                                                    {p.status}
+                                                </span>
+                                            </div>
+                                        </li>
+                                    ))
+                                )}
+                            </ul>
+                        )}
                    </div>
+
                    <button onClick={() => setView('form')} className="btn primary btn-new">Novo Projeto</button>
                </div>
            </div>
@@ -196,24 +248,28 @@ export function AdminProjetos() {
                      </tr>
                    </thead>
                    <tbody>
-                     {filteredData.map(item => (
-                       <tr key={item.id} className="selectable" onClick={() => handleEdit(item)}>
-                           <td className="cell-id">#{item.id}</td>
-                           <td className="cell-name">{item.nome}</td>
-                           <td style={{color:'#64748b'}}>{item.descricao}</td>
-                           <td className="cell-status">
-                               <span className={`status-badge ${item.status}`}>{item.status}</span>
-                           </td>
-                           <td className="cell-actions">
-                               <button 
-                                   onClick={(e) => { e.stopPropagation(); setItemToDelete(item); setIsDeleteModalOpen(true); }} 
-                                   className="btn danger small btn-action-icon"
-                               >
-                                   🗑️
-                               </button>
-                           </td>
-                       </tr>
-                     ))}
+                     {filteredData.length === 0 ? (
+                        <tr><td colSpan="5" className="no-results">Sem resultados para "{searchTerm}"</td></tr>
+                     ) : (
+                        filteredData.map(item => (
+                            <tr key={item.id} className="selectable" onClick={() => handleEdit(item)}>
+                                <td className="cell-id">#{item.id}</td>
+                                <td className="cell-name">{truncate(item.nome, 40)}</td>  
+                                <td style={{color:'#64748b'}}>{truncate(item.descricao, 20)}</td>
+                                <td className="cell-status">
+                                    <span className={`status-badge ${item.status}`}>{item.status}</span>
+                                </td>
+                                <td className="cell-actions">
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); setItemToDelete(item); setIsDeleteModalOpen(true); }} 
+                                        className="btn danger small btn-action-icon"
+                                    >
+                                        🗑️
+                                    </button>
+                                </td>
+                            </tr>
+                        ))
+                     )}
                    </tbody>
                  </table>
                )}

@@ -8,13 +8,14 @@ class Sistema(Base):
     __tablename__ = "sistemas"
 
     id = Column(Integer, primary_key=True, index=True)
-    nome = Column(String(255), nullable=False)
-    descricao = Column(Text)
+    nome = Column(String(100), nullable=False, unique=True)
+    descricao = Column(String(255))    
     ativo = Column(Boolean, default=True)
     
+    # Auditoria
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    # Um sistema pode ter vários módulos e projetos associados.
+    # Relacionamentos
     modulos = relationship("Modulo", back_populates="sistema")
     projetos = relationship("Projeto", back_populates="sistema")
