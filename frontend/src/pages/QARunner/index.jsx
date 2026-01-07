@@ -110,9 +110,7 @@ export function QARunner() {
       info('Enviando evidência...');
 
       try {
-          const response = await api.post(`/testes/passos/${passoId}/evidencia`, formData, {
-              headers: { 'Content-Type': 'multipart/form-data' }
-          });
+          const response = await api.post(`/testes/passos/${passoId}/evidencia`, formData);
           
           const data = response.data || response;
 

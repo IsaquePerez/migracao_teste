@@ -522,8 +522,7 @@ export function AdminCasosTeste() {
                                 {opcoesParaMostrar.map(c => (
                                     <li key={c.id} onClick={() => { setSearchTerm(c.nome); setShowSuggestions(false); }}>
                                         <span>
-                                            {truncate(c.nome, 20)}
-                                            <span style={{fontSize:'0.75rem', color:'#9ca3af', marginLeft:'8px'}}>({c.prioridade})</span>
+                                            {truncate(c.nome, 20)}                                            
                                         </span>
                                     </li>
                                 ))}

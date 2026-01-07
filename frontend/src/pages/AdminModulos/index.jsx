@@ -264,6 +264,8 @@ export function AdminModulos() {
           <div className="toolbar">
               <h2 className="page-title">Módulos</h2>
               <div className="toolbar-actions">
+                <button onClick={handleNew} className="btn primary btn-new">Novo Módulo</button>
+                <div className="separator"></div>
                 <div ref={wrapperRef} className="search-wrapper">
                     <input 
                         type="text" 
@@ -284,7 +286,6 @@ export function AdminModulos() {
                         </ul>
                     )}
                 </div>
-                <button onClick={handleNew} className="btn primary btn-new">Novo Módulo</button>
               </div>
           </div>
 

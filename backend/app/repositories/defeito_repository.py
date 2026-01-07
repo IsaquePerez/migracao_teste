@@ -96,3 +96,11 @@ class DefeitoRepository:
 
         result = await self.db.execute(query)
         return result.scalars().all()
+    
+    async def delete(self, id: int) -> bool:
+        defeito = await self.db.get(Defeito, id)
+        if defeito:
+            await self.db.delete(defeito)
+            await self.db.commit()
+            return True
+        return False

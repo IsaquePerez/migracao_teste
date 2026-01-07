@@ -251,6 +251,8 @@ export function AdminUsers() {
            <div className="toolbar">
                <h3 className="page-title">Usuários</h3>
                <div className="toolbar-actions">
+                  <button onClick={() => setView('form')} className="btn primary btn-new">Novo Usuário</button>
+                  <div className="separator"></div>
                    <div className="search-wrapper" ref={searchRef}>
                         <input 
                             type="text" 
@@ -279,7 +281,6 @@ export function AdminUsers() {
                         )}
                    </div>
 
-                   <button onClick={() => setView('form')} className="btn primary btn-new">Novo Usuário</button>
                </div>
            </div>
 

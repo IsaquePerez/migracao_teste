@@ -43,3 +43,6 @@ class DefeitoService:
         except IntegrityError as e:
             await self.repo.db.rollback()
             tratar_erro_integridade(e)
+    
+    async def excluir_defeito(self, id: int) -> bool:
+        return await self.repo.delete(id)

@@ -3,6 +3,7 @@ import uuid
 import os
 import json
 from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
@@ -181,10 +182,23 @@ async def finalizar_execucao_manual(
     return {"message": "Execução atualizada", "status": status}
 
 # Recebe o upload de prints ou logs para provar o resultado do teste.
-@router.post("/execucoes/passos/{passo_id}/evidencia")
+@router.post("/passos/{passo_id}/evidencia") 
 async def upload_evidencia_passo(
     passo_id: int,
     file: UploadFile = File(...),
     service: ExecucaoTesteService = Depends(get_execucao_service)
 ):
     return await service.upload_evidencia(passo_id, file)
+
+@router.get("/evidencias/download/{filename}")
+async def download_evidencia(filename: str):
+    file_path = f"evidencias/{filename}"
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+    
+    return FileResponse(
+        path=file_path, 
+        filename=filename, 
+        media_type='application/octet-stream' 
+    )

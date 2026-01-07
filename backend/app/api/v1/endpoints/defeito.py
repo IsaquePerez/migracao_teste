@@ -50,3 +50,13 @@ async def atualizar_defeito(
     if not defeito:
         raise HTTPException(status_code=404, detail="Defeito não encontrado")
     return defeito
+
+@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
+async def excluir_defeito(
+    id: int, 
+    service: DefeitoService = Depends(get_service)
+):
+    sucesso = await service.excluir_defeito(id)
+    if not sucesso:
+        raise HTTPException(status_code=404, detail="Defeito não encontrado")
+    return

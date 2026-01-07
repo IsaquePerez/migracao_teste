@@ -220,6 +220,8 @@ export function AdminSistemas() {
               <h2 className="page-title">Sistemas</h2>
               
               <div className="toolbar-actions" style={{display:'flex', gap:'10px', alignItems:'center'}}>
+                <button onClick={handleNew} className="btn primary btn-new">Novo Sistema</button>
+                <div className="separator"></div>
                 <div ref={wrapperRef} className="search-wrapper">
                     <input 
                         type="text" 
@@ -240,7 +242,6 @@ export function AdminSistemas() {
                         </ul>
                     )}
                 </div>
-                <button onClick={handleNew} className="btn primary btn-new">Novo Sistema</button>
               </div>
           </div>
 
