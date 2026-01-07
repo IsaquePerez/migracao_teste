@@ -319,7 +319,7 @@ export function AdminCasosTeste() {
     if (casoOrigem) {
       setForm(prev => ({
         ...prev,
-        nome: `${casoOrigem.nome} (Cópia)`,
+        nome: `${casoOrigem.nome}`,
         descricao: casoOrigem.descricao || '',
         pre_condicoes: casoOrigem.pre_condicoes || '',
         criterios_aceitacao: casoOrigem.criterios_aceitacao || '',
