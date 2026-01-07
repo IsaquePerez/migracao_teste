@@ -4,7 +4,7 @@ export function TaskSidebar({ tasks, loading, activeExecId, onSelect }) {
   if (loading) return <div className={styles.sidebar}>Carregando...</div>;
   
   if (!tasks || tasks.length === 0) {
-    return <div className={`${styles.sidebar} muted`}>Sem tarefas.</div>;
+    return <div className={`${styles.sidebar} muted`}></div>;
   }
 
   const getStatusClass = (status) => {

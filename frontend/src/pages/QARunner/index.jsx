@@ -186,7 +186,7 @@ export function QARunner() {
       />
       <DefectModal isOpen={isDefectModalOpen} onClose={() => setIsDefectModalOpen(false)} onConfirm={handleDefectConfirm} />
 
-      <h2 className="section-title">Minhas Tarefas</h2>
+      <h2 className="section-title" style={{marginBottom: '15px' }}>Minhas Tarefas</h2>
       
       <div className={styles.container}>
           <TaskSidebar 
@@ -197,6 +197,7 @@ export function QARunner() {
           />
 
           <ExecutionPlayer 
+              tasks={tarefas}
               execution={activeExecucao}
               onFinish={requestFinishExecution}
               onStepAction={handleStepAction}

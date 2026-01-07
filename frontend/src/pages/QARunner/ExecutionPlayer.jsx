@@ -1,7 +1,12 @@
 import styles from './styles.module.css';
 
-export function ExecutionPlayer({ execution, onFinish, onStepAction, onUpload, onDeleteEvidence, onViewGallery }) {
-  if (!execution) {
+export function ExecutionPlayer({ tasks, execution, onFinish, onStepAction, onUpload, onDeleteEvidence, onViewGallery }) {
+  
+  if (!tasks || tasks.length === 0) {
+    return <div className={styles.emptyState}>Sem tarefas.</div>;
+  }
+  
+  else if (!execution) {
     return <div className={styles.emptyState}>Selecione uma tarefa para iniciar</div>;
   }
 
