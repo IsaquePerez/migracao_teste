@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { toast } from 'sonner';
 import { api } from '../../services/api';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
+import { useSnackbar } from '../../context/SnackbarContext'; 
 import './styles.css';
 
 export function AdminUsers() {
@@ -9,6 +9,9 @@ export function AdminUsers() {
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState('list');
   const [editingId, setEditingId] = useState(null);
+  
+  // 2. Extraindo as funções do contexto
+  const { success, error, warning } = useSnackbar();
   
   // ESTADOS DA BUSCA (DROPDOWN)
   const [showDropdown, setShowDropdown] = useState(false);
@@ -55,8 +58,8 @@ export function AdminUsers() {
       const response = await api.get("/usuarios/");
       const data = response.data || response; 
       setUsers(Array.isArray(data) ? data : []);
-    } catch (error) {
-      toast.error("Erro ao carregar usuários.");
+    } catch (err) {
+      error("Erro ao carregar usuários.");
     } finally {
       setLoading(false);
     }
@@ -86,26 +89,26 @@ export function AdminUsers() {
     const loggedUser = storedUser ? JSON.parse(storedUser) : {};
 
     if (editingId === loggedUser.id && form.ativo === true) {
-        return toast.error("Você não pode desativar seu próprio usuário!");
+        return error("Você não pode desativar seu próprio usuário!");
     }
     setForm({ ...form, ativo: !form.ativo });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.nome.trim() || !form.email.trim()) return toast.warning("Nome e Email são obrigatórios.");
-    if (!editingId && !form.senha) return toast.warning("Senha é obrigatória para novos usuários.");
+    if (!form.nome.trim() || !form.email.trim()) return warning("Nome e Email são obrigatórios.");
+    if (!editingId && !form.senha) return warning("Senha é obrigatória para novos usuários.");
 
     if (form.username && form.username.trim() !== '') {
         const usernameExists = users.some(u => 
             u.username?.toLowerCase() === form.username.trim().toLowerCase() && u.id !== editingId 
         );
-        if (usernameExists) return toast.warning(`O username "${form.username}" já está em uso.`);
+        if (usernameExists) return warning(`O username "${form.username}" já está em uso.`);
     }
     const emailExists = users.some(u => 
         u.email.toLowerCase() === form.email.trim().toLowerCase() && u.id !== editingId 
     );
-    if (emailExists) return toast.warning(`O email "${form.email}" já está cadastrado.`);
+    if (emailExists) return warning(`O email "${form.email}" já está cadastrado.`);
 
     try {
       const payload = { ...form };
@@ -114,16 +117,16 @@ export function AdminUsers() {
 
       if (editingId) {
         await api.put(`/usuarios/${editingId}`, payload);
-        toast.success("Usuário atualizado!");
+        success("Usuário atualizado!");
       } else {
         await api.post("/usuarios/", payload);
-        toast.success("Usuário criado!");
+        success("Usuário criado!");
       }
       handleReset();
       loadData();
-    } catch (error) {
-      const msg = error.response?.data?.detail || "Erro ao salvar usuário.";
-      toast.error(typeof msg === 'string' ? msg : "Erro ao salvar.");
+    } catch (err) {
+      const msg = err.response?.data?.detail || "Erro ao salvar usuário.";
+      error(typeof msg === 'string' ? msg : "Erro ao salvar.");
     }
   };
 
@@ -131,10 +134,10 @@ export function AdminUsers() {
     if (!itemToDelete) return;
     try {
       await api.delete(`/usuarios/${itemToDelete.id}`);
-      toast.success("Usuário removido.");
+      success("Usuário removido.");
       loadData();
     } catch (e) {
-      toast.error("Erro ao excluir.");
+      error("Erro ao excluir.");
     } finally {
       setIsDeleteModalOpen(false);
       setItemToDelete(null);
@@ -152,13 +155,10 @@ export function AdminUsers() {
 
   const truncate = (str, n = 25) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str;
 
-  // Se o input estiver vazio, pega os ÚLTIMOS 5 (ordenados por ID decrescente)
-  // Se tiver texto, pega os 5 primeiros que batem com a busca
   const dropdownOptions = searchTerm === '' 
     ? [...users].sort((a, b) => b.id - a.id).slice(0, 5) 
     : filteredUsers.slice(0, 5);
 
-  // PAGINAÇÃO
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
   if (currentPage > totalPages && totalPages > 0) setCurrentPage(1);
 

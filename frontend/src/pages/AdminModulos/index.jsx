@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { toast } from 'sonner';
 import { api } from '../../services/api';
+import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 import './styles.css';
 
@@ -10,6 +10,8 @@ export function AdminModulos() {
   const [form, setForm] = useState({ nome: '', descricao: '', sistema_id: '' });
   const [editingId, setEditingId] = useState(null);
 
+  const { success, error, warning } = useSnackbar();
+
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [moduloToDelete, setModuloToDelete] = useState(null);
     
@@ -17,7 +19,6 @@ export function AdminModulos() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef(null); 
 
-  // CONFIGURAÇÃO DA PAGINAÇÃO
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -25,7 +26,6 @@ export function AdminModulos() {
 
   useEffect(() => { loadData(); }, []);
 
-  // Reseta paginação ao pesquisar
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
@@ -50,17 +50,26 @@ export function AdminModulos() {
         setSistemas(Array.isArray(sis) ? sis : []);
         
         const ativos = (Array.isArray(sis) ? sis : []).filter(s => s.ativo);
-        if (ativos.length > 0 && !form.sistema_id) {
+        if (ativos.length > 0 && !form.sistema_id && !editingId) {
             setForm(f => ({ ...f, sistema_id: ativos[0].id }));
         }
     } catch (e) { 
-        toast.error("Erro ao carregar dados.");
+        error("Erro ao carregar dados. Tente recarregar a página.");
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.sistema_id) return toast.warning("Selecione um Sistema Pai.");
+
+    if (!form.sistema_id) {
+        warning("Por favor, selecione o Sistema Pai.");
+        return;
+    }
+
+    if (!form.nome.trim()) {
+        warning("Por favor, preencha o nome do módulo.");
+        return;
+    }
 
     const nomeNormalizado = form.nome.trim().toLowerCase();
     const sistemaIdSelecionado = parseInt(form.sistema_id);
@@ -71,22 +80,30 @@ export function AdminModulos() {
         m.id !== editingId
     );
 
-    if (duplicado) return toast.warning("Já existe um módulo com este nome.");
+    if (duplicado) {
+        warning("Já existe um módulo com este nome neste sistema.");
+        return;
+    }
 
     try {
       const payload = { ...form, sistema_id: sistemaIdSelecionado };
+      
       if (editingId) {
           await api.put(`/modulos/${editingId}`, payload);
-          toast.success("Módulo atualizado!");
+          success("Módulo atualizado com sucesso!");
       } else {
           await api.post("/modulos/", { ...payload, ativo: true });
-          toast.success("Módulo criado!");
+          success("Módulo cadastrado com sucesso!");
       }
+      
       handleCancel();
+      
       const updatedMods = await api.get("/modulos/");
       setModulos(updatedMods);
-    } catch (error) { 
-        toast.error(error.message || "Erro ao salvar módulo."); 
+
+    } catch (err) { 
+      const msg = err.response?.data?.detail || err.message || "Erro ao salvar o registro.";
+      error(msg); 
     }
   };
 
@@ -104,9 +121,11 @@ export function AdminModulos() {
       try {
           const novoStatus = !modulo.ativo;
           await api.put(`/modulos/${modulo.id}`, { ativo: novoStatus });
-          toast.success(`Módulo ${novoStatus ? 'ativado' : 'desativado'}.`);
+          success(`Módulo "${modulo.nome}" ${novoStatus ? 'ativado' : 'desativado'}.`);
           setModulos(prev => prev.map(m => m.id === modulo.id ? { ...m, ativo: novoStatus } : m));
-      } catch(e) { toast.error("Erro ao alterar status."); }
+      } catch(e) { 
+          error("Não foi possível alterar o status do módulo."); 
+      }
   };
 
   const requestDelete = (modulo) => {
@@ -118,17 +137,19 @@ export function AdminModulos() {
       if (!moduloToDelete) return;
       try {
           await api.delete(`/modulos/${moduloToDelete.id}`);
-          toast.success("Excluído.");
+          success("Módulo excluído com sucesso.");
           setModulos(prev => prev.filter(m => m.id !== moduloToDelete.id));
           if (editingId === moduloToDelete.id) handleCancel();
-      } catch (error) { toast.error("Não foi possível excluir."); } 
-      finally { setModuloToDelete(null); }
+      } catch (err) { 
+          error("Não é possível excluir este módulo pois ele possui dependências."); 
+      } finally { 
+          setModuloToDelete(null); 
+      }
   };
 
   const getSistemaName = (id) => sistemas.find(s => s.id === id)?.nome || '-';
   const sistemasAtivos = sistemas.filter(s => s.ativo);
 
-  // LÓGICA DE FILTRO
   const filteredModulos = modulos.filter(m => 
       m.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -167,9 +188,9 @@ export function AdminModulos() {
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmDelete}
-        title="Excluir?"
-        message={`Confirmar exclusão de "${moduloToDelete?.nome}"?`}
-        confirmText="Sim"
+        title="Excluir Módulo?"
+        message={`Tem certeza que deseja excluir "${moduloToDelete?.nome}"?`}
+        confirmText="Sim, Excluir"
         isDanger={true}
       />
 
@@ -179,22 +200,36 @@ export function AdminModulos() {
           <div className="form-grid">
             <div>
                 <label className="input-label">Sistema Pai</label>
-                <select value={form.sistema_id} onChange={e => setForm({...form, sistema_id: e.target.value})} className="form-control">
+                <select 
+                    value={form.sistema_id} 
+                    onChange={e => setForm({...form, sistema_id: e.target.value})} 
+                    className="form-control"
+                >
                     <option value="">Selecione...</option>
                     {sistemasAtivos.map(s => <option key={s.id} value={s.id}>{truncate(s.nome)}</option>)}
                 </select>
             </div>
             <div>
                 <label className="input-label">Nome do Módulo</label>
-                <input required value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} placeholder="Ex: Contas a Pagar" className="form-control" />
+                <input 
+                    value={form.nome} 
+                    onChange={e => setForm({...form, nome: e.target.value})} 
+                    placeholder="Ex: Contas a Pagar" 
+                    className="form-control" 
+                />
             </div>
             <div>
                 <label className="input-label">Descrição</label>
-                <input value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} placeholder="Descrição opcional..." className="form-control" />
+                <input 
+                    value={form.descricao} 
+                    onChange={e => setForm({...form, descricao: e.target.value})} 
+                    placeholder="Descrição" 
+                    className="form-control" 
+                />
             </div>
           </div>
           <div className="form-actions">
-            <button type="submit" className="btn primary">{editingId ? 'Atualizar' : 'Salvar'}</button>
+            <button type="submit" className="btn primary">{editingId ? 'Salvar Alterações' : 'Criar Módulo'}</button>
             {editingId && <button type="button" onClick={handleCancel} className="btn">Cancelar</button>}
           </div>
         </form>
@@ -202,7 +237,7 @@ export function AdminModulos() {
 
       <section className="card">
         <div className="toolbar">
-            <h2 className="page-title">Módulos</h2>
+            <h2 className="page-title">Módulos Cadastrados</h2>
             <div ref={wrapperRef} className="search-wrapper">
                 <input 
                     type="text" 
@@ -239,24 +274,24 @@ export function AdminModulos() {
                         </thead>
                         <tbody>
                             {filteredModulos.length === 0 ? (
-                                <tr><td colSpan="4" className="no-results">Nada encontrado.</td></tr>
+                                <tr><td colSpan="4" className="no-results">Nenhum módulo encontrado.</td></tr>
                             ) : (
                                 currentModulos.map(m => (
                                     <tr key={m.id} onClick={() => handleSelectRow(m)} className={editingId === m.id ? 'selected' : 'selectable'} style={{opacity: m.ativo ? 1 : 0.6}}>
                                         <td className="cell-name">
                                             <strong title={m.nome}>{truncate(m.nome)}</strong>
-                                            <div title={m.descricao}>{truncate(m.descricao, 40)}</div>
+                                            <div title={m.descricao} className="muted">{truncate(m.descricao, 40)}</div>
                                         </td>
                                         <td style={{verticalAlign: 'middle'}}>
                                             <span className="badge system">{truncate(getSistemaName(m.sistema_id), 20)}</span>
                                         </td>
                                         <td style={{textAlign: 'center', verticalAlign: 'middle'}}>
-                                            <span onClick={(e) => { e.stopPropagation(); toggleActive(m); }} className={`badge ${m.ativo ? 'on' : 'off'}`}>
+                                            <span onClick={(e) => { e.stopPropagation(); toggleActive(m); }} className={`badge ${m.ativo ? 'on' : 'off'}`} style={{cursor: 'pointer'}}>
                                                 {m.ativo ? 'Ativo' : 'Inativo'}
                                             </span>                                    
                                         </td>
                                         <td className="cell-actions">
-                                            <button onClick={(e) => { e.stopPropagation(); requestDelete(m); }} className="btn danger small">🗑️</button>
+                                            <button onClick={(e) => { e.stopPropagation(); requestDelete(m); }} className="btn danger small" title="Excluir">🗑️</button>
                                         </td>
                                     </tr>
                                 ))
@@ -266,10 +301,9 @@ export function AdminModulos() {
                 )}
             </div>
 
-            {/* Paginação */}
             <div className="pagination-container">
-                  <button onClick={() => paginate(1)} disabled={currentPage === 1 || totalPages === 0} className="pagination-btn nav-btn" title="Primeira">«</button>
-                  <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1 || totalPages === 0} className="pagination-btn nav-btn" title="Anterior">‹</button>
+                  <button onClick={() => paginate(1)} disabled={currentPage === 1 || totalPages === 0} className="pagination-btn nav-btn">«</button>
+                  <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1 || totalPages === 0} className="pagination-btn nav-btn">‹</button>
 
                   {getPaginationGroup().map((item) => (
                     <button
@@ -281,12 +315,10 @@ export function AdminModulos() {
                     </button>
                   ))}
 
-                  {totalPages === 0 && (
-                      <button className="pagination-btn active" disabled>1</button>
-                  )}
+                  {totalPages === 0 && <button className="pagination-btn active" disabled>1</button>}
 
-                  <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages || totalPages === 0} className="pagination-btn nav-btn" title="Próxima">›</button>
-                  <button onClick={() => paginate(totalPages)} disabled={currentPage === totalPages || totalPages === 0} className="pagination-btn nav-btn" title="Última">»</button>
+                  <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages || totalPages === 0} className="pagination-btn nav-btn">›</button>
+                  <button onClick={() => paginate(totalPages)} disabled={currentPage === totalPages || totalPages === 0} className="pagination-btn nav-btn">»</button>
             </div>
         </div>
       </section>

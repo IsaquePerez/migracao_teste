@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { toast } from 'sonner';
 import { api } from '../../services/api';
+import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 import './styles.css';
 
-// Componente Reutilizável de Dropdown (Mantido igual)
+// Componente Reutilizável de Dropdown
 const SearchableSelect = ({ options, value, onChange, placeholder, disabled, labelKey = 'nome' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -96,6 +96,8 @@ export function AdminCasosTeste() {
   const [usuarios, setUsuarios] = useState([]); 
   const [casos, setCasos] = useState([]);
   
+  const { success, error, warning, info } = useSnackbar();
+
   const [selectedProjeto, setSelectedProjeto] = useState('');
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState('list');
@@ -115,12 +117,10 @@ export function AdminCasosTeste() {
     passos: [{ ordem: 1, acao: '', resultado_esperado: '' }]
   });
 
-  // Lógica de Busca e Sugestões
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef(null);
 
-  // CONFIGURAÇÃO DA PAGINAÇÃO
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -141,7 +141,7 @@ export function AdminCasosTeste() {
           setSelectedProjeto(ativos[0].id);
         }
       } catch (e) {
-        toast.error("Erro ao carregar dados básicos.");
+        error("Erro ao carregar dados básicos.");
       }
     };
     loadBasics();
@@ -151,7 +151,6 @@ export function AdminCasosTeste() {
     if (selectedProjeto) loadDadosProjeto(selectedProjeto);
   }, [selectedProjeto]);
 
-  // Reseta paginação ao pesquisar
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
@@ -175,14 +174,13 @@ export function AdminCasosTeste() {
       ]);
       setCasos(Array.isArray(casosData) ? casosData : []);
       setCiclos(Array.isArray(ciclosData) ? ciclosData : []);
-    } catch (error) {
-      toast.error("Erro ao carregar dados.");
+    } catch (err) {
+      error("Erro ao carregar dados.");
     } finally {
       setLoading(false);
     }
   };
 
-  // LÓGICA DE FILTRO E PAGINAÇÃO
   const filteredCasos = casos.filter(c => 
       c.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
       c.prioridade.toLowerCase().includes(searchTerm.toLowerCase())
@@ -192,14 +190,12 @@ export function AdminCasosTeste() {
     ? [...casos].sort((a, b) => b.id - a.id).slice(0, 5) 
     : filteredCasos.slice(0, 5);
 
-  // Calcula paginação
   const totalPages = Math.ceil(filteredCasos.length / itemsPerPage);
   
   if (currentPage > totalPages && totalPages > 0) setCurrentPage(1);
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  // 4. Cria a fatia para exibição
   const currentCasos = filteredCasos.slice(indexOfFirstItem, indexOfLastItem);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
@@ -233,7 +229,7 @@ export function AdminCasosTeste() {
   };
 
   const handleNew = () => {
-    if (!isProjectActive) return toast.warning(`Projeto ${currentProject?.status?.toUpperCase() || 'Inativo'}. Criação bloqueada.`);
+    if (!isProjectActive) return warning(`Projeto ${currentProject?.status?.toUpperCase() || 'Inativo'}. Criação bloqueada.`);
     handleReset();
     setView('form');
   };
@@ -261,7 +257,7 @@ export function AdminCasosTeste() {
   };
 
   const removeStep = (index) => {
-    if (form.passos.length === 1) return toast.info("O teste precisa de pelo menos 1 passo.");
+    if (form.passos.length === 1) return info("O teste precisa de pelo menos 1 passo.");
     const newPassos = form.passos.filter((_, i) => i !== index).map((p, i) => ({ ...p, ordem: i + 1 }));
     setForm(prev => ({ ...prev, passos: newPassos }));
   };
@@ -274,11 +270,11 @@ export function AdminCasosTeste() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedProjeto) return toast.error("Selecione um projeto.");
-    if (!form.nome.trim()) return toast.warning("Título obrigatório.");
+    if (!selectedProjeto) return error("Selecione um projeto.");
+    if (!form.nome.trim()) return warning("Título obrigatório.");
     
     const passosValidos = form.passos.filter(p => p.acao && p.acao.trim() !== '');
-    if (passosValidos.length === 0) return toast.warning("Preencha ao menos um passo.");
+    if (passosValidos.length === 0) return warning("Preencha ao menos um passo.");
 
     const payload = {
         ...form,
@@ -291,15 +287,15 @@ export function AdminCasosTeste() {
     try {
       if (editingId) {
         await api.put(`/testes/casos/${editingId}`, payload);
-        toast.success("Cenário atualizado!");
+        success("Cenário atualizado!");
       } else {
         await api.post(`/testes/projetos/${selectedProjeto}/casos`, payload);
-        toast.success("Cenário salvo!");
+        success("Cenário salvo!");
       }
       handleReset();
       loadDadosProjeto(selectedProjeto);
-    } catch (error) {
-      toast.error(error.message || "Erro ao salvar.");
+    } catch (err) {
+      error(err.message || "Erro ao salvar.");
     }
   };
 
@@ -307,10 +303,10 @@ export function AdminCasosTeste() {
       if (!casoToDelete) return;
       try {
         await api.delete(`/testes/casos/${casoToDelete.id}`);
-        toast.success("Cenário excluído.");
+        success("Cenário excluído.");
         loadDadosProjeto(selectedProjeto);
       } catch (e) { 
-          toast.error("Erro ao excluir."); 
+          error("Erro ao excluir."); 
       } finally {
          setIsDeleteModalOpen(false);
          setCasoToDelete(null);
@@ -337,7 +333,7 @@ export function AdminCasosTeste() {
           : [{ ordem: 1, acao: '', resultado_esperado: '' }]
       }));
       setSearchTerm('');
-      toast.success("Dados do modelo importados!");
+      success("Dados do modelo importados!");
     }
   };
 
@@ -356,7 +352,6 @@ export function AdminCasosTeste() {
       {view === 'form' && (
         <div style={{maxWidth: '100%', margin: '0 auto'}}>
           <form onSubmit={handleSubmit}>
-            
             <section className="card form-section">
               <div className="form-header">
                 <h3 className="form-title">{editingId ? 'Editar Cenário' : 'Novo Cenário'}</h3>
@@ -427,7 +422,6 @@ export function AdminCasosTeste() {
             <section className="card form-section">
               <h3 className="section-subtitle">Alocação (Opcional)</h3>
               <div className="form-grid">
-                  
                   <div>
                     <label>Ciclo (Sprint)</label>
                     <SearchableSelect
@@ -439,7 +433,6 @@ export function AdminCasosTeste() {
                         labelKey="nome"
                     />
                   </div>
-
                   <div>
                     <label>Responsável</label>
                     <SearchableSelect
@@ -489,13 +482,9 @@ export function AdminCasosTeste() {
 
       {view === 'list' && (
         <section className="card" style={{marginTop: 0}}>
-           
            <div className="toolbar">
-               
                <h3 className="page-title">Casos de Teste</h3>
-               
                <div className="toolbar-actions">
-                   
                    <div className="filter-group">
                        <span className="filter-label">PROJETO:</span>
                        <select 
@@ -596,7 +585,6 @@ export function AdminCasosTeste() {
                    )}
                </div>
 
-               {/* CONTROLES DE PAGINAÇÃO */}
                <div className="pagination-container">
                     <button onClick={() => paginate(1)} disabled={currentPage === 1 || totalPages === 0} className="pagination-btn nav-btn" title="Primeira">«</button>
                     <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1 || totalPages === 0} className="pagination-btn nav-btn" title="Anterior">‹</button>

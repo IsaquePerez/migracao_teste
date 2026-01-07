@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { toast } from 'sonner';
 import { api } from '../../services/api';
+import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 import './styles.css';
 
@@ -13,6 +13,8 @@ export function AdminCiclos() {
   const [view, setView] = useState('list');
   const [editingId, setEditingId] = useState(null);
   
+  const { success, error, warning } = useSnackbar();
+
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
   
@@ -20,7 +22,6 @@ export function AdminCiclos() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef(null);
 
-  // CONFIGURAÇÃO DA PAGINAÇÃO
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -33,7 +34,6 @@ export function AdminCiclos() {
     projeto_id: ''
   });
 
-  // USE EFFECTS
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -44,7 +44,6 @@ export function AdminCiclos() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [wrapperRef]);
 
-  // Carrega projetos
   useEffect(() => {
     const loadProjetos = async () => {
       try {
@@ -55,14 +54,13 @@ export function AdminCiclos() {
         if (ativos.length > 0) {
           setSelectedProjeto(ativos[0].id);
         }
-      } catch (error) {
-        toast.error("Erro ao carregar projetos.");
+      } catch (err) {
+        error("Erro ao carregar projetos.");
       }
     };
     loadProjetos();
   }, []);
 
-  // Carrega ciclos
   useEffect(() => {
     if (selectedProjeto) {
       loadCiclos(selectedProjeto);
@@ -71,7 +69,6 @@ export function AdminCiclos() {
     }
   }, [selectedProjeto]);
 
-  // Reseta paginação ao pesquisar
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
@@ -82,15 +79,14 @@ export function AdminCiclos() {
     try {
       const data = await api.get(`/testes/projetos/${projId}/ciclos`);
       setCiclos(Array.isArray(data) ? data : []);
-    } catch (error) {
-      toast.error("Erro ao carregar ciclos.");
+    } catch (err) {
+      error("Erro ao carregar ciclos.");
       setCiclos([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // LOGICA DE FILTRO E PAGINAÇÃO
   const filteredCiclos = ciclos.filter(c => 
       c.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -123,7 +119,6 @@ export function AdminCiclos() {
     return pages;
   };
 
-  // HELPERS DE DATA
   const getTodayString = () => new Date().toISOString().split('T')[0];
   
   const getNextDayString = (dateString) => {
@@ -136,7 +131,6 @@ export function AdminCiclos() {
   const getProjetoName = (id) => projetos.find(p => p.id === id)?.nome || '-';
   const truncate = (str, n = 30) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str || '';
   
-  // Correção de formatação de data
   const formatDate = (dateStr) => {
       if (!dateStr) return '-';
       const datePart = dateStr.toString().split('T')[0];
@@ -161,7 +155,7 @@ export function AdminCiclos() {
   };
 
   const handleNew = () => {
-    if (!isProjectActive) return toast.warning(`Projeto ${currentProject?.status?.toUpperCase() || 'Inativo'}. Criação bloqueada.`);
+    if (!isProjectActive) return warning(`Projeto ${currentProject?.status?.toUpperCase() || 'Inativo'}. Criação bloqueada.`);
     handleReset();
     setView('form');
   };
@@ -182,9 +176,9 @@ export function AdminCiclos() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!form.nome.trim()) return toast.warning("Nome do ciclo é obrigatório.");
-    if (!form.projeto_id) return toast.warning("Selecione um projeto.");
-    if (!form.data_inicio || !form.data_fim) return toast.warning("Datas de início e fim são obrigatórias.");
+    if (!form.nome.trim()) return warning("Nome do ciclo é obrigatório.");
+    if (!form.projeto_id) return warning("Selecione um projeto.");
+    if (!form.data_inicio || !form.data_fim) return warning("Datas de início e fim são obrigatórias.");
 
     const payload = { 
         ...form,
@@ -194,10 +188,10 @@ export function AdminCiclos() {
     try {
       if (editingId) {
         await api.put(`/testes/ciclos/${editingId}`, payload);
-        toast.success("Ciclo atualizado!");
+        success("Ciclo atualizado!");
       } else {
         await api.post(`/testes/projetos/${form.projeto_id}/ciclos`, payload);
-        toast.success("Ciclo criado!");
+        success("Ciclo criado!");
       }
       handleReset();
 
@@ -206,11 +200,11 @@ export function AdminCiclos() {
       } else {
           setSelectedProjeto(form.projeto_id);
       }
-    } catch (error) {
-      console.error("Erro ao salvar ciclo:", error);
-      const msg = error.response?.data?.detail || "Erro ao salvar ciclo.";
+    } catch (err) {
+      console.error("Erro ao salvar ciclo:", err);
+      const msg = err.response?.data?.detail || "Erro ao salvar ciclo.";
       const errorMsg = Array.isArray(msg) ? `${msg[0].loc[1]}: ${msg[0].msg}` : msg;
-      toast.error(errorMsg);
+      error(errorMsg);
     }
   };
 
@@ -218,10 +212,10 @@ export function AdminCiclos() {
     if (!itemToDelete) return;
     try {
       await api.delete(`/testes/ciclos/${itemToDelete.id}`);
-      toast.success("Ciclo excluído.");
+      success("Ciclo excluído.");
       loadCiclos(selectedProjeto);
     } catch (e) {
-      toast.error("Erro ao excluir.");
+      error("Erro ao excluir.");
     } finally {
       setIsDeleteModalOpen(false);
       setItemToDelete(null);
@@ -364,7 +358,7 @@ export function AdminCiclos() {
                             cursor: isProjectActive ? 'pointer' : 'not-allowed'
                         }}
                    >
-                        Novo Ciclo
+                       Novo Ciclo
                    </button>
                    
                    <div className="separator"></div>
@@ -448,7 +442,6 @@ export function AdminCiclos() {
                    )}
                </div>
 
-               {/* CONTROLES DE PAGINAÇÃO */}
                <div className="pagination-container">
                     <button onClick={() => paginate(1)} disabled={currentPage === 1 || totalPages === 0} className="pagination-btn nav-btn" title="Primeira">«</button>
                     <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1 || totalPages === 0} className="pagination-btn nav-btn" title="Anterior">‹</button>

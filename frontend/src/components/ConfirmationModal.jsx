@@ -1,4 +1,3 @@
-
 export function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, confirmText = "Confirmar", cancelText = "Cancelar", isDanger = false }) {
   if (!isOpen) return null;
 
@@ -7,9 +6,13 @@ export function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, 
       position: 'fixed',
       top: 0, left: 0, right: 0, bottom: 0,
       backgroundColor: 'rgba(0,0,0,0.5)', 
+      
+      
+      display: 'flex', 
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 1100, 
+      
+      zIndex: 99999, 
       backdropFilter: 'blur(2px)'
     }} onClick={onClose}>
       
@@ -20,10 +23,11 @@ export function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, 
         maxWidth: '400px',
         width: '90%',
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-        animation: 'fadeIn 0.2s ease-out'
+        animation: 'fadeIn 0.2s ease-out',
+        position: 'relative' 
       }} onClick={e => e.stopPropagation()}>
         
-        <h3 style={{ margin: '0 0 10px 0', color: '#1E293B', fontSize: '1.2rem' }}>
+        <h3 style={{ margin: '0 0 10px 0', color: '#1E293B', fontSize: '1.2rem', fontWeight: '600' }}>
           {title}
         </h3>
         
@@ -35,7 +39,12 @@ export function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, 
           <button 
             onClick={onClose}
             className="btn"
-            style={{ backgroundColor: '#F1F5F9', color: '#475569' }}
+            style={{ 
+              backgroundColor: '#F1F5F9', 
+              color: '#475569',
+              border: 'none',
+              cursor: 'pointer'
+            }}
           >
             {cancelText}
           </button>
@@ -43,6 +52,7 @@ export function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, 
           <button 
             onClick={() => { onConfirm(); onClose(); }}
             className={`btn ${isDanger ? 'danger' : 'primary'}`}
+            style={{ cursor: 'pointer' }}
           >
             {confirmText}
           </button>
@@ -50,7 +60,6 @@ export function ConfirmationModal({ isOpen, onClose, onConfirm, title, message, 
 
       </div>
       
-      {/* Pequena animação para o modal */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: scale(0.95); }

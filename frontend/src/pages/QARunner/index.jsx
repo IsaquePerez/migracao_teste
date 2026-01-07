@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
 import { api } from '../../services/api';
-
+import { useSnackbar } from '../../context/SnackbarContext'; 
 
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 import { DefectModal } from '../../components/DefectModal';
@@ -17,6 +16,10 @@ export function QARunner() {
   const [galleryImages, setGalleryImages] = useState(null);
   const [currentFailedStep, setCurrentFailedStep] = useState(null);
   const [isDefectModalOpen, setIsDefectModalOpen] = useState(false);
+  
+  
+  const { success, error, info } = useSnackbar();
+
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false, title: '', message: '', onConfirm: () => {}, isDanger: false
   });
@@ -29,7 +32,7 @@ export function QARunner() {
         const data = await api.get("/testes/minhas-tarefas");
         setTarefas(Array.isArray(data) ? data : []);
     } catch (e) { 
-        toast.error("Não foi possível carregar suas tarefas.");
+        error("Não foi possível carregar suas tarefas.");
     } finally { 
         setLoading(false); 
     }
@@ -46,14 +49,15 @@ export function QARunner() {
               setTarefas(prev => prev.map(task => 
                 task.id === t.id ? {...task, status_geral: 'em_progresso'} : task
               ));
-              toast.info(`Iniciando execução: ${t.caso_teste?.nome}`);
+              info(`Iniciando execução: ${t.caso_teste?.nome}`);
           }
-      } catch (e) { toast.error("Erro ao carregar execução."); }
+      } catch (e) { error("Erro ao carregar execução."); }
   };
+  
   const handleStepAction = (passoId, acao) => {
       if (acao === 'aprovado') {
           updatePasso(passoId, 'aprovado');
-          toast.success("Passo aprovado.");
+          success("Passo aprovado.");
       } else {
           setCurrentFailedStep(passoId);
           setIsDefectModalOpen(true);
@@ -68,7 +72,7 @@ export function QARunner() {
               return p;
           });
           setActiveExecucao(prev => ({ ...prev, passos_executados: updatedPassos }));
-      } catch (error) { toast.error("Erro ao atualizar passo."); }
+      } catch (err) { error("Erro ao atualizar passo."); }
   };
 
   const requestFinishExecution = () => {
@@ -89,11 +93,12 @@ export function QARunner() {
       try {
           await api.put(`/testes/execucoes/${activeExecucao.id}/finalizar?status=${statusFinal}`);
           setActiveExecucao(prev => ({ ...prev, status_geral: statusFinal }));
-          toast.success(`Teste finalizado: ${statusFinal.toUpperCase()}`);
+          success(`Teste finalizado: ${statusFinal.toUpperCase()}`);
           loadMinhasTarefas(); 
-      } catch (error) { toast.error("Erro ao finalizar execução."); }
+      } catch (err) { error("Erro ao finalizar execução."); }
   };
 
+  
   const handleFileUpload = async (e, passoId) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -101,23 +106,29 @@ export function QARunner() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const promise = api.post(`/testes/passos/${passoId}/evidencia`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      
+      info('Enviando evidência...');
 
-      toast.promise(promise, {
-          loading: 'Enviando...',
-          success: (data) => {
-              const novaListaJSON = JSON.stringify(data.lista_completa || [data.url]); 
-              const updatedPassos = activeExecucao.passos_executados.map(p => {
-                  if(p.id === passoId) return { ...p, evidencias: novaListaJSON };
-                  return p;
-              });
-              setActiveExecucao(prev => ({ ...prev, passos_executados: updatedPassos }));
-              return 'Evidência anexada!';
-          },
-          error: 'Erro no upload'
-      });
+      try {
+          const response = await api.post(`/testes/passos/${passoId}/evidencia`, formData, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          
+          const data = response.data || response;
+
+          const novaListaJSON = JSON.stringify(data.lista_completa || [data.url]); 
+          const updatedPassos = activeExecucao.passos_executados.map(p => {
+              if(p.id === passoId) return { ...p, evidencias: novaListaJSON };
+              return p;
+          });
+          
+          setActiveExecucao(prev => ({ ...prev, passos_executados: updatedPassos }));
+          success('Evidência anexada!');
+          
+      } catch (err) {
+          console.error(err);
+          error('Erro no upload da evidência');
+      }
   };
 
   const requestDeleteEvidence = (passoId, urlToDelete) => {
@@ -145,8 +156,8 @@ export function QARunner() {
           });
           setActiveExecucao(prev => ({ ...prev, passos_executados: updatedPassos }));
           setGalleryImages(null);
-          toast.success("Imagem removida.");
-      } catch (error) { toast.error("Erro ao remover."); }
+          success("Imagem removida.");
+      } catch (err) { error("Erro ao remover."); }
   };
 
   const handleDefectConfirm = async (defectData) => {
@@ -162,9 +173,9 @@ export function QARunner() {
           });
 
           await updatePasso(currentFailedStep, 'reprovado');
-          toast.success("Defeito registrado.");
+          success("Defeito registrado.");
           setIsDefectModalOpen(false);
-      } catch (error) { toast.error("Erro ao registrar defeito."); }
+      } catch (err) { error("Erro ao registrar defeito."); }
   };
 
   return (

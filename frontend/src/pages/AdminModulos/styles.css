@@ -22,7 +22,7 @@
 .no-results { text-align: center; padding: 20px; color: #64748b; }
 
 .btn primary{ background-color: #0F2B66; color: white; }
-
+  
 .pagination-container {
   display: flex;
   justify-content: center;

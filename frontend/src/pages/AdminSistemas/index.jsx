@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { toast } from 'sonner';
 import { api } from '../../services/api';
+import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal'; 
 import './styles.css';
 
@@ -10,6 +10,9 @@ export function AdminSistemas() {
   const [form, setForm] = useState({ nome: '', descricao: '' });
   const [editingId, setEditingId] = useState(null);
   
+  // Pegando as funções do snackbar
+  const { success, error, warning } = useSnackbar();
+
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [sistemaToDelete, setSistemaToDelete] = useState(null);
   
@@ -17,7 +20,6 @@ export function AdminSistemas() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef(null);
 
-  // CONFIGURAÇÃO DA PAGINAÇÃO
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -25,7 +27,6 @@ export function AdminSistemas() {
 
   useEffect(() => { loadSistemas(); }, []);
 
-  // Reseta paginação ao pesquisar
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
@@ -45,8 +46,8 @@ export function AdminSistemas() {
     try {
       const data = await api.get("/sistemas/");
       setSistemas(Array.isArray(data) ? data : []);
-    } catch (error) { 
-      toast.error("Erro ao carregar sistemas."); 
+    } catch (err) { 
+      error("Erro ao carregar sistemas."); 
     } finally { 
       setLoading(false); 
     }
@@ -54,23 +55,34 @@ export function AdminSistemas() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validação manual (substituindo o required do HTML)
+    if (!form.nome.trim()) {
+        warning("Por favor, preencha o nome do sistema.");
+        return;
+    }
+
     const nomeNormalizado = form.nome.trim().toLowerCase();
     const duplicado = sistemas.some(s => s.nome.trim().toLowerCase() === nomeNormalizado && s.id !== editingId);
 
-    if (duplicado) return toast.warning("Já existe um Sistema com este nome.");
+    if (duplicado) {
+        warning("Já existe um Sistema com este nome.");
+        return;
+    }
 
     try {
       if (editingId) {
         await api.put(`/sistemas/${editingId}`, form);
-        toast.success("Sistema atualizado!");
+        success("Sistema atualizado com sucesso!");
       } else {
         await api.post("/sistemas/", { ...form, ativo: true });
-        toast.success("Sistema criado!");
+        success("Sistema cadastrado com sucesso!");
       }
       handleCancel();
       loadSistemas(); 
-    } catch (error) { 
-      toast.error(error.message || "Erro ao salvar."); 
+    } catch (err) { 
+      const msg = err.response?.data?.detail || "Erro ao salvar sistema.";
+      error(msg); 
     }
   };
 
@@ -88,10 +100,10 @@ export function AdminSistemas() {
       try {
           const novoStatus = !sistema.ativo;
           await api.put(`/sistemas/${sistema.id}`, { ativo: novoStatus });
-          toast.success(`Sistema ${novoStatus ? 'ativado' : 'desativado'}.`);
+          success(`Sistema ${novoStatus ? 'ativado' : 'desativado'}!`);
           setSistemas(prev => prev.map(s => s.id === sistema.id ? {...s, ativo: novoStatus} : s));
       } catch(e) { 
-          toast.error("Erro ao alterar status."); 
+          error("Erro ao alterar status."); 
       }
   };
 
@@ -104,34 +116,31 @@ export function AdminSistemas() {
       if (!sistemaToDelete) return;
       try {
           await api.delete(`/sistemas/${sistemaToDelete.id}`);
-          toast.success(`Sistema excluído.`);
+          success("Sistema excluído com sucesso.");
           loadSistemas();
           if (editingId === sistemaToDelete.id) handleCancel();
-      } catch (error) {
-          toast.error("Erro ao excluir (verifique vínculos).");
+      } catch (err) {
+          error("Não foi possível excluir. Verifique se existem vínculos.");
       } finally {
           setSistemaToDelete(null); 
       }
   };
 
-  // LÓGICA DE FILTRO
+  // Filtros e Paginação
   const filteredSistemas = sistemas.filter(s => 
       s.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // SUGESTÕES DROPDOWN
   const opcoesParaMostrar = searchTerm === '' 
     ? [...sistemas].sort((a, b) => b.id - a.id).slice(0, 5) 
     : filteredSistemas.slice(0, 5);
 
-  // PAGINAÇÃO
   const totalPages = Math.ceil(filteredSistemas.length / itemsPerPage);
   
   if (currentPage > totalPages && totalPages > 0) setCurrentPage(1);
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  // IMPORTANTE: Fatia para a tabela
   const currentSistemas = filteredSistemas.slice(indexOfFirstItem, indexOfLastItem);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
@@ -157,22 +166,35 @@ export function AdminSistemas() {
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={confirmDelete}
         title="Excluir Sistema?"
-        message={`Tem a certeza que deseja excluir "${sistemaToDelete?.nome}"?`}
+        message={`Tem certeza que deseja excluir "${sistemaToDelete?.nome}"?`}
         confirmText="Sim, Excluir"
         isDanger={true}
       />
 
       <section className="card form-card">
-        <h2 className="section-title">{editingId ? 'Editar' : 'Novo Sistema'}</h2>
+        <h2 className="section-title">{editingId ? 'Editar Sistema' : 'Novo Sistema'}</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
             <div>
                 <label className="input-label">Nome</label>
-                <input required maxLength={50} value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className="form-control" />
+                {/* Tirei o required daqui pra tratar no JS com snackbar */}
+                <input 
+                    maxLength={50} 
+                    value={form.nome} 
+                    onChange={e => setForm({...form, nome: e.target.value})} 
+                    className="form-control" 
+                    placeholder="Nome do sistema"
+                />
             </div>
             <div>
                 <label className="input-label">Descrição</label>
-                <input maxLength={100} value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} className="form-control" />
+                <input 
+                    maxLength={100} 
+                    value={form.descricao} 
+                    onChange={e => setForm({...form, descricao: e.target.value})} 
+                    className="form-control" 
+                    placeholder="Descrição breve"
+                />
             </div>
           </div>
           <div className="form-actions">
@@ -230,7 +252,7 @@ export function AdminSistemas() {
                                                 <div title={s.descricao}>{truncate(s.descricao, 40)}</div>
                                             </td>
                                             <td style={{textAlign: 'right', whiteSpace: 'nowrap'}}>
-                                                <span onClick={(e) => { e.stopPropagation(); toggleActive(s); }} className={`badge ${s.ativo ? 'on' : 'off'}`}>
+                                                <span onClick={(e) => { e.stopPropagation(); toggleActive(s); }} className={`badge ${s.ativo ? 'on' : 'off'}`} style={{cursor: 'pointer'}}>
                                                     {s.ativo ? 'Ativo' : 'Inativo'}
                                                 </span>
                                             </td>
@@ -246,10 +268,9 @@ export function AdminSistemas() {
                 )}
             </div>
 
-            {/* Paginação */}
             <div className="pagination-container">
-                  <button onClick={() => paginate(1)} disabled={currentPage === 1 || totalPages === 0} className="pagination-btn nav-btn" title="Primeira">«</button>
-                  <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1 || totalPages === 0} className="pagination-btn nav-btn" title="Anterior">‹</button>
+                  <button onClick={() => paginate(1)} disabled={currentPage === 1 || totalPages === 0} className="pagination-btn nav-btn">«</button>
+                  <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1 || totalPages === 0} className="pagination-btn nav-btn">‹</button>
 
                   {getPaginationGroup().map((item) => (
                     <button
@@ -261,12 +282,10 @@ export function AdminSistemas() {
                     </button>
                   ))}
 
-                  {totalPages === 0 && (
-                      <button className="pagination-btn active" disabled>1</button>
-                  )}
+                  {totalPages === 0 && <button className="pagination-btn active" disabled>1</button>}
 
-                  <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages || totalPages === 0} className="pagination-btn nav-btn" title="Próxima">›</button>
-                  <button onClick={() => paginate(totalPages)} disabled={currentPage === totalPages || totalPages === 0} className="pagination-btn nav-btn" title="Última">»</button>
+                  <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages || totalPages === 0} className="pagination-btn nav-btn">›</button>
+                  <button onClick={() => paginate(totalPages)} disabled={currentPage === totalPages || totalPages === 0} className="pagination-btn nav-btn">»</button>
             </div>
         </div>
       </section>

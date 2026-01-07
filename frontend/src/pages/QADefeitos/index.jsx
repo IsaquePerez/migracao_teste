@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api, getSession } from '../../services/api';
-import { toast } from 'sonner';
+import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 import './styles.css';
 
@@ -11,10 +11,11 @@ export function QADefeitos() {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [galleryImages, setGalleryImages] = useState(null);
 
+  const { success, error } = useSnackbar();
+
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [defectToDelete, setDefectToDelete] = useState(null);
 
-  // CONFIGURAÇÃO DA PAGINAÇÃO
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -34,8 +35,8 @@ export function QADefeitos() {
     try {
       const data = await api.get("/defeitos/");
       setDefeitos(Array.isArray(data) ? data : []);
-    } catch (error) { 
-        toast.error("Erro ao carregar defeitos.");
+    } catch (err) { 
+        error("Erro ao carregar defeitos.");
     }
     finally { setLoading(false); }
   };
@@ -44,10 +45,10 @@ export function QADefeitos() {
     setOpenMenuId(null); 
     try {
         await api.put(`/defeitos/${id}`, { status: newStatus });        
-        toast.success(`Status atualizado para ${newStatus.toUpperCase()}`);
+        success(`Status atualizado para ${newStatus.toUpperCase()}`);
         loadDefeitos(); 
     } catch (e) { 
-        toast.error("Erro ao atualizar status."); 
+        error("Erro ao atualizar status."); 
     }
   };
   
@@ -60,10 +61,10 @@ export function QADefeitos() {
       if (!defectToDelete) return;
       try {
           await api.delete(`/defeitos/${defectToDelete.id}`);
-          toast.success(`Defeito excluído.`);
+          success(`Defeito excluído.`);
           loadDefeitos();
-      } catch (error) {
-          toast.error("Erro ao excluir.");
+      } catch (err) {
+          error("Erro ao excluir.");
       } finally {
           setDefectToDelete(null); 
       }
@@ -107,7 +108,6 @@ export function QADefeitos() {
     setOpenMenuId(openMenuId === id ? null : id);
   };
 
-  // LÓGICA DE PAGINAÇÃO
   const totalPages = Math.ceil(defeitos.length / itemsPerPage);
   
   if (currentPage > totalPages && totalPages > 0) setCurrentPage(1);
@@ -207,32 +207,32 @@ export function QADefeitos() {
                                 
                                 <td className="status-cell" style={{ position: 'relative' }}> 
                                     {isAdmin ? (                                 
-                                        <>
-                                            <button 
-                                                onClick={() => toggleMenu(d.id)}
-                                                className={`status-badge status-${d.status || 'aberto'} status-dropdown-btn`}
-                                            >
-                                                {d.status} <span>▼</span>
-                                            </button>
+                                            <>
+                                                <button 
+                                                    onClick={() => toggleMenu(d.id)}
+                                                    className={`status-badge status-${d.status || 'aberto'} status-dropdown-btn`}
+                                                >
+                                                    {d.status} <span>▼</span>
+                                                </button>
 
-                                            {openMenuId === d.id && (
-                                                <div className="dropdown-menu">
-                                                    {['aberto', 'em_teste', 'corrigido', 'fechado'].map(opt => (
-                                                        <div 
-                                                            key={opt}
-                                                            onClick={() => handleUpdateStatus(d.id, opt)}
-                                                            className={`dropdown-item ${d.status === opt ? 'active' : ''}`}
-                                                        >
-                                                            {opt.replace('_', ' ')}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </>
-                                    ) : (                                     
-                                        <span className={`status-badge status-${d.status || 'aberto'}`}>
-                                            {d.status}
-                                        </span>
+                                                {openMenuId === d.id && (
+                                                    <div className="dropdown-menu">
+                                                        {['aberto', 'em_teste', 'corrigido', 'fechado'].map(opt => (
+                                                            <div 
+                                                                key={opt}
+                                                                onClick={() => handleUpdateStatus(d.id, opt)}
+                                                                className={`dropdown-item ${d.status === opt ? 'active' : ''}`}
+                                                            >
+                                                                {opt.replace('_', ' ')}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </>
+                                    ) : (                                         
+                                            <span className={`status-badge status-${d.status || 'aberto'}`}>
+                                                {d.status}
+                                            </span>
                                     )}
                                 </td>
 
@@ -249,7 +249,6 @@ export function QADefeitos() {
                 )}
             </div>
 
-            {/* PAGINAÇÃO */}
             <div className="pagination-container">
                   <button onClick={() => paginate(1)} disabled={currentPage === 1 || totalPages === 0} className="pagination-btn nav-btn" title="Primeira">«</button>
                   <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1 || totalPages === 0} className="pagination-btn nav-btn" title="Anterior">‹</button>

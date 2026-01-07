@@ -1,8 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from 'sonner';
 import { AuthProvider } from './context/AuthContext';
 import { Login } from './pages/Login';
 import './styles/index.css';
+
+
+import { SnackbarProvider } from './context/SnackbarContext';
+import { Snackbar } from './components/Snackbar';
 
 import ScrollToTop from './components/ScrollToTop'; 
 import { ProtectedLayout } from './components/ProtectedLayout';
@@ -20,34 +23,37 @@ import { Dashboard } from './pages/Dashboard';
 function App() {
   return (
     <AuthProvider>
-      <Toaster richColors position="top-right" />
-      <BrowserRouter>
-        <ScrollToTop />
+      <SnackbarProvider>
+        <Snackbar />
         
-        <Routes>
-          <Route path="/" element={<Login />} />
+        <BrowserRouter>
+          <ScrollToTop />
           
-          <Route element={<ProtectedLayout roles={['admin']} />}>
-            <Route path="/admin" element={<Dashboard />} />
-            <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin/sistemas" element={<AdminSistemas />} />
-            <Route path="/admin/modulos" element={<AdminModulos />} />
-            <Route path="/admin/projetos" element={<AdminProjetos />} />
-            <Route path="/admin/casos" element={<AdminCasosTeste />} />
-            <Route path="/admin/ciclos" element={<AdminCiclos />} />
-          </Route>
-          
-          <Route element={<ProtectedLayout roles={['user']} />}>
-            <Route path="/qa/runner" element={<QARunner />} />
-          </Route>
-          
-          <Route element={<ProtectedLayout roles={['user', 'admin']} />}>
-            <Route path="/qa/defeitos" element={<QADefeitos />} />
-          </Route>
-          
-           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Login />} />
+            
+            <Route element={<ProtectedLayout roles={['admin']} />}>
+              <Route path="/admin" element={<Dashboard />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/sistemas" element={<AdminSistemas />} />
+              <Route path="/admin/modulos" element={<AdminModulos />} />
+              <Route path="/admin/projetos" element={<AdminProjetos />} />
+              <Route path="/admin/casos" element={<AdminCasosTeste />} />
+              <Route path="/admin/ciclos" element={<AdminCiclos />} />
+            </Route>
+            
+            <Route element={<ProtectedLayout roles={['user']} />}>
+              <Route path="/qa/runner" element={<QARunner />} />
+            </Route>
+            
+            <Route element={<ProtectedLayout roles={['user', 'admin']} />}>
+              <Route path="/qa/defeitos" element={<QADefeitos />} />
+            </Route>
+            
+             <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </SnackbarProvider>
     </AuthProvider>
   );
 }

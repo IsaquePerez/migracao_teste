@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { toast } from 'sonner';
 import { api } from '../../services/api';
+import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 import './styles.css';
 
-// Componente Reutilizável
+// Componente Reutilizável mantido aqui por conveniência
 const SearchableSelect = ({ options, value, onChange, placeholder, disabled, labelKey = 'nome' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -86,7 +86,6 @@ const SearchableSelect = ({ options, value, onChange, placeholder, disabled, lab
   );
 };
 
-// Componente Principal 
 export function AdminProjetos() {
   const [projetos, setProjetos] = useState([]);
   const [sistemas, setSistemas] = useState([]);
@@ -96,6 +95,8 @@ export function AdminProjetos() {
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState('list');
   const [editingId, setEditingId] = useState(null);
+  
+  const { success, error, warning } = useSnackbar();
   
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -113,7 +114,6 @@ export function AdminProjetos() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef(null);
 
-  // CONFIGURAÇÃO DA PAGINAÇÃO
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -133,7 +133,6 @@ export function AdminProjetos() {
     loadData();
   }, []);
 
-  // Reseta paginação ao pesquisar
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm]);
@@ -153,8 +152,8 @@ export function AdminProjetos() {
       setModulos(Array.isArray(modData) ? modData : []);
       setUsuarios(Array.isArray(userData) ? userData : []);
 
-    } catch (error) {
-      toast.error("Erro ao carregar dados.");
+    } catch (err) {
+      error("Erro ao carregar dados.");
     } finally {
       setLoading(false);
     }
@@ -189,10 +188,10 @@ export function AdminProjetos() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.nome.trim()) return toast.warning("Nome é obrigatório.");
-    if (!form.sistema_id) return toast.warning("Selecione um Sistema.");
-    if (!form.modulo_id) return toast.warning("Selecione um Módulo.");
-    if (!form.responsavel_id) return toast.warning("Selecione um Responsável.");
+    if (!form.nome.trim()) return warning("Nome é obrigatório.");
+    if (!form.sistema_id) return warning("Selecione um Sistema.");
+    if (!form.modulo_id) return warning("Selecione um Módulo.");
+    if (!form.responsavel_id) return warning("Selecione um Responsável.");
 
     const payload = { 
         ...form,
@@ -204,16 +203,16 @@ export function AdminProjetos() {
     try {
       if (editingId) {
         await api.put(`/projetos/${editingId}`, payload);
-        toast.success("Projeto atualizado!");
+        success("Projeto atualizado!");
       } else {
         await api.post("/projetos", payload);
-        toast.success("Projeto criado!");
+        success("Projeto criado!");
       }
       handleReset();
       loadData();
-    } catch (error) {
-      const msg = error.response?.data?.detail || "Erro ao salvar projeto.";
-      toast.error(typeof msg === 'string' ? msg : "Erro de validação.");
+    } catch (err) {
+      const msg = err.response?.data?.detail || "Erro ao salvar projeto.";
+      error(typeof msg === 'string' ? msg : "Erro de validação.");
     }
   };
 
@@ -221,10 +220,10 @@ export function AdminProjetos() {
     if (!itemToDelete) return;
     try {
       await api.delete(`/projetos/${itemToDelete.id}`);
-      toast.success("Projeto excluído.");
+      success("Projeto excluído.");
       loadData();
     } catch (e) {
-      toast.error("Erro ao excluir.");
+      error("Erro ao excluir.");
     } finally {
       setIsDeleteModalOpen(false);
       setItemToDelete(null);
@@ -242,7 +241,6 @@ export function AdminProjetos() {
         labelCompleto: `${u.nome} ${u.username ? `(@${u.username})` : ''}`
     }));
 
-  // LÓGICA DE FILTRO E PAGINAÇÃO
   const filteredData = projetos.filter(p => 
       p.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -462,7 +460,6 @@ export function AdminProjetos() {
                    )}
                </div>
 
-               {/* PAGINAÇÃO */}
                <div className="pagination-container">
                     <button onClick={() => paginate(1)} disabled={currentPage === 1 || totalPages === 0} className="pagination-btn nav-btn" title="Primeira">«</button>
                     <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1 || totalPages === 0} className="pagination-btn nav-btn" title="Anterior">‹</button>

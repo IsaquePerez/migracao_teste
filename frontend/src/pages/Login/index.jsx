@@ -1,23 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useSnackbar } from '../../context/SnackbarContext'; 
 import { api } from '../../services/api';
 import styles from './styles.module.css';
 
 export function Login() {
   const navigate = useNavigate();
   const { login, logout, isAuthenticated } = useAuth();
+  
+  const { error: snackError, success: snackSuccess, warning: snackWarning } = useSnackbar();
+  
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => setError(''), 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [error]); 
   
   useEffect(() => {
     if (isAuthenticated) {
@@ -27,7 +23,17 @@ export function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+
+    if (!username.trim()) {
+      snackWarning("Por favor, informe o usuário.");
+      return;
+    }
+
+    if (!password.trim()) {
+      snackWarning("Por favor, informe a senha.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -40,10 +46,16 @@ export function Login() {
       });
       
       const data = response; 
+      
       if (!data.role) data.role = "user";
+      
       if (!data.username) data.username = username;
 
       login(data);
+      
+      const nomeExibicao = data.nome || data.username || "Usuário";
+      
+      snackSuccess(`Bem-vindo, ${nomeExibicao}!`);
       
       if (data.role === 'admin') {
            navigate('/admin', { replace: true });
@@ -53,7 +65,9 @@ export function Login() {
 
     } catch (err) {
       console.error(err);
-      setError(err.message || "Falha no login. Verifique as credenciais.");
+      
+      const mensagemBackend = err.response?.data?.detail || err.response?.data?.message;
+      snackError(mensagemBackend || err.message || "Falha no login. Verifique as credenciais.");
     } finally {
       setLoading(false);
     }
@@ -70,7 +84,6 @@ export function Login() {
               <input 
                 type="text" 
                 id="username"
-                required 
                 value={username} 
                 onChange={e => setUsername(e.target.value)}
                 placeholder="Usuário" 
@@ -81,7 +94,6 @@ export function Login() {
               <input 
                 type="password" 
                 id="password"
-                required 
                 value={password} 
                 onChange={e => setPassword(e.target.value)}
                 placeholder="Senha" 
@@ -101,12 +113,6 @@ export function Login() {
       <div className={styles.imageHalf}>
         <img src="/logoveritus-login.png" alt="Veritus" className={styles.rightHalfImage} />
       </div>
-
-      {error && (
-        <div className={styles.snackbar}>
-          {error}
-        </div>
-      )}
     </div>
   );
 }

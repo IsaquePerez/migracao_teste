@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
+import { useSnackbar } from '../../context/SnackbarContext';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { api } from '../../services/api';
 import './styles.css';
@@ -7,20 +7,24 @@ import './styles.css';
 export function Dashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // 1. Extraímos a função de erro do hook
+  const { error } = useSnackbar();
 
   useEffect(() => {
     async function loadDashboard() {
       try {
         const response = await api.get('/dashboard/');
         setData(response);
-      } catch (error) {
-        toast.error("Erro ao carregar dashboard.");
+      } catch (err) {
+        // 2. Substituímos o toast.error
+        error("Erro ao carregar dashboard.");
       } finally {
         setLoading(false);
       }
     }
     loadDashboard();
-  }, []);
+  }, []); // O hook é estável, não precisa ser dependência obrigatória aqui, mas se o linter pedir, adicione [error]
 
   if (loading) return <div className="loading-container">Carregando indicadores...</div>;
   if (!data) return <div className="no-data">Sem dados para exibir.</div>;
