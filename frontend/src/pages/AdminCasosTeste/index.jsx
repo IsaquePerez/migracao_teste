@@ -4,53 +4,107 @@ import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 import './styles.css';
 
-// --- COMPONENTE REUTILIZÁVEL (Mesmo de AdminCiclos) ---
-const SearchableSelect = ({ options, value, onChange, placeholder, disabled, labelKey = 'nome' }) => {
+// --- COMPONENTE REUTILIZÁVEL: SEARCHABLE SELECT (VERSÃO BLINDADA) ---
+const SearchableSelect = ({ options = [], value, onChange, placeholder, disabled, labelKey = 'nome' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const wrapperRef = useRef(null);
+
   const truncate = (str, n = 20) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str || '';
 
-  // Sincroniza input com valor externo
+  // Sincroniza o input com o valor selecionado (ID) vindo do pai
   useEffect(() => {
-    const selectedOption = options.find(opt => String(opt.id) === String(value));
-    if (selectedOption) {
-      if(!isOpen) setSearchTerm(selectedOption[labelKey]);
-    } else if (!value) {
-      setSearchTerm('');
-    }
-  }, [value, options, isOpen, labelKey]);
+    // 1. Segurança: Se não tem opções ou valor, reseta ou ignora
+    if (!Array.isArray(options)) return;
 
+    if (value === null || value === undefined || value === '') {
+      setSearchTerm('');
+      return;
+    }
+
+    // 2. Busca a opção correspondente (converte ambos para string para garantir '1' == 1)
+    const selectedOption = options.find(opt => String(opt.id) === String(value));
+    
+    if (selectedOption) {
+      // Só atualiza o texto se o menu estiver fechado OU se o termo estiver vazio (carga inicial)
+      if (!isOpen || searchTerm === '') {
+        setSearchTerm(selectedOption[labelKey]);
+      }
+    }
+  }, [value, options, labelKey, isOpen, searchTerm]); 
+
+  // Fecha o dropdown ao clicar fora
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
         setIsOpen(false);
-        const selectedOption = options.find(opt => String(opt.id) === String(value));
-        setSearchTerm(selectedOption ? selectedOption[labelKey] : '');
+        // Ao sair, se tiver um valor válido selecionado, restaura o nome dele no input
+        if (value && Array.isArray(options)) {
+            const selectedOption = options.find(opt => String(opt.id) === String(value));
+            if (selectedOption) setSearchTerm(selectedOption[labelKey]);
+        } else {
+            // Se não tem valor selecionado, limpa o texto digitado
+            setSearchTerm(''); 
+        }
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [wrapperRef, value, options, labelKey]);
 
-  const filteredOptions = searchTerm === '' ? options : options.filter(opt => opt[labelKey].toLowerCase().includes(searchTerm.toLowerCase()));
+  // Filtragem segura
+  const safeOptions = Array.isArray(options) ? options : [];
+  const filteredOptions = searchTerm === '' 
+    ? safeOptions 
+    : safeOptions.filter(opt => opt[labelKey] && opt[labelKey].toLowerCase().includes(searchTerm.toLowerCase()));
+
   const displayOptions = filteredOptions.slice(0, 5);
+
+  const handleSelect = (option) => {
+    onChange(option.id);
+    setSearchTerm(option[labelKey]);
+    setIsOpen(false);
+  };
 
   return (
     <div ref={wrapperRef} className="search-wrapper" style={{ width: '100%', position: 'relative' }}>
-      <input type="text" className={`form-control ${disabled ? 'bg-gray' : ''}`} placeholder={placeholder} value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setIsOpen(true); if (e.target.value === '') onChange(''); }} onFocus={() => !disabled && setIsOpen(true)} disabled={disabled} style={{ cursor: disabled ? 'not-allowed' : 'text', paddingRight: '30px' }} />
+      <input
+        type="text"
+        className={`form-control ${disabled ? 'bg-gray' : ''}`}
+        placeholder={placeholder}
+        value={searchTerm}
+        onChange={(e) => { 
+            setSearchTerm(e.target.value); 
+            setIsOpen(true); 
+            // Se o usuário apagar tudo, limpa o valor selecionado no pai
+            if (e.target.value === '') onChange(''); 
+        }}
+        onFocus={() => !disabled && setIsOpen(true)}
+        disabled={disabled}
+        style={{ cursor: disabled ? 'not-allowed' : 'text', paddingRight: '30px' }}
+      />
       <span className="search-icon" style={{ cursor: disabled ? 'not-allowed' : 'pointer', right: '10px', position: 'absolute', top: '50%', transform: 'translateY(-50%)', fontSize: '12px' }} onClick={() => !disabled && setIsOpen(!isOpen)}>▼</span>
+      
       {isOpen && !disabled && (
         <ul className="custom-dropdown" style={{ width: '100%', top: '100%', zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
-          {displayOptions.length === 0 ? <li style={{ color: '#999', cursor: 'default', padding: '10px' }}>Sem resultados</li> : displayOptions.map(opt => (
-            <li key={opt.id} onClick={() => { onChange(opt.id); setSearchTerm(opt[labelKey]); setIsOpen(false); }} title={opt[labelKey]}>{truncate(opt[labelKey], 20)}</li>
-          ))}
+          {displayOptions.length === 0 ? (
+            <li style={{ color: '#999', cursor: 'default', padding: '10px' }}>
+                {searchTerm ? 'Sem resultados' : 'Digite para buscar...'}
+            </li>
+          ) : (
+            displayOptions.map(opt => (
+              <li key={opt.id} onClick={() => handleSelect(opt)} title={opt[labelKey]}>
+                  {truncate(opt[labelKey], 25)}
+              </li>
+            ))
+          )}
         </ul>
       )}
     </div>
   );
 };
 
+// --- COMPONENTE PRINCIPAL ---
 export function AdminCasosTeste() {
   const [projetos, setProjetos] = useState([]);
   const [ciclos, setCiclos] = useState([]);
@@ -65,15 +119,21 @@ export function AdminCasosTeste() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [casoToDelete, setCasoToDelete] = useState(null);
 
-  // --- FILTROS ---
+  // --- FILTROS GLOBAIS ---
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef(null);
 
+  // --- FILTROS DE HEADER ---
   const [prioSearchText, setPrioSearchText] = useState('');
   const [selectedPrio, setSelectedPrio] = useState('');
   const [isPrioOpen, setIsPrioOpen] = useState(false);
   const prioHeaderRef = useRef(null);
+
+  const [cicloSearchText, setCicloSearchText] = useState('');
+  const [selectedCiclo, setSelectedCiclo] = useState('');
+  const [isCicloOpen, setIsCicloOpen] = useState(false);
+  const cicloHeaderRef = useRef(null);
 
   const [respSearchText, setRespSearchText] = useState('');
   const [selectedResp, setSelectedResp] = useState('');
@@ -91,67 +151,116 @@ export function AdminCasosTeste() {
 
   const truncate = (str, n = 30) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str || '';
 
-  // Click Outside
+  // Click Outside Geral
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setShowSuggestions(false);
-      if (prioHeaderRef.current && !prioHeaderRef.current.contains(event.target)) { if (!selectedPrio) { setIsPrioOpen(false); setPrioSearchText(''); } }
-      if (respHeaderRef.current && !respHeaderRef.current.contains(event.target)) { if (!selectedResp) { setIsRespOpen(false); setRespSearchText(''); } }
+      
+      if (prioHeaderRef.current && !prioHeaderRef.current.contains(event.target)) {
+        if (!selectedPrio) { setIsPrioOpen(false); setPrioSearchText(''); }
+      }
+      if (cicloHeaderRef.current && !cicloHeaderRef.current.contains(event.target)) {
+        if (!selectedCiclo) { setIsCicloOpen(false); setCicloSearchText(''); }
+      }
+      if (respHeaderRef.current && !respHeaderRef.current.contains(event.target)) {
+        if (!selectedResp) { setIsRespOpen(false); setRespSearchText(''); }
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [selectedPrio, selectedResp]);
+  }, [selectedPrio, selectedCiclo, selectedResp]);
 
+  // Carga Inicial (Projetos e Usuários)
   useEffect(() => {
     const loadBasics = async () => {
       try {
         const [projData, userData] = await Promise.all([api.get("/projetos"), api.get("/usuarios/")]);
-        setProjetos(projData || []); setUsuarios(userData || []);
-        const ativos = (projData || []).filter(p => p.status === 'ativo');
+        setProjetos(Array.isArray(projData) ? projData : []); 
+        setUsuarios(Array.isArray(userData) ? userData : []);
+        
+        const ativos = (Array.isArray(projData) ? projData : []).filter(p => p.status === 'ativo');
         if (ativos.length > 0) setSelectedProjeto(ativos[0].id);
-      } catch (e) { error("Erro ao carregar dados."); }
+      } catch (e) { error("Erro ao carregar dados iniciais."); }
     };
     loadBasics();
   }, []);
 
+  // Carga ao mudar Projeto
   useEffect(() => { 
       if (selectedProjeto) {
           loadDadosProjeto(selectedProjeto);
       } else {
-          setCasos([]); // Limpa a tabela se não tiver projeto
+          setCasos([]); 
           setCiclos([]);
       }
   }, [selectedProjeto]);
   
-  useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedPrio, selectedResp]);
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedPrio, selectedCiclo, selectedResp]);
 
   const loadDadosProjeto = async (projId) => {
     setLoading(true);
     try {
-      const [casosData, ciclosData] = await Promise.all([api.get(`/testes/projetos/${projId}/casos`), api.get(`/testes/projetos/${projId}/ciclos`)]);
+      const [casosData, ciclosData] = await Promise.all([
+          api.get(`/testes/projetos/${projId}/casos`), 
+          api.get(`/testes/projetos/${projId}/ciclos`)
+      ]);
       setCasos(Array.isArray(casosData) ? casosData : []);
       setCiclos(Array.isArray(ciclosData) ? ciclosData : []);
-    } catch (err) { error("Erro ao carregar dados."); } finally { setLoading(false); }
+    } catch (err) { error("Erro ao carregar casos e ciclos."); } finally { setLoading(false); }
   };
 
   // --- FILTRAGEM ---
   const filteredCasos = casos.filter(c => {
+      // Normalização de IDs para comparação segura
+      const cCicloId = c.ciclo_id || (c.ciclo ? c.ciclo.id : null);
+      
       if (selectedPrio && c.prioridade !== selectedPrio) return false;
-      if (selectedResp && c.responsavel_id !== parseInt(selectedResp)) return false;
+      // Comparação solta (==) para ignorar string vs number
+      if (selectedCiclo && String(cCicloId) != String(selectedCiclo)) return false; 
+      if (selectedResp && String(c.responsavel_id) != String(selectedResp)) return false;
+      
       if (searchTerm && !c.nome.toLowerCase().includes(searchTerm.toLowerCase())) return false;
       return true;
   });
 
   const globalSuggestions = searchTerm === '' ? filteredCasos.slice(0, 5) : filteredCasos.slice(0, 5);
   
+  // Opções para Headers
   const prioOptions = [{label:'Alta', value:'alta'}, {label:'Média', value:'media'}, {label:'Baixa', value:'baixa'}];
   const filteredPrioHeader = prioOptions.filter(o => o.label.toLowerCase().includes(prioSearchText.toLowerCase()));
 
+  const filteredCicloHeader = ciclos.filter(c => c.nome.toLowerCase().includes(cicloSearchText.toLowerCase())).slice(0, 5);
   const filteredRespHeader = usuarios.filter(u => u.nome.toLowerCase().includes(respSearchText.toLowerCase())).slice(0, 5);
-  const getRespName = (id) => usuarios.find(u => u.id === id)?.nome || '-';
+
+  // --- HELPERS DE NOME ---
+  const getRespName = (id) => {
+      const u = usuarios.find(user => String(user.id) == String(id));
+      return u ? u.nome : '-';
+  };
+  
+  // Helper inteligente para nome do Ciclo
+  const getCicloName = (caso) => {
+      if (!caso) return '-';
+      
+      // 1. Tenta pegar do objeto aninhado
+      if (caso.ciclo && caso.ciclo.nome) return caso.ciclo.nome;
+      
+      // 2. Tenta pegar ID
+      const idBusca = caso.ciclo_id || caso.cicloId;
+      if (!idBusca) return '-'; 
+
+      // 3. Busca na lista de ciclos carregada
+      const found = ciclos.find(c => String(c.id) == String(idBusca));
+      return found ? found.nome : '-';
+  };
+
+  const getCicloNameById = (id) => {
+      const found = ciclos.find(c => String(c.id) == String(id));
+      return found ? found.nome : '-';
+  };
 
   // --- ACTIONS ---
-  const currentProject = projetos.find(p => p.id == selectedProjeto);
+  const currentProject = projetos.find(p => String(p.id) == String(selectedProjeto));
   const isProjectActive = currentProject?.status === 'ativo';
 
   const handleReset = () => {
@@ -162,12 +271,40 @@ export function AdminCasosTeste() {
   const handleNew = () => { if (!isProjectActive) return warning(`Projeto Inativo.`); handleReset(); setView('form'); };
 
   const handleEdit = (caso) => {
+    // Lógica BLINDADA para extrair o ID
+    let cicloIdValue = '';
+    
+    // Tenta pegar id direto, se não, tenta do objeto aninhado. Se undefined, vira ''
+    if (caso.ciclo_id !== null && caso.ciclo_id !== undefined) {
+        cicloIdValue = caso.ciclo_id;
+    } else if (caso.ciclo && caso.ciclo.id) {
+        cicloIdValue = caso.ciclo.id;
+    }
+
+    let respIdValue = '';
+    if (caso.responsavel_id !== null && caso.responsavel_id !== undefined) {
+        respIdValue = caso.responsavel_id;
+    } else if (caso.responsavel && caso.responsavel.id) {
+        respIdValue = caso.responsavel.id;
+    }
+
     setForm({
-      nome: caso.nome, descricao: caso.descricao || '', pre_condicoes: caso.pre_condicoes || '', criterios_aceitacao: caso.criterios_aceitacao || '',
-      prioridade: caso.prioridade, responsavel_id: caso.responsavel_id || '', ciclo_id: '',
-      passos: caso.passos && caso.passos.length > 0 ? caso.passos.map(p => ({...p})) : [{ ordem: 1, acao: '', resultado_esperado: '' }]
+      nome: caso.nome, 
+      descricao: caso.descricao || '', 
+      pre_condicoes: caso.pre_condicoes || '', 
+      criterios_aceitacao: caso.criterios_aceitacao || '',
+      prioridade: caso.prioridade || 'media', 
+      
+      responsavel_id: respIdValue, 
+      ciclo_id: cicloIdValue, 
+      
+      passos: caso.passos && caso.passos.length > 0 
+        ? caso.passos.map(p => ({...p})) 
+        : [{ ordem: 1, acao: '', resultado_esperado: '' }]
     });
-    setEditingId(caso.id); setView('form');
+    
+    setEditingId(caso.id); 
+    setView('form');
   };
 
   const addStep = () => { setForm(prev => ({ ...prev, passos: [...prev.passos, { ordem: prev.passos.length + 1, acao: '', resultado_esperado: '' }] })); };
@@ -178,15 +315,27 @@ export function AdminCasosTeste() {
     e.preventDefault();
     if (!selectedProjeto) return error("Selecione um projeto.");
     if (!form.nome.trim()) return warning("Título obrigatório.");
+    
     const passosValidos = form.passos.filter(p => p.acao && p.acao.trim() !== '');
     if (passosValidos.length === 0) return warning("Preencha ao menos um passo.");
 
-    const payload = { ...form, projeto_id: parseInt(selectedProjeto), responsavel_id: form.responsavel_id ? parseInt(form.responsavel_id) : null, ciclo_id: form.ciclo_id ? parseInt(form.ciclo_id) : null, passos: passosValidos };
+    // ENVIO SEGURO: Converte string vazia para NULL para respeitar FK do banco
+    const payload = { 
+        ...form, 
+        projeto_id: parseInt(selectedProjeto), 
+        responsavel_id: form.responsavel_id ? parseInt(form.responsavel_id) : null, 
+        ciclo_id: form.ciclo_id ? parseInt(form.ciclo_id) : null, 
+        passos: passosValidos 
+    };
+    
     try {
       if (editingId) { await api.put(`/testes/casos/${editingId}`, payload); success("Atualizado!"); } 
       else { await api.post(`/testes/projetos/${selectedProjeto}/casos`, payload); success("Salvo!"); }
       handleReset(); loadDadosProjeto(selectedProjeto);
-    } catch (err) { error(err.message || "Erro ao salvar."); }
+    } catch (err) { 
+        const msg = err.response?.data?.detail || "Erro ao salvar.";
+        error(typeof msg === 'string' ? msg : "Erro de validação."); 
+    }
   };
 
   const handleDelete = async () => { if (!casoToDelete) return; try { await api.delete(`/testes/casos/${casoToDelete.id}`); success("Excluído."); loadDadosProjeto(selectedProjeto); } catch (e) { error("Erro ao excluir."); } finally { setIsDeleteModalOpen(false); setCasoToDelete(null); } };
@@ -219,7 +368,6 @@ export function AdminCasosTeste() {
                   <div className="form-grid">
                       <div>
                         <label className="input-label">Projeto *</label>
-                        {/* SEARCHABLE SELECT NO FORMULÁRIO */}
                         <SearchableSelect options={projetos.filter(p => p.status === 'ativo')} value={form.projeto_id} onChange={(val) => setForm({ ...form, projeto_id: val })} placeholder="Selecione..." disabled={!!editingId} />
                       </div>
                       <div><label className="input-label">Título *</label><input value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} placeholder="Ex: Validar login" className="form-control" /></div>
@@ -234,8 +382,24 @@ export function AdminCasosTeste() {
             <section className="card form-section">
               <h3 className="section-subtitle">Alocação</h3>
               <div className="form-grid">
-                  <div><label>Ciclo</label><SearchableSelect options={ciclos} value={form.ciclo_id} onChange={(val) => setForm({ ...form, ciclo_id: val })} placeholder="Selecione o ciclo..." disabled={!!editingId} /></div>
-                  <div><label>Responsável</label><SearchableSelect options={usuarios.filter(u => u.ativo)} value={form.responsavel_id} onChange={(val) => setForm({ ...form, responsavel_id: val })} placeholder="Buscar responsável..." /></div>
+                  <div>
+                      <label>Ciclo</label>
+                      <SearchableSelect 
+                          options={ciclos} 
+                          value={form.ciclo_id} 
+                          onChange={(val) => setForm({ ...form, ciclo_id: val })} 
+                          placeholder="Selecione o ciclo..." 
+                      />
+                  </div>
+                  <div>
+                      <label>Responsável</label>
+                      <SearchableSelect 
+                          options={usuarios.filter(u => u.ativo)} 
+                          value={form.responsavel_id} 
+                          onChange={(val) => setForm({ ...form, responsavel_id: val })} 
+                          placeholder="Buscar responsável..." 
+                      />
+                  </div>
               </div>
             </section>
             <section className="card">
@@ -258,7 +422,6 @@ export function AdminCasosTeste() {
                <div className="toolbar-actions">
                    <div className="filter-group">
                         <span className="filter-label">PROJETO:</span>
-                        {/* SEARCHABLE SELECT NO FILTRO DA LISTA */}
                         <div style={{width: '200px'}}>
                             <SearchableSelect 
                                 options={projetos.filter(p => p.status === 'ativo')}
@@ -273,7 +436,7 @@ export function AdminCasosTeste() {
                    <div ref={wrapperRef} className="search-wrapper">
                        <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onFocus={() => setShowSuggestions(true)} className="search-input" />
                        <span className="search-icon">🔍</span>
-                       {showSuggestions && <ul className="custom-dropdown">{globalSuggestions.length===0 ? <li style={{color:'#999'}}>Sem resultados.</li> : globalSuggestions.map(c => (<li key={c.id} onClick={() => { setSearchTerm(c.nome); setShowSuggestions(false); }}><div style={{display:'flex',justifyContent:'space-between'}}><span>{truncate(c.nome, 25)}</span><span style={{fontSize:'0.75rem',color:'#9ca3af',fontStyle:'italic'}}></span></div></li>))}</ul>}
+                       {showSuggestions && <ul className="custom-dropdown">{globalSuggestions.length===0 ? <li style={{color:'#999'}}>Sem resultados.</li> : globalSuggestions.map(c => (<li key={c.id} onClick={() => { setSearchTerm(c.nome); setShowSuggestions(false); }}><div style={{display:'flex',justifyContent:'space-between'}}><span>{truncate(c.nome, 20)}</span><span style={{fontSize:'0.75rem',color:'#9ca3af',fontStyle:'italic'}}>{c.prioridade}</span></div></li>))}</ul>}
                    </div>
                </div>
            </div>
@@ -285,7 +448,7 @@ export function AdminCasosTeste() {
                        <thead>
                          <tr>
                            <th style={{width: '50px'}}>ID</th>
-                           <th style={{width: '35%'}}>Cenário</th>
+                           <th style={{width: '30%'}}>Cenário</th>
                            
                            {/* HEADER PRIORIDADE */}
                            <th style={{width: '10%', textAlign: 'center', verticalAlign: 'middle'}}>
@@ -300,8 +463,21 @@ export function AdminCasosTeste() {
                                 </div>
                            </th>
 
+                           {/* HEADER CICLO */}
+                           <th style={{width: '15%', verticalAlign: 'middle'}}>
+                                <div className="th-filter-container" ref={cicloHeaderRef}>
+                                    {isCicloOpen || selectedCiclo ? (
+                                        <div style={{position: 'relative', width: '100%'}}>
+                                            <input autoFocus type="text" className={`th-search-input ${selectedCiclo ? 'active' : ''}`} placeholder="Ciclo..." value={selectedCiclo && cicloSearchText === '' ? truncate(getCicloNameById(selectedCiclo), 15) : cicloSearchText} onChange={(e) => { setCicloSearchText(e.target.value); if(selectedCiclo) setSelectedCiclo(''); }} onClick={(e) => e.stopPropagation()} />
+                                            <button className="btn-clear-filter" onClick={(e) => { e.stopPropagation(); if(selectedCiclo){setSelectedCiclo('');setCicloSearchText('')}else{setIsCicloOpen(false);setCicloSearchText('')} }}>✕</button>
+                                            {(!selectedCiclo || cicloSearchText) && <ul className="custom-dropdown" style={{width: '100%', top: '32px', left: 0}}><li onClick={() => { setSelectedCiclo(''); setCicloSearchText(''); setIsCicloOpen(false); }}><span style={{color:'#3b82f6'}}>Todos</span></li>{filteredCicloHeader.map(c=><li key={c.id} onClick={()=>{setSelectedCiclo(String(c.id));setCicloSearchText('');setIsCicloOpen(true)}}>{truncate(c.nome,20)}</li>)}</ul>}
+                                        </div>
+                                    ) : <div className="th-label" onClick={() => setIsCicloOpen(true)} title="Filtrar">CICLO <span className="filter-icon">▼</span></div>}
+                                </div>
+                           </th>
+
                            {/* HEADER RESPONSAVEL */}
-                           <th style={{width: '20%', verticalAlign: 'middle'}}>
+                           <th style={{width: '15%', verticalAlign: 'middle'}}>
                                 <div className="th-filter-container" ref={respHeaderRef}>
                                     {isRespOpen || selectedResp ? (
                                         <div style={{position: 'relative', width: '100%'}}>
@@ -318,15 +494,10 @@ export function AdminCasosTeste() {
                          </tr>
                        </thead>
                        <tbody> 
-                         {/* AQUI ESTÁ A CORREÇÃO DO EMPTY STATE */}
                          {filteredCasos.length === 0 ? (
                             <tr>
-                                <td colSpan="6" className="no-results" style={{textAlign: 'center', padding: '20px', color: '#64748b'}}>
-                                    {!selectedProjeto ? (
-                                        <span>Selecione um projeto para visualizar os casos de teste.</span>
-                                    ) : (
-                                        <span>Nenhum caso encontrado neste projeto.</span>
-                                    )}
+                                <td colSpan="7" className="no-results" style={{textAlign: 'center', padding: '20px', color: '#64748b'}}>
+                                    {!selectedProjeto ? <span>Selecione um projeto para visualizar os casos de teste.</span> : <span>Nenhum caso encontrado neste projeto.</span>}
                                 </td>
                             </tr>
                          ) : (
@@ -335,7 +506,8 @@ export function AdminCasosTeste() {
                                 <td className="cell-id">#{c.id}</td>
                                 <td><div className="cell-name" title={c.nome}>{truncate(c.nome, 30)}</div></td>
                                 <td className="cell-priority" style={{textAlign: 'center'}}><span className="badge priority-badge">{c.prioridade}</span></td>
-                                <td><span className="cell-resp">{c.responsavel ? truncate(c.responsavel.nome, 20) : '-'}</span></td>
+                                <td style={{color: '#64748b'}}>{truncate(getCicloName(c), 20)}</td>
+                                <td><span className="cell-resp">{c.responsavel_id ? truncate(getRespName(c.responsavel_id), 20) : '-'}</span></td>
                                 <td className="cell-steps" style={{textAlign: 'center'}}>{c.passos?.length || 0}</td>
                                 <td className="cell-actions"><button onClick={(e) => { e.stopPropagation(); setCasoToDelete(c); setIsDeleteModalOpen(true); }} className="btn danger small btn-action-icon">🗑️</button></td>
                             </tr>
