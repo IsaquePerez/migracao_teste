@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 export function TopHeader({ toggleSidebar }) {
   const { user, logout } = useAuth();
+
+  const [isHovered, setIsHovered] = useState(false);
+
   const truncate = (str, n = 30) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str || '';
   return (
     <header className="top-header">
@@ -14,12 +18,16 @@ export function TopHeader({ toggleSidebar }) {
             alignItems: 'center' 
         }}>
             <img 
-                src="/logoveritus.png" 
-                alt="Veritus" 
-                style={{ 
-                    height: '40px', 
-                    marginRight: '8px' 
-                }} 
+              src="/logoveritus.png" 
+              alt="Veritus" 
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+              style={{ 
+                height: '40px', 
+                marginRight: '8px',
+                transition: 'all 0.3s ease',
+                transform: isHovered ? 'scale(1.2)' : 'scale(1.0)'
+              }} 
             />
         </div>
       </div>

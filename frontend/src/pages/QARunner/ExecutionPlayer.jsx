@@ -1,6 +1,5 @@
 import styles from './styles.module.css';
 
-// Adicionamos 'onStart' nas propriedades recebidas
 export function ExecutionPlayer({ tasks, execution, onStart, onFinish, onStepAction, onUpload, onDeleteEvidence, onViewGallery }) {
   
   if (!tasks || tasks.length === 0) {
@@ -10,6 +9,9 @@ export function ExecutionPlayer({ tasks, execution, onStart, onFinish, onStepAct
   else if (!execution) {
     return <div className={styles.emptyState}>Selecione uma tarefa para iniciar</div>;
   }
+
+  const steps = execution.passos_executados || [];
+  const isComplete = steps.length > 0 && steps.every(p => p.status === 'aprovado' || p.status === 'reprovado');
 
   const passosSorted = [...(execution.passos_executados || [])].sort((a, b) => 
     (a.passo_template?.ordem || 0) - (b.passo_template?.ordem || 0)
@@ -37,7 +39,12 @@ export function ExecutionPlayer({ tasks, execution, onStart, onFinish, onStepAct
             )}
 
             {execution.status_geral === 'em_progresso' && (
-                <button onClick={onFinish} className="btn primary">
+                <button 
+                  onClick={onFinish} 
+                  className="btn primary"
+                  disabled={!isComplete}
+                  title={!isComplete ? "Resolva todos os passos para finalizar" : ""}
+                >
                   Finalizar Teste
                 </button>
             )}
@@ -78,7 +85,7 @@ export function ExecutionPlayer({ tasks, execution, onStart, onFinish, onStepAct
                                        <label className={styles.btnUpload}><span>📷</span> Anexar
                                            <input 
                                                type="file" 
-                                               accept="image/*" 
+                                               alpha="image/*" 
                                                style={{ display: 'none' }} 
                                                onChange={(e) => onUpload(e, p.id)} 
                                            />

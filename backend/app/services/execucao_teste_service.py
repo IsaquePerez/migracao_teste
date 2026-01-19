@@ -39,16 +39,13 @@ class ExecucaoTesteService:
             return None
         return ExecucaoTesteResponse.model_validate(execucao)
 
-    # --- LÓGICA DE ATUALIZAÇÃO AUTOMÁTICA ---
     async def registrar_resultado_passo(self, passo_id: int, dados: ExecucaoPassoUpdate):
-        # 1. Atualiza o passo
         passo = await self.repo.get_execucao_passo(passo_id)
         if not passo:
              raise HTTPException(status_code=404, detail="Passo da execução não encontrado")
         
         atualizado = await self.repo.update_passo(passo_id, dados)
         
-        # 2. Recalcula o status do teste pai
         await self._calcular_status_automatico(atualizado.execucao_teste_id)
 
         return ExecucaoPassoResponse.model_validate(atualizado)

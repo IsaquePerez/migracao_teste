@@ -14,34 +14,29 @@ class DashboardService:
         self.repo = DashboardRepository(db)
 
     async def get_dashboard_data(self) -> DashboardResponse:
-       
-        # Fetch raw metrics from repository
-        kpis_data = await self.repo.get_general_kpis()
-        exec_status_data = await self.repo.get_general_execution_status()
+        kpis_data = await self.repo.get_kpis_gerais()
+        exec_status_data = await self.repo.get_status_execucao_geral()
         severity_data = await self.repo.get_defects_by_severity()
         modules_data = await self.repo.get_top_defect_modules()
 
-        # Map to Pydantic Schema
         kpis = DashboardKPI(
             total_projetos=kpis_data["total_projetos"],
             total_ciclos_ativos=kpis_data["total_ciclos_ativos"],
             total_casos_teste=kpis_data["total_casos_teste"],
             taxa_sucesso_ciclos=kpis_data["taxa_sucesso_ciclos"],
-            
             total_defeitos_abertos=kpis_data["total_defeitos_abertos"],
             total_defeitos_criticos=kpis_data["total_defeitos_criticos"],
             total_bloqueados=kpis_data["total_bloqueados"],
             total_aguardando_reteste=kpis_data["total_aguardando_reteste"]
         )
 
-        # Prepare Execution Status Chart (Pie)
         status_chart = []
         status_colors = {
-            StatusExecucaoEnum.passou: "#10b981",       
-            StatusExecucaoEnum.falhou: "#ef4444",       
-            StatusExecucaoEnum.bloqueado: "#f59e0b",    
-            StatusExecucaoEnum.pendente: "#cbd5e1",     
-            StatusExecucaoEnum.em_progresso: "#3b82f6"  
+            StatusExecucaoEnum.passou: "#10b981", 
+            StatusExecucaoEnum.falhou: "#ef4444", 
+            StatusExecucaoEnum.bloqueado: "#f59e0b", 
+            StatusExecucaoEnum.pendente: "#cbd5e1", 
+            StatusExecucaoEnum.em_progresso: "#3b82f6" 
         }
         
         for status, count in exec_status_data:
@@ -51,13 +46,13 @@ class DashboardService:
                 color=status_colors.get(status, "#64748b")
             ))
 
-        # Prepare Defect Severity Chart (Bar)
+   
         severity_chart = []
         severity_colors = {
             SeveridadeDefeitoEnum.critico: "#7f1d1d",
             SeveridadeDefeitoEnum.alto: "#b91c1c",
             SeveridadeDefeitoEnum.medio: "#f59e0b",
-            SeveridadeDefeitoEnum.bajo: "#10b981"
+            SeveridadeDefeitoEnum.bajo: "#10b981" #
         }
 
         for sev, count in severity_data:
@@ -67,7 +62,7 @@ class DashboardService:
                 color=severity_colors.get(sev, "#000000")
             ))
 
-        # Prepare Module Ranking Chart
+        # Ranking de Módulos
         modules_chart = [
             ChartDataPoint(label=nome, value=count) 
             for nome, count in modules_data
@@ -81,14 +76,12 @@ class DashboardService:
 
         return DashboardResponse(kpis=kpis, charts=charts)
     
+
     async def get_runner_dashboard_data(self, runner_id: Optional[int] = None) -> Dict[str, Any]:
-        
-        # Fetch core metrics
         raw_kpis = await self.repo.get_runner_kpis(runner_id)
         status_dist = await self.repo.get_status_distribution(runner_id)
         raw_timeline = await self.repo.get_runner_timeline(runner_id)
 
-        # Fetch Ranking 
         ranking_data = []
         if not runner_id:
             ranking_raw = await self.repo.get_ranking_runners()
@@ -97,9 +90,8 @@ class DashboardService:
                 for name, total in ranking_raw
             ]
 
-        # Format Status Distribution 
         pie_chart_data = []
-        status_colors = {
+        status_colors_hex = {
             "passou": "#10b981", 
             "falhou": "#ef4444", 
             "bloqueado": "#f59e0b", 
@@ -108,15 +100,13 @@ class DashboardService:
         }
         
         for status, count in status_dist:
-            # Handle SQLAlchemy Enum return
             status_val = status.value if hasattr(status, 'value') else str(status)
             pie_chart_data.append({
                 "name": status_val.upper(),
                 "value": count,
-                "color": status_colors.get(status_val, "#94a3b8")
+                "color": status_colors_hex.get(status_val, "#94a3b8")
             })
 
-        # Format Activity Timeline
         timeline_data = []
         for execution in raw_timeline:
             timeline_data.append({
@@ -127,7 +117,6 @@ class DashboardService:
                 "updated_at": execution.updated_at
             })
 
-        # Construct Final Response
         return {
             "kpis": {
                 "total_execucoes_concluidas": raw_kpis["total_concluidos"],

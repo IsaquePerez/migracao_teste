@@ -7,16 +7,26 @@ export function Sidebar({ role, isOpen, closeSidebar }) {
 
   return (
     <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
-        <Link to="/admin" onClick={handleNavClick}>
-           <div className="brand-wrap"><img src="/logoge.svg" alt="GE" className="brand-logo-ge" /></div>
-        </Link>
+        {/* Organização da logo vinda da Main (muda conforme o cargo) */}
+        {role === 'admin' && (
+          <Link to="/admin" onClick={handleNavClick}>
+            <div className="brand-wrap"><img src="/logoge.svg" alt="GE" className="brand-logo-ge" /></div>
+          </Link>
+        )}
+        {role === 'user' && (
+          <Link to="/qa/runner" onClick={handleNavClick}>
+            <div className="brand-wrap"><img src="/logoge.svg" alt="GE" className="brand-logo-ge" /></div>
+          </Link>
+        )}
+
         <nav onClick={handleNavClick}>
           {role === 'admin' && (
             <>
               <div className="nav-section">ADMINISTRAÇÃO</div>
-              <Link to="/admin" className={isActive('/admin')}>Dashboard Tests</Link>
-              {/* NOVO LINK ADICIONADO ABAIXO */}
-              <Link to="/admin/performance" className={isActive('/admin/performance')}>Dashboard Runners</Link>
+              <Link to="/admin" className={isActive('/admin')}>Dashboard: Execution</Link>
+              
+              <Link to="/admin/performance" className={isActive('/admin/performance')}>Dashboard: QA Team</Link>
+              
               <Link to="/admin/users" className={isActive('/admin/users')}>Acessos</Link>
               
               <div className="nav-section">ESTRUTURA</div>
@@ -32,6 +42,7 @@ export function Sidebar({ role, isOpen, closeSidebar }) {
               <Link to="/qa/defeitos" className={isActive('/qa/defeitos')}>Gestão de Defeitos</Link>
             </>
           )}
+
           {role === 'user' && (
             <>
                <div className="nav-section">MINHA ÁREA</div>

@@ -38,7 +38,6 @@ export function Dashboard() {
 
       {/* --- GRID DE 8 KPI CARDS (4 x 2) --- */}
       <div className="kpi-grid">
-        {/* LINHA 1 - VOLTANDO AOS TONS PASTÉIS */}
         <KpiCard 
           value={data.kpis.total_projetos} 
           label="PROJETOS ATIVOS" 
@@ -64,7 +63,6 @@ export function Dashboard() {
           gradient="linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)"
         />
 
-        {/* LINHA 2 */}
         <KpiCard 
           value={data.kpis.total_defeitos_abertos} 
           label="BUGS ABERTOS" 
@@ -92,7 +90,6 @@ export function Dashboard() {
       </div>
 
       <div className="charts-grid">
-        {/* GRÁFICOS VISUAIS (MANTIDOS IGUAIS) */}
         <div className="chart-card">
           <h3 className="chart-title">Status de Execução</h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -154,7 +151,6 @@ export function Dashboard() {
   );
 }
 
-// Card atualizado: Com Borda Lateral + Texto Escuro + Sparkline Colorido
 function KpiCard({ value, label, color, gradient }) {
   const fakeData = [
     { val: 30 + Math.random() * 20 },
@@ -171,7 +167,7 @@ function KpiCard({ value, label, color, gradient }) {
     <div 
       className="kpi-card" 
       style={{ 
-        borderLeft: `5px solid ${color}`, // A borda voltou!
+        borderLeft: `5px solid ${color}`,
         background: gradient || '#ffffff'
       }}
     >
@@ -186,7 +182,7 @@ function KpiCard({ value, label, color, gradient }) {
             <Line 
               type="monotone" 
               dataKey="val" 
-              stroke={color} // Linha da cor do tema (não mais branca)
+              stroke={color}
               strokeWidth={3} 
               dot={false} 
               isAnimationActive={true}

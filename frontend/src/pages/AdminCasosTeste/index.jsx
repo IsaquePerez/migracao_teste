@@ -12,9 +12,7 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder, disabled
 
   const truncate = (str, n = 20) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str || '';
 
-  // Sincroniza o input com o valor selecionado (ID) vindo do pai
   useEffect(() => {
-    // 1. Segurança: Se não tem opções ou valor, reseta ou ignora
     if (!Array.isArray(options)) return;
 
     if (value === null || value === undefined || value === '') {
@@ -22,28 +20,23 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder, disabled
       return;
     }
 
-    // 2. Busca a opção correspondente (converte ambos para string para garantir '1' == 1)
     const selectedOption = options.find(opt => String(opt.id) === String(value));
     
     if (selectedOption) {
-      // Só atualiza o texto se o menu estiver fechado OU se o termo estiver vazio (carga inicial)
       if (!isOpen || searchTerm === '') {
         setSearchTerm(selectedOption[labelKey]);
       }
     }
   }, [value, options, labelKey, isOpen, searchTerm]); 
 
-  // Fecha o dropdown ao clicar fora
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
         setIsOpen(false);
-        // Ao sair, se tiver um valor válido selecionado, restaura o nome dele no input
         if (value && Array.isArray(options)) {
             const selectedOption = options.find(opt => String(opt.id) === String(value));
             if (selectedOption) setSearchTerm(selectedOption[labelKey]);
         } else {
-            // Se não tem valor selecionado, limpa o texto digitado
             setSearchTerm(''); 
         }
       }
@@ -52,7 +45,6 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder, disabled
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [wrapperRef, value, options, labelKey]);
 
-  // Filtragem segura
   const safeOptions = Array.isArray(options) ? options : [];
   const filteredOptions = searchTerm === '' 
     ? safeOptions 
@@ -76,7 +68,6 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder, disabled
         onChange={(e) => { 
             setSearchTerm(e.target.value); 
             setIsOpen(true); 
-            // Se o usuário apagar tudo, limpa o valor selecionado no pai
             if (e.target.value === '') onChange(''); 
         }}
         onFocus={() => !disabled && setIsOpen(true)}
@@ -94,7 +85,7 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder, disabled
           ) : (
             displayOptions.map(opt => (
               <li key={opt.id} onClick={() => handleSelect(opt)} title={opt[labelKey]}>
-                  {truncate(opt[labelKey], 25)}
+                  {truncate(opt[labelKey], 50)}
               </li>
             ))
           )}
@@ -151,7 +142,6 @@ export function AdminCasosTeste() {
 
   const truncate = (str, n = 30) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str || '';
 
-  // Click Outside Geral
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setShowSuggestions(false);
@@ -170,7 +160,6 @@ export function AdminCasosTeste() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [selectedPrio, selectedCiclo, selectedResp]);
 
-  // Carga Inicial (Projetos e Usuários)
   useEffect(() => {
     const loadBasics = async () => {
       try {
@@ -185,7 +174,6 @@ export function AdminCasosTeste() {
     loadBasics();
   }, []);
 
-  // Carga ao mudar Projeto
   useEffect(() => { 
       if (selectedProjeto) {
           loadDadosProjeto(selectedProjeto);
@@ -211,11 +199,9 @@ export function AdminCasosTeste() {
 
   // --- FILTRAGEM ---
   const filteredCasos = casos.filter(c => {
-      // Normalização de IDs para comparação segura
       const cCicloId = c.ciclo_id || (c.ciclo ? c.ciclo.id : null);
       
       if (selectedPrio && c.prioridade !== selectedPrio) return false;
-      // Comparação solta (==) para ignorar string vs number
       if (selectedCiclo && String(cCicloId) != String(selectedCiclo)) return false; 
       if (selectedResp && String(c.responsavel_id) != String(selectedResp)) return false;
       
@@ -225,7 +211,6 @@ export function AdminCasosTeste() {
 
   const globalSuggestions = searchTerm === '' ? filteredCasos.slice(0, 5) : filteredCasos.slice(0, 5);
   
-  // Opções para Headers
   const prioOptions = [{label:'Alta', value:'alta'}, {label:'Média', value:'media'}, {label:'Baixa', value:'baixa'}];
   const filteredPrioHeader = prioOptions.filter(o => o.label.toLowerCase().includes(prioSearchText.toLowerCase()));
 
@@ -238,18 +223,14 @@ export function AdminCasosTeste() {
       return u ? u.nome : '-';
   };
   
-  // Helper inteligente para nome do Ciclo
   const getCicloName = (caso) => {
       if (!caso) return '-';
       
-      // 1. Tenta pegar do objeto aninhado
       if (caso.ciclo && caso.ciclo.nome) return caso.ciclo.nome;
       
-      // 2. Tenta pegar ID
       const idBusca = caso.ciclo_id || caso.cicloId;
       if (!idBusca) return '-'; 
 
-      // 3. Busca na lista de ciclos carregada
       const found = ciclos.find(c => String(c.id) == String(idBusca));
       return found ? found.nome : '-';
   };
@@ -264,17 +245,15 @@ export function AdminCasosTeste() {
   const isProjectActive = currentProject?.status === 'ativo';
 
   const handleReset = () => {
-    setForm({ nome: '', descricao: '', pre_condicoes: '', criterios_aceitacao: '', prioridade: 'media', responsavel_id: '', ciclo_id: '', passos: [{ ordem: 1, acao: '', resultado_esperado: '' }] });
+    setForm({ nome: '', descricao: '', pre_condicoes: '', criterios_aceitacao: '', prioridade: 'media', responsavel_id: '', ciclo_id: '', projeto_id: selectedProjeto || '', passos: [{ ordem: 1, acao: '', resultado_esperado: '' }] });
     setEditingId(null); setSearchTerm(''); setView('list');
   };
 
   const handleNew = () => { if (!isProjectActive) return warning(`Projeto Inativo.`); handleReset(); setView('form'); };
 
   const handleEdit = (caso) => {
-    // Lógica BLINDADA para extrair o ID
     let cicloIdValue = '';
     
-    // Tenta pegar id direto, se não, tenta do objeto aninhado. Se undefined, vira ''
     if (caso.ciclo_id !== null && caso.ciclo_id !== undefined) {
         cicloIdValue = caso.ciclo_id;
     } else if (caso.ciclo && caso.ciclo.id) {
@@ -296,8 +275,9 @@ export function AdminCasosTeste() {
       prioridade: caso.prioridade || 'media', 
       
       responsavel_id: respIdValue, 
-      ciclo_id: cicloIdValue, 
-      
+      ciclo_id: cicloIdValue,
+      projeto_id: caso.projeto_id || selectedProjeto,
+
       passos: caso.passos && caso.passos.length > 0 
         ? caso.passos.map(p => ({...p})) 
         : [{ ordem: 1, acao: '', resultado_esperado: '' }]
@@ -319,7 +299,6 @@ export function AdminCasosTeste() {
     const passosValidos = form.passos.filter(p => p.acao && p.acao.trim() !== '');
     if (passosValidos.length === 0) return warning("Preencha ao menos um passo.");
 
-    // ENVIO SEGURO: Converte string vazia para NULL para respeitar FK do banco
     const payload = { 
         ...form, 
         projeto_id: parseInt(selectedProjeto), 
@@ -346,6 +325,12 @@ export function AdminCasosTeste() {
   const currentCasos = filteredCasos.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const paginate = (n) => setCurrentPage(n);
 
+
+  const usersFormatted = usuarios.map(u => ({ ...u, labelCompleto: `${u.nome} ${u.username ? `(@${u.username})` : ''}` }));
+  const testers = usersFormatted.filter(u => u.nivel_acesso_id === 2 && u.ativo);
+
+  const isFormInvalid =  !String(form.ciclo_id).trim() || !String(form.responsavel_id).trim() || !form.nome.trim() || !form.prioridade.trim() || !form.pre_condicoes.trim() || !form.criterios_aceitacao.trim() || !form.prioridade.trim();
+
   return (
     <main className="container">
       <ConfirmationModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleDelete} title="Excluir?" message={`Excluir "${casoToDelete?.nome}"?`} isDanger={true} />
@@ -367,23 +352,29 @@ export function AdminCasosTeste() {
               <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
                   <div className="form-grid">
                       <div>
-                        <label className="input-label">Projeto *</label>
-                        <SearchableSelect options={projetos.filter(p => p.status === 'ativo')} value={form.projeto_id} onChange={(val) => setForm({ ...form, projeto_id: val })} placeholder="Selecione..." disabled={!!editingId} />
+                        <label className="input-label"><b>Projeto</b></label>
+                        <input 
+                          type="text"
+                          className="form-control bg-gray" 
+                          style={{ cursor: 'not-allowed', color: '#666' }}
+                          value={projetos.find(p => String(p.id) === String(form.projeto_id))?.nome || 'Projeto não selecionado'}
+                          readOnly
+                        />
                       </div>
-                      <div><label className="input-label">Título *</label><input value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} placeholder="Ex: Validar login" className="form-control" /></div>
+                      <div><label className="input-label"><b>Título</b></label><input value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} placeholder="Ex: Validar login" className="form-control" /></div>
                   </div>
                   <div className="form-grid">
-                      <div><label>Prioridade</label><select value={form.prioridade} onChange={e => setForm({...form, prioridade: e.target.value})} className="form-control bg-gray"><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option></select></div>
-                      <div><label>Pré-condições</label><input value={form.pre_condicoes} onChange={e => setForm({...form, pre_condicoes: e.target.value})} className="form-control" /></div>
+                      <div><label><b>Prioridade</b></label><select value={form.prioridade} onChange={e => setForm({...form, prioridade: e.target.value})} className="form-control bg-gray"><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option></select></div>
+                      <div><label><b>Pré-condições</b></label><input value={form.pre_condicoes} onChange={e => setForm({...form, pre_condicoes: e.target.value})} className="form-control" /></div>
                   </div>
-                  <div><label>Objetivo</label><input value={form.criterios_aceitacao} onChange={e => setForm({...form, criterios_aceitacao: e.target.value})} className="form-control" /></div>
+                  <div><label className="input-label">Objetivo</label><input value={form.criterios_aceitacao} onChange={e => setForm({...form, criterios_aceitacao: e.target.value})} className="form-control" /></div>
               </div>
             </section>
             <section className="card form-section">
               <h3 className="section-subtitle">Alocação</h3>
               <div className="form-grid">
                   <div>
-                      <label>Ciclo</label>
+                      <label><b>Ciclo</b></label>
                       <SearchableSelect 
                           options={ciclos} 
                           value={form.ciclo_id} 
@@ -392,12 +383,13 @@ export function AdminCasosTeste() {
                       />
                   </div>
                   <div>
-                      <label>Responsável</label>
+                      <label><b>Responsável</b></label>
                       <SearchableSelect 
-                          options={usuarios.filter(u => u.ativo)} 
+                          options={testers} 
                           value={form.responsavel_id} 
                           onChange={(val) => setForm({ ...form, responsavel_id: val })} 
-                          placeholder="Buscar responsável..." 
+                          placeholder="Buscar responsável..."
+                          labelKey="labelCompleto"
                       />
                   </div>
               </div>
@@ -409,7 +401,17 @@ export function AdminCasosTeste() {
                    <div key={idx} className="step-row"><div className="step-index">{idx + 1}</div><input placeholder="Ação" value={passo.acao} onChange={e => updateStep(idx, 'acao', e.target.value)} className="form-control small-text" /><input placeholder="Resultado Esperado" value={passo.resultado_esperado} onChange={e => updateStep(idx, 'resultado_esperado', e.target.value)} className="form-control small-text" /><button type="button" onClick={() => removeStep(idx)} className="btn danger small btn-remove-step">✕</button></div>
                  ))}
                </div>
-               <div className="form-actions"><button type="button" onClick={handleReset} className="btn">Cancelar</button><button type="submit" className="btn primary">Salvar</button></div>
+               <div className="form-actions">
+                <button type="button" onClick={handleReset} className="btn">Cancelar</button>
+                <button
+                  type="submit"
+                  className="btn primary"
+                  disabled={isFormInvalid} 
+                  title={isFormInvalid ? "Preencha todos os campos" : ""}
+                >
+                  Salvar
+                </button>
+               </div>
             </section>
           </form>
         </div>

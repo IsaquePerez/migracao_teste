@@ -104,18 +104,15 @@ export function AdminProjetos() {
     sistema_id: '', modulo_id: '', responsavel_id: '' 
   });
 
-  // --- FILTRO GLOBAL ---
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef(null);
 
-  // --- FILTRO RESPONSÁVEL ---
   const [respSearchText, setRespSearchText] = useState(''); 
   const [selectedRespId, setSelectedRespId] = useState(''); 
   const [isRespSearchOpen, setIsRespSearchOpen] = useState(false);
   const respHeaderRef = useRef(null);
 
-  // --- FILTRO STATUS ---
   const [statusSearchText, setStatusSearchText] = useState(''); 
   const [selectedStatus, setSelectedStatus] = useState(''); 
   const [isStatusSearchOpen, setIsStatusSearchOpen] = useState(false);
@@ -132,12 +129,10 @@ export function AdminProjetos() {
         setShowSuggestions(false);
       }
       
-      // Fecha Header Responsável
       if (respHeaderRef.current && !respHeaderRef.current.contains(event.target)) {
         if (!selectedRespId) { setIsRespSearchOpen(false); setRespSearchText(''); }
       }
 
-      // Fecha Header Status
       if (statusHeaderRef.current && !statusHeaderRef.current.contains(event.target)) {
         if (!selectedStatus) { setIsStatusSearchOpen(false); setStatusSearchText(''); }
       }
@@ -148,7 +143,6 @@ export function AdminProjetos() {
 
   useEffect(() => { loadData(); }, []);
 
-  // Reseta página se mudar filtros
   useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedRespId, selectedStatus]);
 
   const loadData = async () => {
@@ -170,22 +164,17 @@ export function AdminProjetos() {
 
   // --- FILTRAGEM PRINCIPAL ---
   const filteredData = projetos.filter(p => {
-      // Filtro Responsável
       if (selectedRespId && p.responsavel_id !== parseInt(selectedRespId)) return false;
       
-      // Filtro Status (NOVO)
       if (selectedStatus && p.status !== selectedStatus) return false;
-
-      // Filtro Global
+      
       if (searchTerm && !p.nome.toLowerCase().includes(searchTerm.toLowerCase())) return false;
       
       return true;
   });
 
-  // Opções Header Responsável
   const filteredRespForHeader = usersFormatted.filter(u => u.labelCompleto.toLowerCase().includes(respSearchText.toLowerCase())).slice(0, 5);
 
-  // Opções Header Status
   const statusOptions = [
       { label: 'Ativo', value: 'ativo' }, 
       { label: 'Pausado', value: 'pausado' }, 
@@ -193,7 +182,6 @@ export function AdminProjetos() {
   ];
   const filteredStatusForHeader = statusOptions.filter(s => s.label.toLowerCase().includes(statusSearchText.toLowerCase()));
 
-  // Opções Search Global
   const opcoesParaMostrar = searchTerm === '' ? [...projetos].sort((a, b) => b.id - a.id).slice(0, 5) : filteredData.slice(0, 5);
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -201,7 +189,6 @@ export function AdminProjetos() {
   const currentData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const paginate = (n) => setCurrentPage(n);
 
-  // --- ACTIONS ---
   const handleReset = () => {
     setForm({ nome: '', descricao: '', status: 'ativo', sistema_id: '', modulo_id: '', responsavel_id: '' });
     setEditingId(null);
@@ -244,6 +231,8 @@ export function AdminProjetos() {
   const modulosFiltrados = form.sistema_id ? modulos.filter(m => m.sistema_id == form.sistema_id) : modulos;
   const admins = usersFormatted.filter(u => u.nivel_acesso_id === 1 && u.ativo);
 
+  const isFormInvalid =  !String(form.sistema_id).trim() || !String(form.modulo_id).trim() || !String(form.responsavel_id).trim() || !form.nome.trim() || !form.descricao.trim();
+
   return (
     <main className="container">
       <ConfirmationModal 
@@ -257,16 +246,16 @@ export function AdminProjetos() {
             <section className="card form-section">
               <div className="form-header"><h3 className="form-title">{editingId ? 'Editar Projeto' : 'Novo Projeto'}</h3></div>
               <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
-                  <div><label className="input-label">Nome do Projeto *</label><input value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className="form-control" placeholder="Ex: E-commerce 2.0" /></div>
+                  <div><label className="input-label">Nome do Projeto</label><input value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className="form-control"/></div>
                   <div><label className="input-label">Descrição</label><textarea value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} className="form-control" rows="3" /></div>
                   <div className="form-grid">
-                      <div><label className="input-label">Sistema *</label><SearchableSelect options={sistemas} value={form.sistema_id} onChange={(val) => setForm({ ...form, sistema_id: val, modulo_id: '' })} placeholder="Busque o sistema..." labelKey="nome" /></div>
-                      <div><label className="input-label">Módulo *</label><SearchableSelect options={modulosFiltrados} value={form.modulo_id} onChange={(val) => setForm({ ...form, modulo_id: val })} placeholder={form.sistema_id ? "Busque o módulo..." : "Selecione um sistema antes"} disabled={!form.sistema_id} labelKey="nome" /></div>
+                      <div><label className="input-label"><b>Sistema</b></label><SearchableSelect options={sistemas} value={form.sistema_id} onChange={(val) => setForm({ ...form, sistema_id: val, modulo_id: '' })} placeholder="Busque o sistema..." labelKey="nome" /></div>
+                      <div><label className="input-label"><b>Módulo</b></label><SearchableSelect options={modulosFiltrados} value={form.modulo_id} onChange={(val) => setForm({ ...form, modulo_id: val })} placeholder={form.sistema_id ? "Busque o módulo..." : "Selecione um sistema antes"} disabled={!form.sistema_id} labelKey="nome" /></div>
                   </div>
                   <div className="form-grid">
-                      <div><label className="input-label">Responsável (Admin) *</label><SearchableSelect options={admins} value={form.responsavel_id} onChange={(val) => setForm({ ...form, responsavel_id: val })} placeholder="Busque o responsável..." labelKey="labelCompleto" /></div>
+                      <div><label className="input-label"><b>Responsável</b></label><SearchableSelect options={admins} value={form.responsavel_id} onChange={(val) => setForm({ ...form, responsavel_id: val })} placeholder="Busque o responsável..." labelKey="labelCompleto" /></div>
                       <div>
-                        <label className="input-label">Status</label>
+                        <label className="input-label"><b>Status</b></label>
                         <select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="form-control bg-gray">
                             <option value="ativo">Ativo</option><option value="pausado">Pausado</option><option value="finalizado">Finalizado</option>
                         </select>
@@ -275,7 +264,14 @@ export function AdminProjetos() {
               </div>
               <div className="form-actions">
                   <button type="button" onClick={handleReset} className="btn">Cancelar</button>
-                  <button type="submit" className="btn primary">Salvar</button>
+                  <button
+                    type="submit"
+                    className="btn primary"
+                    disabled={isFormInvalid} 
+                    title={isFormInvalid ? "Preencha todos os campos" : ""}
+                  >
+                    Salvar
+                  </button>
               </div>
             </section>
           </form>

@@ -17,17 +17,13 @@ class DashboardRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_general_kpis(self):
-        """Fetches high-level metrics for the main dashboard."""
+    async def get_kpis_gerais(self):
+        q_projetos = select(func.count(Projeto.id)).where(Projeto.status == StatusProjetoEnum.ativo)
+        q_ciclos = select(func.count(CicloTeste.id)).where(CicloTeste.status == StatusCicloEnum.em_execucao)
+        q_casos = select(func.count(CasoTeste.id))
+        q_defeitos_abertos = select(func.count(Defeito.id)).where(Defeito.status == StatusDefeitoEnum.aberto)
         
-        # Base entity counts
-        projects_query = select(func.count(Projeto.id)).where(Projeto.status == StatusProjetoEnum.ativo)
-        active_cycles_query = select(func.count(CicloTeste.id)).where(CicloTeste.status == StatusCicloEnum.em_execucao)
-        test_cases_query = select(func.count(CasoTeste.id))
-        open_defects_query = select(func.count(Defeito.id)).where(Defeito.status == StatusDefeitoEnum.aberto)
-        
-        # Specific QA metrics
-        blocked_tests_query = (
+        q_bloqueados = (
             select(func.count(ExecucaoTeste.id))
             .join(CicloTeste)
             .where(
@@ -36,17 +32,16 @@ class DashboardRepository:
             )
         )
 
-        critical_defects_query = select(func.count(Defeito.id)).where(
+        q_criticos = select(func.count(Defeito.id)).where(
             Defeito.status != StatusDefeitoEnum.fechado,
             Defeito.severidade == SeveridadeDefeitoEnum.critico
         )
 
-        retest_queue_query = select(func.count(Defeito.id)).where(
+        q_reteste = select(func.count(Defeito.id)).where(
             Defeito.status == StatusDefeitoEnum.corrigido
         )
 
-        # Success Rate Logic (Passed vs Total Finished)
-        passed_tests_query = (
+        q_passou = (
             select(func.count(ExecucaoTeste.id))
             .join(CicloTeste)
             .where(
@@ -55,7 +50,7 @@ class DashboardRepository:
             )
         )
 
-        finished_tests_query = (
+        q_total_finalizados = (
             select(func.count(ExecucaoTeste.id))
             .join(CicloTeste)
             .where(
@@ -68,22 +63,26 @@ class DashboardRepository:
             )
         )
 
-        # Execute all queries
-        return {
-            "total_projetos": (await self.db.execute(projects_query)).scalar() or 0,
-            "total_ciclos_ativos": (await self.db.execute(active_cycles_query)).scalar() or 0,
-            "total_casos_teste": (await self.db.execute(test_cases_query)).scalar() or 0,
-            "total_defeitos_abertos": (await self.db.execute(open_defects_query)).scalar() or 0,
-            "total_bloqueados": (await self.db.execute(blocked_tests_query)).scalar() or 0,
-            "total_defeitos_criticos": (await self.db.execute(critical_defects_query)).scalar() or 0,
-            "total_aguardando_reteste": (await self.db.execute(retest_queue_query)).scalar() or 0,
-            "taxa_sucesso_ciclos": self._calculate_success_rate(
-                (await self.db.execute(passed_tests_query)).scalar() or 0,
-                (await self.db.execute(finished_tests_query)).scalar() or 0
-            )
-        }
+        results = {}
+        results["total_projetos"] = (await self.db.execute(q_projetos)).scalar() or 0
+        results["total_ciclos_ativos"] = (await self.db.execute(q_ciclos)).scalar() or 0
+        results["total_casos_teste"] = (await self.db.execute(q_casos)).scalar() or 0
+        results["total_defeitos_abertos"] = (await self.db.execute(q_defeitos_abertos)).scalar() or 0
+        results["total_bloqueados"] = (await self.db.execute(q_bloqueados)).scalar() or 0
+        results["total_defeitos_criticos"] = (await self.db.execute(q_criticos)).scalar() or 0
+        results["total_aguardando_reteste"] = (await self.db.execute(q_reteste)).scalar() or 0
+        
+        passou = (await self.db.execute(q_passou)).scalar() or 0
+        total_finalizados = (await self.db.execute(q_total_finalizados)).scalar() or 0
 
-    async def get_general_execution_status(self):
+        if total_finalizados > 0:
+            results["taxa_sucesso_ciclos"] = round((passou / total_finalizados) * 100, 1)
+        else:
+            results["taxa_sucesso_ciclos"] = 0.0
+
+        return results
+
+    async def get_status_execucao_geral(self):
         query = (
             select(ExecucaoTeste.status_geral, func.count(ExecucaoTeste.id))
             .join(CicloTeste)
@@ -117,15 +116,11 @@ class DashboardRepository:
         result = await self.db.execute(query)
         return result.all()
 
-    # --- Runner & Productivity Methods ---
-
     async def get_runner_kpis(self, runner_id: int = None):
-        """Productivity metrics, optionally filtered by user."""
         filters = []
         if runner_id:
             filters.append(ExecucaoTeste.responsavel_id == runner_id)
 
-        # Queries
         completed_query = select(func.count(ExecucaoTeste.id)).where(
             ExecucaoTeste.status_geral.in_([StatusExecucaoEnum.passou, StatusExecucaoEnum.falhou]),
             *filters
@@ -151,8 +146,6 @@ class DashboardRepository:
         )
         
         last_seen_query = select(func.max(ExecucaoTeste.updated_at)).where(*filters)
-
-        # Execution
         avg_seconds = (await self.db.execute(avg_time_query)).scalar() or 0
         
         return {
@@ -179,10 +172,8 @@ class DashboardRepository:
             select(ExecucaoTeste.status_geral, func.count(ExecucaoTeste.id))
             .group_by(ExecucaoTeste.status_geral)
         )
-        
         if runner_id:
             query = query.where(ExecucaoTeste.responsavel_id == runner_id)
-            
         result = await self.db.execute(query)
         return result.all()
 
@@ -196,14 +187,7 @@ class DashboardRepository:
             .order_by(desc(ExecucaoTeste.updated_at))
             .limit(limit)
         )
-        
         if runner_id:
             query = query.where(ExecucaoTeste.responsavel_id == runner_id)
-            
         result = await self.db.execute(query)
         return result.scalars().all()
-
-    def _calculate_success_rate(self, passed, total):
-        if total == 0: 
-            return 0.0
-        return round((passed / total) * 100, 1)

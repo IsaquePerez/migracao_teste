@@ -7,7 +7,7 @@
   font-family: 'Inter', sans-serif;
 }
 
-.forgotPasswordContainer {
+.resetPasswordContainer {
   justify-self: center; 
   align-self: center;
   box-sizing: border-box; 
@@ -57,7 +57,7 @@
   font-weight: 600;
   margin-top: 10px;
   margin-bottom: 20px;
-  padding-bottom: 30px;
+  padding-bottom: 15px;
   border-bottom: 1px solid #f3f4f6;
   color: #A8DADC;
   text-align: center;
@@ -77,19 +77,72 @@
   margin-bottom: 20px;
 }
 
+.inputContainer {
+  position: relative;
+  width: 70%;
+  margin: 0 auto 15px auto;
+  display: flex;
+  align-items: center;
+}
+
 .input {
   display: block;
-  width: 70%;
+  width: 100%;
   padding: 10px;
+  padding-right: 40px;
   border: 1px solid #0F2B4B;
   border-radius: 4px;
   box-sizing: border-box;
   background-color: #DDDDDD;
   color: #0D1A23;
-  margin-top: 15px;
-  margin-bottom: 15px;
+}
+
+.inputError {
+  border: 2px solid #ff4d4d !important;
+  outline: none;
+  background-color: #fff0f0;
+}
+
+.input::-ms-reveal,
+.input::-ms-clear,
+.input::-webkit-contacts-auto-fill-button,
+.input::-webkit-credentials-auto-fill-button {
+  display: none !important;
+}
+
+.eyeButton {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.eyeButton:hover {
+  color: #333;
+}
+
+.errorMessage {
+  color: #ff4d4d;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-top: -20px;
   margin-left: auto;
   margin-right: auto;
+  text-align: center;
+  width: 70%;
+  display: block;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .button {

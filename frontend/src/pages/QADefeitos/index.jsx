@@ -16,7 +16,7 @@ export function QADefeitos() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchRef = useRef(null);
 
-  // --- FILTROS DE COLUNA (Apenas Admin vê) ---
+  // --- FILTROS DE COLUNA ---
   const [origemSearchText, setOrigemSearchText] = useState('');
   const [isOrigemSearchOpen, setIsOrigemSearchOpen] = useState(false);
   const origemHeaderRef = useRef(null);
@@ -40,7 +40,6 @@ export function QADefeitos() {
 
   const truncate = (str, n = 35) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str || '';
 
-  // Click Outside
   useEffect(() => {
     const handleClickOutside = (event) => {
         if (!event.target.closest('.status-cell')) setOpenMenuId(null);
@@ -75,12 +74,10 @@ export function QADefeitos() {
   const filteredDefeitos = defeitos.filter(d => {
       const nomeTeste = d.execucao?.caso_teste?.nome || '';
       
-      // Filtros de Coluna
       if (origemSearchText && !nomeTeste.toLowerCase().includes(origemSearchText.toLowerCase())) return false;
       if (selectedSev && d.severidade !== selectedSev) return false;
       if (selectedStatus && d.status !== selectedStatus) return false;
 
-      // Filtro Global
       if (searchTerm) {
           const term = searchTerm.toLowerCase();
           const matchTeste = nomeTeste.toLowerCase().includes(term);
@@ -175,7 +172,6 @@ export function QADefeitos() {
                     <tr>
                         <th>ID</th>
                         
-                        {/* --- HEADER ORIGEM --- */}
                         <th style={{width: '200px', verticalAlign: 'middle'}}>
                             <div className="th-filter-container" ref={origemHeaderRef}>
                                 {isAdmin && (isOrigemSearchOpen || origemSearchText) ? (
@@ -194,7 +190,6 @@ export function QADefeitos() {
                         <th>Erro</th>
                         <th>Evidências</th>
 
-                        {/* --- HEADER SEVERIDADE --- */}
                         <th style={{width: '130px', verticalAlign: 'middle'}}>
                             <div className="th-filter-container" ref={sevHeaderRef}>
                                 {isAdmin && (isSevSearchOpen || selectedSev) ? (
@@ -209,7 +204,6 @@ export function QADefeitos() {
                             </div>
                         </th>
 
-                        {/* --- HEADER STATUS --- */}
                         <th style={{width: '130px', verticalAlign: 'middle'}}>
                             <div className="th-filter-container" ref={statusHeaderRef}>
                                 {isAdmin && (isStatusSearchOpen || selectedStatus) ? (
@@ -226,7 +220,6 @@ export function QADefeitos() {
 
                         <th style={{textAlign: 'right'}}>Data</th>
                         
-                        {/* --- AÇÕES (APENAS PARA ADMIN) --- */}
                         {isAdmin && <th style={{textAlign: 'right'}}>Ações</th>}
                     </tr>
                     </thead>
@@ -252,7 +245,6 @@ export function QADefeitos() {
                                 </td>
                                 <td className="col-date">{formatDate(d.created_at)}</td>
                                 
-                                {/* --- AÇÕES (APENAS PARA ADMIN) --- */}
                                 {isAdmin && (
                                     <td style={{textAlign: 'right'}}>
                                         <button onClick={(e) => { e.stopPropagation(); requestDelete(d); }} className="btn danger small">🗑️</button>

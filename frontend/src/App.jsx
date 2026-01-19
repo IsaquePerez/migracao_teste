@@ -2,7 +2,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { Login } from './pages/Login';
 import './styles/index.css';
-import NotFound from './pages/NotFound/NotFound';
+import { NotFound } from './pages/NotFound';
+import { ResetPassword } from './pages/ResetPassword';
 
 import { SnackbarProvider } from './context/SnackbarContext';
 import { Snackbar } from './components/Snackbar';
@@ -34,6 +35,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             
             <Route element={<ProtectedLayout roles={['admin']} />}>
               <Route path="/admin" element={<Dashboard />} />
