@@ -21,6 +21,7 @@ import { QADefeitos } from './pages/QADefeitos';
 import { QARunner } from './pages/QARunner';
 import { Dashboard } from './pages/Dashboard';
 import { ForgotPassword } from './pages/ForgotPassword';
+import { RunnerDashboard } from './pages/RunnerDashboard';
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
               <Route path="/admin/projetos" element={<AdminProjetos />} />
               <Route path="/admin/casos" element={<AdminCasosTeste />} />
               <Route path="/admin/ciclos" element={<AdminCiclos />} />
+              <Route path="/admin/performance" element={<RunnerDashboard />} />
             </Route>
             
             <Route element={<ProtectedLayout roles={['user']} />}>

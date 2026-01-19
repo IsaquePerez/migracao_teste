@@ -1,3 +1,4 @@
+from typing import Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.dashboard_repository import DashboardRepository
 from app.schemas.dashboard import (
@@ -14,62 +15,119 @@ class DashboardService:
 
     async def get_dashboard_data(self) -> DashboardResponse:
         kpis_data = await self.repo.get_kpis_gerais()
-        status_exec_data = await self.repo.get_status_execucao_geral()
-        severidade_data = await self.repo.get_defeitos_por_severidade()
-        modulos_data = await self.repo.get_modulos_com_mais_defeitos()
+        exec_status_data = await self.repo.get_status_execucao_geral()
+        severity_data = await self.repo.get_defects_by_severity()
+        modules_data = await self.repo.get_top_defect_modules()
 
         kpis = DashboardKPI(
             total_projetos=kpis_data["total_projetos"],
             total_ciclos_ativos=kpis_data["total_ciclos_ativos"],
             total_casos_teste=kpis_data["total_casos_teste"],
             taxa_sucesso_ciclos=kpis_data["taxa_sucesso_ciclos"],
-            
             total_defeitos_abertos=kpis_data["total_defeitos_abertos"],
             total_defeitos_criticos=kpis_data["total_defeitos_criticos"],
             total_bloqueados=kpis_data["total_bloqueados"],
             total_aguardando_reteste=kpis_data["total_aguardando_reteste"]
         )
 
-        chart_status = []
-        color_map_status = {
-            StatusExecucaoEnum.passou: "#10b981",       
-            StatusExecucaoEnum.falhou: "#ef4444",       
-            StatusExecucaoEnum.bloqueado: "#f59e0b",    
-            StatusExecucaoEnum.pendente: "#cbd5e1",     
-            StatusExecucaoEnum.em_progresso: "#3b82f6"  
+        status_chart = []
+        status_colors = {
+            StatusExecucaoEnum.passou: "#10b981", 
+            StatusExecucaoEnum.falhou: "#ef4444", 
+            StatusExecucaoEnum.bloqueado: "#f59e0b", 
+            StatusExecucaoEnum.pendente: "#cbd5e1", 
+            StatusExecucaoEnum.em_progresso: "#3b82f6" 
         }
         
-        for status, count in status_exec_data:
-            chart_status.append(ChartDataPoint(
+        for status, count in exec_status_data:
+            status_chart.append(ChartDataPoint(
                 label=status.value.upper(),
                 value=count,
-                color=color_map_status.get(status, "#64748b")
+                color=status_colors.get(status, "#64748b")
             ))
 
-        chart_severidade = []
-        color_map_sev = {
+   
+        severity_chart = []
+        severity_colors = {
             SeveridadeDefeitoEnum.critico: "#7f1d1d",
             SeveridadeDefeitoEnum.alto: "#b91c1c",
             SeveridadeDefeitoEnum.medio: "#f59e0b",
-            SeveridadeDefeitoEnum.bajo: "#10b981"
+            SeveridadeDefeitoEnum.bajo: "#10b981" #
         }
 
-        for sev, count in severidade_data:
-            chart_severidade.append(ChartDataPoint(
+        for sev, count in severity_data:
+            severity_chart.append(ChartDataPoint(
                 label=sev.value.upper(),
                 value=count,
-                color=color_map_sev.get(sev, "#000000")
+                color=severity_colors.get(sev, "#000000")
             ))
 
-        chart_modulos = [
+        # Ranking de Módulos
+        modules_chart = [
             ChartDataPoint(label=nome, value=count) 
-            for nome, count in modulos_data
+            for nome, count in modules_data
         ]
 
         charts = DashboardCharts(
-            status_execucao=chart_status,
-            defeitos_por_severidade=chart_severidade,
-            top_modulos_defeitos=chart_modulos
+            status_execucao=status_chart,
+            defeitos_por_severidade=severity_chart,
+            top_modulos_defeitos=modules_chart
         )
 
         return DashboardResponse(kpis=kpis, charts=charts)
+    
+
+    async def get_runner_dashboard_data(self, runner_id: Optional[int] = None) -> Dict[str, Any]:
+        raw_kpis = await self.repo.get_runner_kpis(runner_id)
+        status_dist = await self.repo.get_status_distribution(runner_id)
+        raw_timeline = await self.repo.get_runner_timeline(runner_id)
+
+        ranking_data = []
+        if not runner_id:
+            ranking_raw = await self.repo.get_ranking_runners()
+            ranking_data = [
+                {"label": name, "value": total, "color": "#3b82f6"} 
+                for name, total in ranking_raw
+            ]
+
+        pie_chart_data = []
+        status_colors_hex = {
+            "passou": "#10b981", 
+            "falhou": "#ef4444", 
+            "bloqueado": "#f59e0b", 
+            "pendente": "#cbd5e1",
+            "em_progresso": "#3b82f6"
+        }
+        
+        for status, count in status_dist:
+            status_val = status.value if hasattr(status, 'value') else str(status)
+            pie_chart_data.append({
+                "name": status_val.upper(),
+                "value": count,
+                "color": status_colors_hex.get(status_val, "#94a3b8")
+            })
+
+        timeline_data = []
+        for execution in raw_timeline:
+            timeline_data.append({
+                "id": execution.id,
+                "case_name": execution.caso_teste.nome,
+                "status": execution.status_geral.value,
+                "assignee": execution.responsavel.nome if execution.responsavel else "Unassigned",
+                "updated_at": execution.updated_at
+            })
+
+        return {
+            "kpis": {
+                "total_execucoes_concluidas": raw_kpis["total_concluidos"],
+                "total_defeitos_reportados": raw_kpis["total_defeitos"],
+                "tempo_medio_execucao_minutos": raw_kpis["tempo_medio_minutos"],
+                "testes_em_fila": raw_kpis["total_fila"],
+                "ultima_atividade": raw_kpis["ultima_atividade"]
+            },
+            "charts": {
+                "ranking_produtividade": ranking_data,
+                "status_distribuicao": pie_chart_data,
+                "timeline": timeline_data
+            }
+        }

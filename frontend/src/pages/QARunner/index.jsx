@@ -17,7 +17,6 @@ export function QARunner() {
   const [currentFailedStep, setCurrentFailedStep] = useState(null);
   const [isDefectModalOpen, setIsDefectModalOpen] = useState(false);
   
-  
   const { success, error, info } = useSnackbar();
 
   const [confirmModal, setConfirmModal] = useState({
@@ -39,19 +38,27 @@ export function QARunner() {
   };
 
   const selectTask = async (t) => {
-      if (activeExecucao?.id === t.id) return;
-      try {
-          const data = await api.get(`/testes/execucoes/${t.id}`);
-          setActiveExecucao(data);
-          
-          if (data.status_geral === 'pendente') {
-              await api.put(`/testes/execucoes/${t.id}/finalizar?status=em_progresso`);
-              setTarefas(prev => prev.map(task => 
-                task.id === t.id ? {...task, status_geral: 'em_progresso'} : task
-              ));
-              info(`Iniciando execução: ${t.caso_teste?.nome}`);
-          }
-      } catch (e) { error("Erro ao carregar execução."); }
+    if (activeExecucao?.id === t.id) return;
+    try {
+        const data = await api.get(`/testes/execucoes/${t.id}`);
+        setActiveExecucao(data);
+    } catch (e) { 
+        error("Erro ao carregar execução."); 
+    }
+  };
+
+  const startExecution = async () => {
+    if (!activeExecucao) return;
+    try {
+        await api.put(`/testes/execucoes/${activeExecucao.id}/finalizar?status=em_progresso`);
+        setTarefas(prev => prev.map(task => 
+          task.id === activeExecucao.id ? {...task, status_geral: 'em_progresso'} : task
+        ));
+        setActiveExecucao(prev => ({ ...prev, status_geral: 'em_progresso' }));
+        success("Teste iniciado!");
+    } catch (e) { 
+        error("Erro ao iniciar teste."); 
+    }
   };
   
   const handleStepAction = (passoId, acao) => {
@@ -98,7 +105,6 @@ export function QARunner() {
       } catch (err) { error("Erro ao finalizar execução."); }
   };
 
-  
   const handleFileUpload = async (e, passoId) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -106,15 +112,13 @@ export function QARunner() {
       const formData = new FormData();
       formData.append('file', file);
 
-      
       info('Enviando evidência...');
 
       try {
           const response = await api.post(`/testes/passos/${passoId}/evidencia`, formData);
-          
           const data = response.data || response;
-
           const novaListaJSON = JSON.stringify(data.lista_completa || [data.url]); 
+          
           const updatedPassos = activeExecucao.passos_executados.map(p => {
               if(p.id === passoId) return { ...p, evidencias: novaListaJSON };
               return p;
@@ -139,7 +143,6 @@ export function QARunner() {
   const confirmDeleteEvidence = async (passoId, urlToDelete) => {
       try {
           const getEvidencias = (str) => { try { return JSON.parse(str); } catch { return []; } };
-          
           const passo = activeExecucao.passos_executados.find(p => p.id === passoId);
           const listaAtual = Array.isArray(passo.evidencias) ? passo.evidencias : getEvidencias(passo.evidencias);
           
@@ -197,6 +200,7 @@ export function QARunner() {
           <ExecutionPlayer 
               tasks={tarefas}
               execution={activeExecucao}
+              onStart={startExecution} 
               onFinish={requestFinishExecution}
               onStepAction={handleStepAction}
               onUpload={handleFileUpload}
