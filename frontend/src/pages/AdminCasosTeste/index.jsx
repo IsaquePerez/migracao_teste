@@ -12,9 +12,7 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder, disabled
 
   const truncate = (str, n = 20) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str || '';
 
-  // Sincroniza o input com o valor selecionado (ID) vindo do pai
   useEffect(() => {
-    // 1. Segurança: Se não tem opções ou valor, reseta ou ignora
     if (!Array.isArray(options)) return;
 
     if (value === null || value === undefined || value === '') {
@@ -22,28 +20,23 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder, disabled
       return;
     }
 
-    // 2. Busca a opção correspondente (converte ambos para string para garantir '1' == 1)
     const selectedOption = options.find(opt => String(opt.id) === String(value));
     
     if (selectedOption) {
-      // Só atualiza o texto se o menu estiver fechado OU se o termo estiver vazio (carga inicial)
       if (!isOpen || searchTerm === '') {
         setSearchTerm(selectedOption[labelKey]);
       }
     }
   }, [value, options, labelKey, isOpen, searchTerm]); 
 
-  // Fecha o dropdown ao clicar fora
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
         setIsOpen(false);
-        // Ao sair, se tiver um valor válido selecionado, restaura o nome dele no input
         if (value && Array.isArray(options)) {
             const selectedOption = options.find(opt => String(opt.id) === String(value));
             if (selectedOption) setSearchTerm(selectedOption[labelKey]);
         } else {
-            // Se não tem valor selecionado, limpa o texto digitado
             setSearchTerm(''); 
         }
       }
@@ -52,7 +45,6 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder, disabled
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [wrapperRef, value, options, labelKey]);
 
-  // Filtragem segura
   const safeOptions = Array.isArray(options) ? options : [];
   const filteredOptions = searchTerm === '' 
     ? safeOptions 
@@ -76,7 +68,6 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder, disabled
         onChange={(e) => { 
             setSearchTerm(e.target.value); 
             setIsOpen(true); 
-            // Se o usuário apagar tudo, limpa o valor selecionado no pai
             if (e.target.value === '') onChange(''); 
         }}
         onFocus={() => !disabled && setIsOpen(true)}
@@ -151,7 +142,6 @@ export function AdminCasosTeste() {
 
   const truncate = (str, n = 30) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str || '';
 
-  // Click Outside Geral
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setShowSuggestions(false);
@@ -170,7 +160,6 @@ export function AdminCasosTeste() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [selectedPrio, selectedCiclo, selectedResp]);
 
-  // Carga Inicial (Projetos e Usuários)
   useEffect(() => {
     const loadBasics = async () => {
       try {
@@ -185,7 +174,6 @@ export function AdminCasosTeste() {
     loadBasics();
   }, []);
 
-  // Carga ao mudar Projeto
   useEffect(() => { 
       if (selectedProjeto) {
           loadDadosProjeto(selectedProjeto);
@@ -211,11 +199,9 @@ export function AdminCasosTeste() {
 
   // --- FILTRAGEM ---
   const filteredCasos = casos.filter(c => {
-      // Normalização de IDs para comparação segura
       const cCicloId = c.ciclo_id || (c.ciclo ? c.ciclo.id : null);
       
       if (selectedPrio && c.prioridade !== selectedPrio) return false;
-      // Comparação solta (==) para ignorar string vs number
       if (selectedCiclo && String(cCicloId) != String(selectedCiclo)) return false; 
       if (selectedResp && String(c.responsavel_id) != String(selectedResp)) return false;
       
@@ -225,7 +211,6 @@ export function AdminCasosTeste() {
 
   const globalSuggestions = searchTerm === '' ? filteredCasos.slice(0, 5) : filteredCasos.slice(0, 5);
   
-  // Opções para Headers
   const prioOptions = [{label:'Alta', value:'alta'}, {label:'Média', value:'media'}, {label:'Baixa', value:'baixa'}];
   const filteredPrioHeader = prioOptions.filter(o => o.label.toLowerCase().includes(prioSearchText.toLowerCase()));
 
@@ -238,18 +223,14 @@ export function AdminCasosTeste() {
       return u ? u.nome : '-';
   };
   
-  // Helper inteligente para nome do Ciclo
   const getCicloName = (caso) => {
       if (!caso) return '-';
       
-      // 1. Tenta pegar do objeto aninhado
       if (caso.ciclo && caso.ciclo.nome) return caso.ciclo.nome;
       
-      // 2. Tenta pegar ID
       const idBusca = caso.ciclo_id || caso.cicloId;
       if (!idBusca) return '-'; 
 
-      // 3. Busca na lista de ciclos carregada
       const found = ciclos.find(c => String(c.id) == String(idBusca));
       return found ? found.nome : '-';
   };
@@ -271,10 +252,8 @@ export function AdminCasosTeste() {
   const handleNew = () => { if (!isProjectActive) return warning(`Projeto Inativo.`); handleReset(); setView('form'); };
 
   const handleEdit = (caso) => {
-    // Lógica BLINDADA para extrair o ID
     let cicloIdValue = '';
     
-    // Tenta pegar id direto, se não, tenta do objeto aninhado. Se undefined, vira ''
     if (caso.ciclo_id !== null && caso.ciclo_id !== undefined) {
         cicloIdValue = caso.ciclo_id;
     } else if (caso.ciclo && caso.ciclo.id) {
@@ -320,7 +299,6 @@ export function AdminCasosTeste() {
     const passosValidos = form.passos.filter(p => p.acao && p.acao.trim() !== '');
     if (passosValidos.length === 0) return warning("Preencha ao menos um passo.");
 
-    // ENVIO SEGURO: Converte string vazia para NULL para respeitar FK do banco
     const payload = { 
         ...form, 
         projeto_id: parseInt(selectedProjeto), 

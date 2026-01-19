@@ -20,19 +20,14 @@ async def forgot_password(
     request: ForgotPasswordRequest, 
     db: AsyncSession = Depends(get_db)
 ):
-    # 1. Verificar se o usuário existe no banco
     result = await db.execute(select(Usuario).filter(Usuario.email == request.email))
     user = result.scalars().first()
     
-    # Por segurança, mesmo que o usuário não exista, costuma-se retornar 200
-    # para evitar "enumeração de e-mails". Mas aqui vamos validar para seu teste:
     if not user:
         raise HTTPException(status_code=404, detail="E-mail não encontrado.")
     
-    # 2. Gerar um token real e único
     token = str(uuid.uuid4())
     
-    # 3. Salvar o token no banco de dados
     new_reset = PasswordReset(
         id_usuario=user.id,
         token=token,
@@ -43,7 +38,6 @@ async def forgot_password(
         db.add(new_reset)
         await db.commit()
         
-        # 4. Enviar o e-mail com o token real
         send_reset_password_email(request.email, token)
         
         return {"message": "E-mail de recuperação enviado com sucesso!"}

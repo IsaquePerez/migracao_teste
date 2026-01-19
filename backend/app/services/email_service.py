@@ -5,13 +5,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def send_reset_password_email(user_email, reset_token):
-    # Use the API Key from .env
     mail_client = mt.MailtrapClient(token=os.getenv("MAILTRAP_API_KEY"), sandbox = True, inbox_id = 4314902)
     
-    # The URL that points back to your React app
     reset_link = f"{os.getenv('FRONTEND_URL')}/reset-password?token={reset_token}"
 
-    # Construct the email
     mail = mt.Mail(
         sender=mt.Address(email="hello@veritus.com", name="Veritus System"),
         to=[mt.Address(email=user_email)],
@@ -31,5 +28,4 @@ def send_reset_password_email(user_email, reset_token):
         """,
     )
 
-    # Send it!
     mail_client.send(mail)

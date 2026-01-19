@@ -56,7 +56,6 @@ body {
   justify-content: center;
 }
 
-/* Sidebar Styles */
 .sidebar {
   width: var(--sidebar-width);
   background-color: var(--dark-blue);
@@ -137,7 +136,6 @@ body {
   text-transform: uppercase;
 }
 
-/* Top Header */
 .top-header {
   background-color: var(--white);
   padding: 0 30px;
@@ -183,7 +181,6 @@ body {
   width: 100%;
 }
 
-/* Containers & Cards */
 .container {
   padding: 30px;
   max-width: 1400px;
@@ -216,7 +213,6 @@ body {
   font-size: 0.9rem;
 }
 
-/* Forms */
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -250,7 +246,6 @@ body {
   border-color: var(--light-blue);
 }
 
-/* Buttons */
 .btn {
   padding: 10px 16px;
   border: none;
@@ -308,7 +303,6 @@ body {
   font-size: 0.8rem;
 }
 
-/* Tables */
 .table-wrap {
   overflow-x: auto;
   margin-bottom: 10px;
@@ -368,7 +362,6 @@ tr.selected {
   color: #991B1B;
 }
 
-/* QA Runner */
 .qa-runner-grid {
   display: grid;
   grid-template-columns: 350px 1fr;
@@ -429,7 +422,6 @@ tr.selected {
   color: #DC2626;
 }
 
-/* Search & Dropdown */
 .search-wrapper {
   position: relative;
   width: 250px;

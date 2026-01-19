@@ -1,10 +1,8 @@
 from fastapi import APIRouter
 from .endpoints import login, sistemas, modulo, usuarios, metrica, projeto, teste, defeito, dashboard, esqueceu_senha, recupera_senha
 
-# Cria o roteador principal que vai agrupar todas as partes da API.
 api_router = APIRouter()
 
-# Registra as rotas de cada módulo, definindo o prefixo da URL e a tag para a documentação.
 api_router.include_router(sistemas.router, prefix="/sistemas", tags=["Sistemas"])
 api_router.include_router(modulo.router, prefix="/modulos", tags=["Módulos"])
 api_router.include_router(projeto.router, prefix="/projetos", tags=["Projetos"])

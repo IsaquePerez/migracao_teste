@@ -12,7 +12,6 @@ const SearchableSelect = ({ options, value, onChange, placeholder, disabled, lab
 
   const truncate = (str, n = 20) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str || '';
 
-  // Sincroniza o input com o valor selecionado
   useEffect(() => {
     const selectedOption = options.find(opt => String(opt.id) === String(value));
     if (selectedOption) {
@@ -38,7 +37,6 @@ const SearchableSelect = ({ options, value, onChange, placeholder, disabled, lab
     ? options 
     : options.filter(opt => opt[labelKey].toLowerCase().includes(searchTerm.toLowerCase()));
 
-  // Limite de 5 itens
   const displayOptions = filteredOptions.slice(0, 5);
 
   const handleSelect = (option) => {
@@ -102,7 +100,6 @@ export function AdminCiclos() {
     nome: '', descricao: '', data_inicio: '', data_fim: '', status: 'planejado', projeto_id: ''
   });
 
-  // Helpers
   const truncate = (str, n = 30) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str || '';
   const getTodayString = () => new Date().toISOString().split('T')[0];
   const getNextDayString = (d) => { if(!d) return getTodayString(); const x = new Date(d); x.setDate(x.getDate()+1); return x.toISOString().split('T')[0]; };
@@ -155,7 +152,6 @@ export function AdminCiclos() {
       return true;
   });
 
-  // Sugestões Globais (mostra 5 itens da lista já filtrada)
   const globalSuggestions = searchTerm === '' 
     ? filteredCiclos.slice(0, 5) 
     : filteredCiclos.slice(0, 5);
@@ -278,7 +274,6 @@ export function AdminCiclos() {
                <div className="toolbar-actions">
                    <div className="filter-group">
                         <span className="filter-label">PROJETO:</span>
-                        {/* --- CORREÇÃO AQUI: DROPWOWN TRANSFORMADO EM SEARCHABLE SELECT (Lista) --- */}
                         <div style={{width: '200px'}}>
                             <SearchableSelect 
                                 options={projetos.filter(p => p.status === 'ativo')}
@@ -287,7 +282,6 @@ export function AdminCiclos() {
                                 placeholder="Filtrar Projeto..."
                             />
                         </div>
-                        {/* ------------------------------------------------------------------------ */}
                    </div>
                    <button onClick={handleNew} className="btn primary btn-new" disabled={!isProjectActive} style={{opacity: isProjectActive ? 1 : 0.5, cursor: isProjectActive ? 'pointer' : 'not-allowed'}}>Novo Ciclo</button>
                    <div className="separator"></div>
@@ -318,7 +312,6 @@ export function AdminCiclos() {
                            <th>Projeto</th>
                            <th style={{textAlign: 'center'}}>Período</th>
                            
-                           {/* HEADER STATUS INTELIGENTE */}
                            <th style={{textAlign: 'center', width: '140px', verticalAlign: 'middle'}}>
                                 <div className="th-filter-container" ref={statusHeaderRef} style={{justifyContent: 'center'}}>
                                     {isStatusSearchOpen || selectedStatus ? (

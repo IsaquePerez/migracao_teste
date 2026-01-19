@@ -41,7 +41,7 @@ export function AdminUsers() {
   const [isStatusSearchOpen, setIsStatusSearchOpen] = useState(false);
   const statusHeaderRef = useRef(null);
 
-  // --- BOTÃO DE MOSTRAR SENHA
+  // --- BOTÃO DE MOSTRAR SENHA ---
   const [showPassword, setShowPassword] = useState(false);
 
   // --- HELPERS DE TEXTO ---
@@ -58,7 +58,6 @@ export function AdminUsers() {
 
   useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedRoleId, selectedStatus]);
 
-  // Click Outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (globalSearchRef.current && !globalSearchRef.current.contains(event.target)) {
@@ -88,14 +87,10 @@ export function AdminUsers() {
     }
   };
 
-  // --- LÓGICA DE FILTRAGEM AVANÇADA (CORRIGIDA) ---
-
-  // 1. Primeiro, aplicamos APENAS os filtros de coluna (Role e Status)
+  // --- LÓGICA DE FILTRAGEM ---
   const baseFilteredUsers = users.filter(u => {
-    // Filtro Role
     if (selectedRoleId && u.nivel_acesso_id !== parseInt(selectedRoleId)) return false;
     
-    // Filtro Status
     if (selectedStatus !== '') {
         const statusBool = selectedStatus === 'true';
         if (u.ativo !== statusBool) return false;
@@ -103,10 +98,9 @@ export function AdminUsers() {
     return true;
   });
 
-  // 2. Depois, aplicamos a busca global SOBRE o resultado dos filtros de coluna
   const filteredUsers = baseFilteredUsers.filter(u => {
     const term = searchTerm.toLowerCase();
-    if (!term) return true; // Se não tem busca, retorna tudo que passou nos filtros
+    if (!term) return true;
 
     return (
         u.nome.toLowerCase().includes(term) || 
@@ -115,15 +109,9 @@ export function AdminUsers() {
     );
   });
 
-  // 3. Sugestões do Search Global:
-  // Agora elas respeitam os filtros ativos! 
-  // Se searchTerm vazio, sugere os top 5 da base filtrada.
-  // Se tem searchTerm, sugere os top 5 do resultado final.
   const globalSuggestions = searchTerm === '' 
     ? baseFilteredUsers.slice(0, 5) 
     : filteredUsers.slice(0, 5);
-
-  // ---------------------------------------------------
 
   const roleOptions = [{id: 1, label: 'Admin'}, {id: 2, label: 'User/QA'}];
   const filteredRolesHeader = roleOptions.filter(r => r.label.toLowerCase().includes(roleSearchText.toLowerCase()));

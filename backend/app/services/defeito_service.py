@@ -17,14 +17,12 @@ class DefeitoService:
             return DefeitoResponse.model_validate(defeito)
         except IntegrityError as e:
             await self.repo.db.rollback()
-            # Traduz erro de chave estrangeira caso o ID da execução não exista.
             tratar_erro_integridade(e, {"execucao_teste_id": "Execução de teste inválida."})
 
     async def listar_por_execucao(self, execucao_id: int) -> Sequence[DefeitoResponse]:
         items = await self.repo.get_by_execucao(execucao_id)
         return [DefeitoResponse.model_validate(i) for i in items]
 
-    # Regra de permissão: Admin vê tudo, QA vê apenas os bugs que ele abriu ou é responsável.
     async def listar_todos(self, usuario_logado: Usuario) -> Sequence[DefeitoResponse]:
         filtro_responsavel = None
         if usuario_logado.nivel_acesso.nome != 'admin':

@@ -13,13 +13,11 @@ class DashboardService:
         self.repo = DashboardRepository(db)
 
     async def get_dashboard_data(self) -> DashboardResponse:
-        # 1. Busca dados brutos
         kpis_data = await self.repo.get_kpis_gerais()
         status_exec_data = await self.repo.get_status_execucao_geral()
         severidade_data = await self.repo.get_defeitos_por_severidade()
         modulos_data = await self.repo.get_modulos_com_mais_defeitos()
 
-        # 2. Monta os 8 Cards (KPIs)
         kpis = DashboardKPI(
             total_projetos=kpis_data["total_projetos"],
             total_ciclos_ativos=kpis_data["total_ciclos_ativos"],
@@ -32,7 +30,6 @@ class DashboardService:
             total_aguardando_reteste=kpis_data["total_aguardando_reteste"]
         )
 
-        # 3. Prepara Gráfico de Execução (Pie Chart)
         chart_status = []
         color_map_status = {
             StatusExecucaoEnum.passou: "#10b981",       
@@ -49,7 +46,6 @@ class DashboardService:
                 color=color_map_status.get(status, "#64748b")
             ))
 
-        # 4. Prepara Gráfico de Defeitos (Bar Chart)
         chart_severidade = []
         color_map_sev = {
             SeveridadeDefeitoEnum.critico: "#7f1d1d",
@@ -65,7 +61,6 @@ class DashboardService:
                 color=color_map_sev.get(sev, "#000000")
             ))
 
-        # 5. Prepara Ranking de Módulos
         chart_modulos = [
             ChartDataPoint(label=nome, value=count) 
             for nome, count in modulos_data

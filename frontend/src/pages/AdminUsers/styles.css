@@ -1,11 +1,8 @@
-
-
 .page-title {
   margin: 0;
   font-size: 1.25rem;
   color: #1e293b;
 }
-
 
 .search-wrapper {
   position: relative;
@@ -257,7 +254,6 @@ table {
 
 .search-wrapper {
   position: relative;
-  /* Mantém a lista alinhada ao input */
   width: 220px;
 }
 
@@ -274,7 +270,6 @@ table {
   list-style: none;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   z-index: 100;
-  /* Garante que fique por cima de tudo */
   max-height: 200px;
   overflow-y: auto;
 }
@@ -287,11 +282,8 @@ table {
   border-bottom: 1px solid #f1f5f9;
   transition: background 0.2s;
   white-space: nowrap;
-  /* Evita quebra de linha se o texto for curto */
   overflow: hidden;
-  /* Esconde o que passar */
   text-overflow: ellipsis;
-  /* Adiciona ... se o navegador cortar */
 }
 
 .dropdown-item:last-child {

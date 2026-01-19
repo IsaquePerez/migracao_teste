@@ -1,13 +1,8 @@
-
-
-
-
 .page-title {
   margin: 0;
   font-size: 1.25rem;
   color: #1e293b;
 }
-
 
 .filter-group {
   display: flex;
@@ -34,7 +29,6 @@
   color: #334155;
 }
 
-
 .separator {
   width: 1px;
   height: 24px;
@@ -45,7 +39,6 @@
 @media (min-width: 768px) {
   .separator { display: block; }
 }
-
 
 .search-wrapper {
   position: relative;
@@ -138,7 +131,6 @@
   .form-grid { grid-template-columns: 1fr 1fr; }
 }
 
-
 .steps-header-row {
   display: flex;
   justify-content: space-between;
@@ -192,7 +184,6 @@
   justify-content: flex-end;
   gap: 10px;
 }
-
 
 .empty-container {
   text-align: center;

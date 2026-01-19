@@ -104,18 +104,15 @@ export function AdminProjetos() {
     sistema_id: '', modulo_id: '', responsavel_id: '' 
   });
 
-  // --- FILTRO GLOBAL ---
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef(null);
 
-  // --- FILTRO RESPONSÁVEL ---
   const [respSearchText, setRespSearchText] = useState(''); 
   const [selectedRespId, setSelectedRespId] = useState(''); 
   const [isRespSearchOpen, setIsRespSearchOpen] = useState(false);
   const respHeaderRef = useRef(null);
 
-  // --- FILTRO STATUS ---
   const [statusSearchText, setStatusSearchText] = useState(''); 
   const [selectedStatus, setSelectedStatus] = useState(''); 
   const [isStatusSearchOpen, setIsStatusSearchOpen] = useState(false);
@@ -132,12 +129,10 @@ export function AdminProjetos() {
         setShowSuggestions(false);
       }
       
-      // Fecha Header Responsável
       if (respHeaderRef.current && !respHeaderRef.current.contains(event.target)) {
         if (!selectedRespId) { setIsRespSearchOpen(false); setRespSearchText(''); }
       }
 
-      // Fecha Header Status
       if (statusHeaderRef.current && !statusHeaderRef.current.contains(event.target)) {
         if (!selectedStatus) { setIsStatusSearchOpen(false); setStatusSearchText(''); }
       }
@@ -148,7 +143,6 @@ export function AdminProjetos() {
 
   useEffect(() => { loadData(); }, []);
 
-  // Reseta página se mudar filtros
   useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedRespId, selectedStatus]);
 
   const loadData = async () => {
@@ -170,22 +164,17 @@ export function AdminProjetos() {
 
   // --- FILTRAGEM PRINCIPAL ---
   const filteredData = projetos.filter(p => {
-      // Filtro Responsável
       if (selectedRespId && p.responsavel_id !== parseInt(selectedRespId)) return false;
       
-      // Filtro Status (NOVO)
       if (selectedStatus && p.status !== selectedStatus) return false;
-
-      // Filtro Global
+      
       if (searchTerm && !p.nome.toLowerCase().includes(searchTerm.toLowerCase())) return false;
       
       return true;
   });
 
-  // Opções Header Responsável
   const filteredRespForHeader = usersFormatted.filter(u => u.labelCompleto.toLowerCase().includes(respSearchText.toLowerCase())).slice(0, 5);
 
-  // Opções Header Status
   const statusOptions = [
       { label: 'Ativo', value: 'ativo' }, 
       { label: 'Pausado', value: 'pausado' }, 
@@ -193,7 +182,6 @@ export function AdminProjetos() {
   ];
   const filteredStatusForHeader = statusOptions.filter(s => s.label.toLowerCase().includes(statusSearchText.toLowerCase()));
 
-  // Opções Search Global
   const opcoesParaMostrar = searchTerm === '' ? [...projetos].sort((a, b) => b.id - a.id).slice(0, 5) : filteredData.slice(0, 5);
 
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
@@ -201,7 +189,6 @@ export function AdminProjetos() {
   const currentData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const paginate = (n) => setCurrentPage(n);
 
-  // --- ACTIONS ---
   const handleReset = () => {
     setForm({ nome: '', descricao: '', status: 'ativo', sistema_id: '', modulo_id: '', responsavel_id: '' });
     setEditingId(null);

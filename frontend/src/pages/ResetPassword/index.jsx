@@ -30,21 +30,20 @@ export function ResetPassword() {
     async function validateToken() {
       if (!token) {
         snackError("Token de redefinição não encontrado.");
-        navigate('/forgot-password'); // Redireciona se não houver token
+        navigate('/forgot-password');
         return;
       }
       try {
-        // Envia o token para o backend verificar se é válido e não expirou
         await api.get(`/reset-password/validate?token=${token}`);
-        setTokenValid(true); // Se o backend retornar sucesso, o token é válido
+        setTokenValid(true);
       } catch (err) {
         console.error("Erro ao validar token:", err);
         snackError("Link de redefinição inválido ou expirado.");
-        navigate('/forgot-password'); // Redireciona em caso de token inválido
+        navigate('/forgot-password');
       }
     }
     validateToken();
-  }, [token, navigate, snackError, isDone]); // Dependências do useEffect
+  }, [token, navigate, snackError, isDone]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -72,24 +71,21 @@ export function ResetPassword() {
         new_password: password,
       };
 
-      // Envia o token e a nova senha para o backend
       await api.post("/reset-password/confirm", payload);
 
-      setIsDone(true); // Stop the useEffect from running logic
+      setIsDone(true);
       snackSuccess("Sua senha foi redefinida com sucesso!");
 
-      navigate('/', { replace: true }); // Volta para a página de login
+      navigate('/', { replace: true });
 
     } catch (err) {
       console.error("Erro ao redefinir senha:", err);
-      // O backend deve retornar uma mensagem de erro mais específica, se houver
       snackError(err.response?.data?.message || "Não foi possível redefinir a senha. Tente novamente ou solicite um novo link.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Só mostra o formulário se o token for validado
   if (!tokenValid) {
     return (
       <div className={styles.wrapper}>

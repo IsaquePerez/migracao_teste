@@ -27,24 +27,20 @@ async def validate_token(token: str, db: AsyncSession = Depends(get_db)):
 
 @router.post("/confirm")
 async def reset_password_confirm(data: ResetPasswordSchema, db: AsyncSession = Depends(get_db)):
-    # 1. Busca o token
     result = await db.execute(select(PasswordReset).filter(PasswordReset.token == data.token))
     reset_entry = result.scalars().first()
     
     if not reset_entry or reset_entry.expira_em < datetime.utcnow():
         raise HTTPException(status_code=400, detail="Token inválido ou expirado.")
     
-    # 2. Busca o usuário usando o nome correto da coluna: id_usuario
     user_result = await db.execute(select(Usuario).filter(Usuario.id == reset_entry.id_usuario))
     user = user_result.scalars().first()
     
     if not user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
     
-    # 3. Atualiza a senha (ajuste 'senha_hash' para o nome correto no seu modelo Usuario)
     user.senha_hash = pwd_context.hash(data.new_password)
     
-    # 4. Limpa o token e salva
     await db.delete(reset_entry)
     await db.commit()
     

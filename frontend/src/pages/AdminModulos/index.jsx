@@ -93,18 +93,15 @@ export function AdminModulos() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [moduloToDelete, setModuloToDelete] = useState(null);
     
-  // Filtros Globais
   const [searchTerm, setSearchTerm] = useState('');
   const [showGlobalSuggestions, setShowGlobalSuggestions] = useState(false);
   const globalSearchRef = useRef(null); 
 
-  // Filtros Header (Sistema)
   const [sistemaSearchText, setSistemaSearchText] = useState(''); 
   const [selectedSistemaId, setSelectedSistemaId] = useState(''); 
   const [isSistemaSearchOpen, setIsSistemaSearchOpen] = useState(false);
   const sistemaHeaderRef = useRef(null);
 
-  // Filtros Header (Status)
   const [statusSearchText, setStatusSearchText] = useState(''); 
   const [selectedStatus, setSelectedStatus] = useState(''); 
   const [isStatusSearchOpen, setIsStatusSearchOpen] = useState(false);
@@ -298,7 +295,6 @@ export function AdminModulos() {
                   <table>
                       <thead>
                           <tr>
-                              {/* --- COLUNA ID --- */}
                               <th style={{width: '60px', textAlign: 'center'}}>ID</th>
 
                               <th style={{textAlign: 'left'}}>Módulo</th>
@@ -380,7 +376,6 @@ export function AdminModulos() {
                               currentModulos.map(m => (
                                   <tr key={m.id} onClick={() => handleSelectRow(m)} className={'selectable'} style={{opacity: m.ativo ? 1 : 0.6}}>
                                       
-                                      {/* --- CÉLULA ID --- */}
                                       <td style={{textAlign: 'center', fontWeight: 'bold', color: '#666'}}>#{m.id}</td>
 
                                       <td className="cell-name">

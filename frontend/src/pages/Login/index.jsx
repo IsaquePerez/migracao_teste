@@ -17,7 +17,6 @@ export function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
-  // FIXED: Instead of logging out, redirect users who are already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
       if (user.role === 'admin') {
@@ -54,17 +53,14 @@ export function Login() {
       
       const data = response; 
       
-      // Fallback para roles e username caso o backend não envie
       if (!data.role) data.role = "user";
       if (!data.username) data.username = username;
 
-      // Atualiza o contexto global de autenticação
       login(data);
       
       const nomeExibicao = data.nome || data.username || "Usuário";
       snackSuccess(`Bem-vindo, ${nomeExibicao}!`);
       
-      // Redirecionamento baseado no perfil
       if (data.role === 'admin') {
            navigate('/admin', { replace: true });
       } else {

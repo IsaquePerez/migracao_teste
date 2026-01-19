@@ -23,7 +23,7 @@ export function AdminSistemas() {
 
   // --- FILTRO HEADER: STATUS ---
   const [statusSearchText, setStatusSearchText] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState(''); // 'true' | 'false'
+  const [selectedStatus, setSelectedStatus] = useState('');
   const [isStatusSearchOpen, setIsStatusSearchOpen] = useState(false);
   const statusHeaderRef = useRef(null);
 
@@ -33,11 +33,8 @@ export function AdminSistemas() {
   const truncate = (str, n = 40) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str;
 
   useEffect(() => { loadSistemas(); }, []);
-
-  // Reseta página ao filtrar
   useEffect(() => { setCurrentPage(1); }, [searchTerm, selectedStatus]);
 
-  // Click Outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -65,12 +62,10 @@ export function AdminSistemas() {
 
   // --- LÓGICA DE FILTRAGEM ---
   const filteredSistemas = sistemas.filter(s => {
-      // 1. Filtro Status
       if (selectedStatus !== '') {
           const statusBool = selectedStatus === 'true';
           if (s.ativo !== statusBool) return false;
       }
-      // 2. Filtro Busca Global
       if (searchTerm && !s.nome.toLowerCase().includes(searchTerm.toLowerCase())) return false;
       return true;
   });
@@ -231,12 +226,10 @@ export function AdminSistemas() {
                       <table>
                           <thead>
                               <tr>
-                                  {/* --- NOVO HEADER ID --- */}
                                   <th style={{width: '60px', textAlign: 'center'}}>ID</th>
                                   
                                   <th style={{textAlign: 'left'}}>Nome</th>
                                   
-                                  {/* --- HEADER STATUS --- */}
                                   <th style={{textAlign: 'center', width: '140px', verticalAlign: 'middle'}}>
                                     <div className="th-filter-container" ref={statusHeaderRef} style={{justifyContent: 'center'}}>
                                             {isStatusSearchOpen || selectedStatus ? (
@@ -270,13 +263,11 @@ export function AdminSistemas() {
                           </thead>
                           <tbody>
                               {filteredSistemas.length === 0 ? (
-                                  /* Atualizado colSpan de 3 para 4 */
                                   <tr><td colSpan="4" className="no-results">Nenhum sistema encontrado.</td></tr>
                               ) : (
                                   currentSistemas.map(s => (
                                       <tr key={s.id} onClick={() => handleSelectRow(s)} className="selectable" style={{opacity: s.ativo ? 1 : 0.6}}>
                                           
-                                          {/* --- NOVA CÉLULA ID --- */}
                                           <td style={{textAlign: 'center', fontWeight: 'bold', color: '#666'}}>#{s.id}</td>
 
                                           <td className="cell-name">
