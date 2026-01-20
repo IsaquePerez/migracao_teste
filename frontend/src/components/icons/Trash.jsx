@@ -22,8 +22,8 @@ export const Trash = ({ size = 16, className = '', ...props }) => {
         <g
           style={{
             transformOrigin: '12px 4px',
-            transform: isHovered ? 'rotate(-20deg) translateY(-1px)' : 'rotate(0deg)',
-            transition: 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+            transform: isHovered ? 'translateY(-3px)' : 'rotate(0deg)',
+            transition: 'transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
           }}
         >
           <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H13.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5z" />

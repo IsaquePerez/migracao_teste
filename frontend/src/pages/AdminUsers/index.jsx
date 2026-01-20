@@ -4,6 +4,7 @@ import { ConfirmationModal } from '../../components/ConfirmationModal';
 import { useSnackbar } from '../../context/SnackbarContext'; 
 import { Eye, EyeOff } from 'lucide-react';
 import { Trash } from '../../components/icons/Trash';
+import { Search } from '../../components/icons/Search';
 import './styles.css';
 
 export function AdminUsers() {
@@ -293,8 +294,8 @@ export function AdminUsers() {
                   <button onClick={() => setView('form')} className="btn primary btn-new">Novo Usuário</button>
                   <div className="separator"></div>
                    <div className="search-wrapper" ref={globalSearchRef}>
-                        <input type="text" placeholder="Buscar usuário..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onFocus={() => setShowSuggestions(true)} className="search-input" />
-                        <span className="search-icon">🔍</span>
+                        <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onFocus={() => setShowSuggestions(true)} className="search-input" />
+                        <span className="search-icon"><Search /></span>
                         {showSuggestions && (
                             <ul className="custom-dropdown">
                                 {globalSuggestions.length === 0 ? (

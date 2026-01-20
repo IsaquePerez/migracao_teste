@@ -3,6 +3,7 @@ import { api } from '../../services/api';
 import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 import { Trash } from '../../components/icons/Trash';
+import { Search } from '../../components/icons/Search';
 import './styles.css';
 
 const SearchableSelect = ({ options, value, onChange, placeholder, disabled, labelKey = 'nome' }) => {
@@ -250,11 +251,11 @@ export function AdminProjetos() {
                   <div><label className="input-label">Nome do Projeto</label><input value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className="form-control"/></div>
                   <div><label className="input-label">Descrição</label><textarea value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} className="form-control" rows="3" /></div>
                   <div className="form-grid">
-                      <div><label className="input-label"><b>Sistema</b></label><SearchableSelect options={sistemas} value={form.sistema_id} onChange={(val) => setForm({ ...form, sistema_id: val, modulo_id: '' })} placeholder="Busque o sistema..." labelKey="nome" /></div>
-                      <div><label className="input-label"><b>Módulo</b></label><SearchableSelect options={modulosFiltrados} value={form.modulo_id} onChange={(val) => setForm({ ...form, modulo_id: val })} placeholder={form.sistema_id ? "Busque o módulo..." : "Selecione um sistema antes"} disabled={!form.sistema_id} labelKey="nome" /></div>
+                      <div><label className="input-label"><b>Sistema</b></label><SearchableSelect options={sistemas} value={form.sistema_id} onChange={(val) => setForm({ ...form, sistema_id: val, modulo_id: '' })} placeholder="Selecione o sistema..." labelKey="nome" /></div>
+                      <div><label className="input-label"><b>Módulo</b></label><SearchableSelect options={modulosFiltrados} value={form.modulo_id} onChange={(val) => setForm({ ...form, modulo_id: val })} placeholder={form.sistema_id ? "Selecione o módulo..." : "Selecione um sistema antes"} disabled={!form.sistema_id} labelKey="nome" /></div>
                   </div>
                   <div className="form-grid">
-                      <div><label className="input-label"><b>Responsável</b></label><SearchableSelect options={admins} value={form.responsavel_id} onChange={(val) => setForm({ ...form, responsavel_id: val })} placeholder="Busque o responsável..." labelKey="labelCompleto" /></div>
+                      <div><label className="input-label"><b>Responsável</b></label><SearchableSelect options={admins} value={form.responsavel_id} onChange={(val) => setForm({ ...form, responsavel_id: val })} placeholder="Selecione o responsável..." labelKey="labelCompleto" /></div>
                       <div>
                         <label className="input-label"><b>Status</b></label>
                         <select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="form-control bg-gray">
@@ -287,8 +288,8 @@ export function AdminProjetos() {
                    <button onClick={() => setView('form')} className="btn primary btn-new">Novo Projeto</button>
                    <div className="separator"></div>
                    <div ref={wrapperRef} className="search-wrapper">
-                       <input type="text" placeholder="Buscar projeto..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onFocus={() => setShowSuggestions(true)} className="search-input" />
-                       <span className="search-icon">🔍</span>
+                       <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onFocus={() => setShowSuggestions(true)} className="search-input" />
+                       <span className="search-icon"><Search /></span>
                        {showSuggestions && (
                            <ul className="custom-dropdown">
                                {opcoesParaMostrar.length === 0 ? <li style={{color:'#999'}}>Nenhum projeto encontrado.</li> : opcoesParaMostrar.map(p => (
@@ -319,7 +320,7 @@ export function AdminProjetos() {
                                         <div style={{position: 'relative', width: '100%'}}>
                                             <input 
                                                 autoFocus type="text" className={`th-search-input ${selectedRespId ? 'active' : ''}`}
-                                                placeholder="Filtrar responsável..."
+                                                placeholder="Responsável..."
                                                 value={selectedRespId && respSearchText === '' ? getRespName(parseInt(selectedRespId)) : respSearchText}
                                                 onChange={(e) => { setRespSearchText(e.target.value); if(selectedRespId) setSelectedRespId(''); }}
                                                 onClick={(e) => e.stopPropagation()}

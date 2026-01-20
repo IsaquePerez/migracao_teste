@@ -3,6 +3,7 @@ import { api } from '../../services/api';
 import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal'; 
 import { Trash } from '../../components/icons/Trash';
+import { Search } from '../../components/icons/Search';
 import './styles.css';
 
 export function AdminSistemas() {
@@ -166,7 +167,7 @@ export function AdminSistemas() {
               
               <div style={{gridColumn: '1'}}>
                   <label className="input-label"><b>Nome</b></label>
-                  <input maxLength={50} value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className="form-control" placeholder="Nome do sistema"/>
+                  <input maxLength={50} value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className="form-control"/>
               </div>
 
               <div className="toggle-wrapper" style={{marginTop: '28px'}}>
@@ -179,7 +180,7 @@ export function AdminSistemas() {
 
               <div style={{gridColumn: '1 / -1'}}>
                   <label className="input-label"><b>Descrição</b></label>
-                  <input maxLength={100} value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} className="form-control" placeholder="Descrição breve"/>
+                  <input maxLength={100} value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} className="form-control"/>
               </div>
             </div>
 
@@ -207,7 +208,7 @@ export function AdminSistemas() {
                 <div className="separator"></div>
                 <div ref={wrapperRef} className="search-wrapper">
                     <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onFocus={() => setShowSuggestions(true)} className="search-input" />
-                    <span className="search-icon">🔍</span>
+                    <span className="search-icon"><Search /></span>
                     {showSuggestions && (
                         <ul className="custom-dropdown">
                             {opcoesParaMostrar.length === 0 ? <li style={{color:'#999'}}>Nenhum sistema encontrado.</li> : opcoesParaMostrar.map(s => (

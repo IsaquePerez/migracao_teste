@@ -3,6 +3,7 @@ import { api } from '../../services/api';
 import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 import { Trash } from '../../components/icons/Trash';
+import { Search } from '../../components/icons/Search';
 import './styles.css';
 
 // --- COMPONENTE REUTILIZÁVEL: SEARCHABLE SELECT (VERSÃO BLINDADA) ---
@@ -344,7 +345,7 @@ export function AdminCasosTeste() {
                 {!editingId && (
                     <div ref={wrapperRef} className="search-wrapper" style={{ marginLeft: 'auto', width: '300px' }}>
                         <input type="text" placeholder="Buscar modelo..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onFocus={() => setShowSuggestions(true)} className="search-input" />
-                        <span className="search-icon">🔍</span>
+                        <span className="search-icon"><Search /></span>
                         {showSuggestions && <ul className="custom-dropdown">{globalSuggestions.length === 0 ? <li style={{color:'#999'}}>Sem resultados.</li> : globalSuggestions.map(c => (<li key={c.id} onClick={() => { handleImportarModelo(c.id); setShowSuggestions(false); }}><div style={{fontWeight:600}}>{truncate(c.nome, 20)}</div></li>))}</ul>}
                     </div>
                 )}
@@ -361,7 +362,7 @@ export function AdminCasosTeste() {
                           readOnly
                         />
                       </div>
-                      <div><label className="input-label"><b>Título</b></label><input value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} placeholder="Ex: Validar login" className="form-control" /></div>
+                      <div><label className="input-label"><b>Título</b></label><input value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className="form-control" /></div>
                   </div>
                   <div className="form-grid">
                       <div><label><b>Prioridade</b></label><select value={form.prioridade} onChange={e => setForm({...form, prioridade: e.target.value})} className="form-control bg-gray"><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option></select></div>
@@ -388,7 +389,7 @@ export function AdminCasosTeste() {
                           options={testers} 
                           value={form.responsavel_id} 
                           onChange={(val) => setForm({ ...form, responsavel_id: val })} 
-                          placeholder="Buscar responsável..."
+                          placeholder="Selecione o responsável..."
                           labelKey="labelCompleto"
                       />
                   </div>
@@ -437,7 +438,7 @@ export function AdminCasosTeste() {
                    <div className="separator"></div>
                    <div ref={wrapperRef} className="search-wrapper">
                        <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onFocus={() => setShowSuggestions(true)} className="search-input" />
-                       <span className="search-icon">🔍</span>
+                       <span className="search-icon"><Search /></span>
                        {showSuggestions && <ul className="custom-dropdown">{globalSuggestions.length===0 ? <li style={{color:'#999'}}>Sem resultados.</li> : globalSuggestions.map(c => (<li key={c.id} onClick={() => { setSearchTerm(c.nome); setShowSuggestions(false); }}><div style={{display:'flex',justifyContent:'space-between'}}><span>{truncate(c.nome, 20)}</span><span style={{fontSize:'0.75rem',color:'#9ca3af',fontStyle:'italic'}}></span></div></li>))}</ul>}
                    </div>
                </div>

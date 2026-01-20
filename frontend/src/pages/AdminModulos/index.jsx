@@ -3,6 +3,7 @@ import { api } from '../../services/api';
 import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 import { Trash } from '../../components/icons/Trash';
+import { Search } from '../../components/icons/Search';
 import './styles.css';
 
 // --- COMPONENTE REUTILIZÁVEL ---
@@ -277,7 +278,7 @@ export function AdminModulos() {
                         onFocus={() => setShowGlobalSuggestions(true)}
                         className="search-input"
                     />
-                    <span className="search-icon">🔍</span>
+                    <span className="search-icon"><Search /></span>
                     {showGlobalSuggestions && (
                         <ul className="custom-dropdown">
                             {globalSuggestions.length === 0 ? <li style={{color:'#999'}}>Nenhum módulo encontrado.</li> : globalSuggestions.map(m => (
@@ -306,7 +307,7 @@ export function AdminModulos() {
                                         <div style={{position: 'relative', width: '100%'}}>
                                             <input 
                                                 autoFocus type="text" className={`th-search-input ${selectedSistemaId ? 'active' : ''}`}
-                                                placeholder="Filtrar sistema..."
+                                                placeholder="Sistema..."
                                                 value={selectedSistemaId && sistemaSearchText === '' ? truncate(getSistemaName(parseInt(selectedSistemaId)), 15) : sistemaSearchText}
                                                 onChange={(e) => { setSistemaSearchText(e.target.value); if(selectedSistemaId) setSelectedSistemaId(''); }}
                                                 onClick={(e) => e.stopPropagation()}

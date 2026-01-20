@@ -3,6 +3,7 @@ import { api } from '../../services/api';
 import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 import { Trash } from '../../components/icons/Trash';
+import { Search } from '../../components/icons/Search';
 import './styles.css';
 
 // --- COMPONENTE REUTILIZÁVEL ---
@@ -288,7 +289,7 @@ export function AdminCiclos() {
                    <div className="separator"></div>
                    <div ref={wrapperRef} className="search-wrapper">
                        <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onFocus={() => setShowSuggestions(true)} className="search-input" />
-                       <span className="search-icon">🔍</span>
+                       <span className="search-icon"><Search /></span>
                        {showSuggestions && (
                            <ul className="custom-dropdown">
                                {globalSuggestions.length === 0 ? <li style={{color:'#999'}}>Nenhum ciclo encontrado.</li> : globalSuggestions.map(c => (

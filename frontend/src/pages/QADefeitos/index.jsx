@@ -3,6 +3,7 @@ import { api, getSession } from '../../services/api';
 import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 import { Trash } from '../../components/icons/Trash';
+import { Search } from '../../components/icons/Search';
 import './styles.css';
 
 export function QADefeitos() {
@@ -151,7 +152,7 @@ export function QADefeitos() {
                         type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onFocus={() => setShowSuggestions(true)}
                         style={{ padding: '8px 0px 8px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', width: '100%', fontSize: '0.9rem', outline: 'none' }}
                     />
-                    <span className="search-icon">🔍</span>
+                    <span className="search-icon"><Search /></span>
                     {showSuggestions && (
                         <ul className="dropdown-list" style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '6px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 1000, listStyle: 'none', margin: '5px 0 0 0', padding: 0, maxHeight: '200px', overflowY: 'auto' }}>
                             {globalSuggestions.length === 0 ? <li style={{padding:'10px', color:'#999'}}>Sem resultados.</li> : globalSuggestions.map((d) => (
