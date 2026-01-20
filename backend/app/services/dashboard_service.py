@@ -5,17 +5,21 @@ class DashboardService:
     def __init__(self, repo: DashboardRepository):
         self.repo = repo
 
-    async def get_dashboard_data(self):
-        # 1. Buscar KPIs
-        kpis = await self.repo.get_kpis_gerais()
+    # 1. RECEBE O SISTEMA_ID AQUI (Padrão None para quando não tiver filtro)
+    async def get_dashboard_data(self, sistema_id: int = None):
+        
+        # 2. REPASSA PARA O REPOSITÓRIO
+        kpis = await self.repo.get_kpis_gerais(sistema_id)
 
-        # 2. Buscar dados para Gráficos
-        raw_status = await self.repo.get_status_execucao_geral()
-        raw_severidade = await self.repo.get_defeitos_por_severidade()
+        # 3. REPASSA PARA OS GRÁFICOS TAMBÉM
+        raw_status = await self.repo.get_status_execucao_geral(sistema_id)
+        raw_severidade = await self.repo.get_defeitos_por_severidade(sistema_id)
+        
+        # O gráfico de módulos não alteramos no repo anterior, então mantém sem filtro por enquanto
+        # Se quiser filtrar módulos também, precisa atualizar o método no repository primeiro.
         raw_modulos = await self.repo.get_modulos_com_mais_defeitos()
 
-        # 3. Formatar Status Execução
-        # ATENÇÃO: Aqui definimos as cores apenas para os status que existem no Enum agora
+        # 4. Formatar Status Execução
         status_colors = {
             StatusExecucaoEnum.pendente: "#94a3b8",      # Cinza
             StatusExecucaoEnum.em_progresso: "#3b82f6",  # Azul
@@ -33,7 +37,7 @@ class DashboardService:
             for s, count in raw_status
         ]
 
-        # 4. Formatar Defeitos por Severidade
+        # 5. Formatar Defeitos por Severidade
         severidade_colors = {
             "critico": "#991b1b",
             "alto": "#ef4444",
@@ -51,7 +55,7 @@ class DashboardService:
             for sev, count in raw_severidade
         ]
 
-        # 5. Formatar Top Módulos
+        # 6. Formatar Top Módulos
         chart_modulos = [
             {"name": nome, "value": count}
             for nome, count in raw_modulos

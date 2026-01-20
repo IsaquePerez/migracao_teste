@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func, desc
-
+from app.models.modulo import Modulo
 from app.models.projeto import Projeto, StatusProjetoEnum
 from app.models.testing import (
     CicloTeste, StatusCicloEnum, 
@@ -9,102 +9,139 @@ from app.models.testing import (
     Defeito, StatusDefeitoEnum, SeveridadeDefeitoEnum,
     ExecucaoTeste, StatusExecucaoEnum
 )
-from app.models.modulo import Modulo
+# Seus imports normais...
 
 class DashboardRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_kpis_gerais(self):
-        # 1. Contagens Básicas
+    async def get_kpis_gerais(self, sistema_id: int = None):
+        # --- 1. PROJETOS ---
         q_projetos = select(func.count(Projeto.id)).where(Projeto.status == StatusProjetoEnum.ativo)
-        
-        # CORREÇÃO AQUI: Usando 'planejado' (conforme seu Enum)
-        q_ciclos = select(func.count(CicloTeste.id)).where(
+        if sistema_id:
+            q_projetos = q_projetos.where(Projeto.sistema_id == sistema_id)
+
+        # --- 2. CICLOS ---
+        q_ciclos = select(func.count(CicloTeste.id)).join(Projeto).where(
             CicloTeste.status.in_([StatusCicloEnum.em_execucao, StatusCicloEnum.planejado])
         )
-        
-        q_casos = select(func.count(CasoTeste.id))
-        
-        # 2. Defeitos
-        q_defeitos_abertos = select(func.count(Defeito.id)).where(
-            Defeito.status.in_([StatusDefeitoEnum.aberto, StatusDefeitoEnum.em_teste])
+        if sistema_id:
+            q_ciclos = q_ciclos.where(Projeto.sistema_id == sistema_id)
+
+        # --- 3. CASOS DE TESTE ---
+        q_casos = select(func.count(CasoTeste.id)).join(Projeto)
+        if sistema_id:
+            q_casos = q_casos.where(Projeto.sistema_id == sistema_id)
+
+        # --- 4. DEFEITOS ABERTOS ---
+        # Defeito -> Execucao -> Caso -> Projeto -> Sistema
+        q_defeitos_abertos = (
+            select(func.count(Defeito.id))
+            .join(Defeito.execucao)
+            .join(ExecucaoTeste.caso_teste)
+            .join(CasoTeste.projeto)
+            .where(Defeito.status.in_([StatusDefeitoEnum.aberto, StatusDefeitoEnum.em_teste]))
         )
-        
-        q_criticos = select(func.count(Defeito.id)).where(
-            Defeito.status != StatusDefeitoEnum.fechado,
-            Defeito.severidade.in_([
-                SeveridadeDefeitoEnum.critico, 
-                SeveridadeDefeitoEnum.alto
-            ])
+        if sistema_id:
+            q_defeitos_abertos = q_defeitos_abertos.where(Projeto.sistema_id == sistema_id)
+
+        # --- 5. DEFEITOS CRITICOS/ALTOS ---
+        q_criticos = (
+            select(func.count(Defeito.id))
+            .join(Defeito.execucao)
+            .join(ExecucaoTeste.caso_teste)
+            .join(CasoTeste.projeto)
+            .where(
+                Defeito.status != StatusDefeitoEnum.fechado,
+                Defeito.severidade.in_([SeveridadeDefeitoEnum.critico, SeveridadeDefeitoEnum.alto])
+            )
         )
+        if sistema_id:
+            q_criticos = q_criticos.where(Projeto.sistema_id == sistema_id)
 
-        q_aguardando_reteste_defeitos = select(func.count(Defeito.id)).where(
-            Defeito.status == StatusDefeitoEnum.corrigido
+        # --- 6. AGUARDANDO RETESTE ---
+        q_reteste = (
+            select(func.count(Defeito.id))
+            .join(Defeito.execucao)
+            .join(ExecucaoTeste.caso_teste)
+            .join(CasoTeste.projeto)
+            .where(Defeito.status == StatusDefeitoEnum.corrigido)
         )
+        if sistema_id:
+            q_reteste = q_reteste.where(Projeto.sistema_id == sistema_id)
 
-        # 3. Execuções Pendentes
-        # Contamos TUDO que não está fechado, independente do status do ciclo
-        q_pendentes = select(func.count(ExecucaoTeste.id)).where(
-            ExecucaoTeste.status_geral.in_([
-                StatusExecucaoEnum.pendente, 
-                StatusExecucaoEnum.em_progresso,
-                StatusExecucaoEnum.reteste
-            ])
+        # --- 7. EXECUÇÕES PENDENTES ---
+        q_pendentes = (
+            select(func.count(ExecucaoTeste.id))
+            .join(ExecucaoTeste.caso_teste)
+            .join(CasoTeste.projeto)
+            .where(
+                ExecucaoTeste.status_geral.in_([
+                    StatusExecucaoEnum.pendente, 
+                    StatusExecucaoEnum.em_progresso,
+                    StatusExecucaoEnum.reteste
+                ])
+            )
         )
+        if sistema_id:
+            q_pendentes = q_pendentes.where(Projeto.sistema_id == sistema_id)
 
-        # 4. Finalizados
-        q_total_finalizados = select(func.count(ExecucaoTeste.id)).where(
-            ExecucaoTeste.status_geral == StatusExecucaoEnum.fechado
+        # --- 8. FINALIZADOS (Para taxa de sucesso) ---
+        q_finalizados = (
+            select(func.count(ExecucaoTeste.id))
+            .join(ExecucaoTeste.caso_teste)
+            .join(CasoTeste.projeto)
+            .where(ExecucaoTeste.status_geral == StatusExecucaoEnum.fechado)
         )
+        if sistema_id:
+            q_finalizados = q_finalizados.where(Projeto.sistema_id == sistema_id)
 
-        # Executa as queries
-        results = {}
-        results["total_projetos"] = (await self.db.execute(q_projetos)).scalar() or 0
-        results["total_ciclos_ativos"] = (await self.db.execute(q_ciclos)).scalar() or 0
-        results["total_casos_teste"] = (await self.db.execute(q_casos)).scalar() or 0
-        results["total_defeitos_abertos"] = (await self.db.execute(q_defeitos_abertos)).scalar() or 0
+        # --- EXECUÇÃO ---
+        r = {}
+        r["total_projetos"] = (await self.db.execute(q_projetos)).scalar() or 0
+        r["total_ciclos_ativos"] = (await self.db.execute(q_ciclos)).scalar() or 0
+        r["total_casos_teste"] = (await self.db.execute(q_casos)).scalar() or 0
+        r["total_defeitos_abertos"] = (await self.db.execute(q_defeitos_abertos)).scalar() or 0
+        r["total_pendentes"] = (await self.db.execute(q_pendentes)).scalar() or 0
+        r["total_defeitos_criticos"] = (await self.db.execute(q_criticos)).scalar() or 0
+        r["total_aguardando_reteste"] = (await self.db.execute(q_reteste)).scalar() or 0
         
-        results["total_pendentes"] = (await self.db.execute(q_pendentes)).scalar() or 0
-        results["total_defeitos_criticos"] = (await self.db.execute(q_criticos)).scalar() or 0
-        results["total_aguardando_reteste"] = (await self.db.execute(q_aguardando_reteste_defeitos)).scalar() or 0
+        tot_fin = (await self.db.execute(q_finalizados)).scalar() or 0
+        tot_geral = r["total_pendentes"] + tot_fin
         
-        # Taxa de sucesso
-        total_execucoes = results["total_pendentes"] + (await self.db.execute(q_total_finalizados)).scalar() or 0
-        
-        if total_execucoes > 0:
-            total_fechados = (await self.db.execute(q_total_finalizados)).scalar() or 0
-            results["taxa_sucesso_ciclos"] = round((total_fechados / total_execucoes) * 100, 1)
-        else:
-            results["taxa_sucesso_ciclos"] = 0.0
+        r["taxa_sucesso_ciclos"] = round((tot_fin / tot_geral * 100), 1) if tot_geral > 0 else 0.0
 
-        return results
+        return r
 
-    async def get_status_execucao_geral(self):
+    async def get_status_execucao_geral(self, sistema_id: int = None):
         query = (
             select(ExecucaoTeste.status_geral, func.count(ExecucaoTeste.id))
-            # Removemos o JOIN restritivo
-            # .join(CicloTeste) 
-            # Removemos o WHERE que escondia os dados
-            # .where(CicloTeste.status == StatusCicloEnum.em_execucao)
+            .join(ExecucaoTeste.caso_teste)
+            .join(CasoTeste.projeto)
             .group_by(ExecucaoTeste.status_geral)
         )
+        if sistema_id:
+            query = query.where(Projeto.sistema_id == sistema_id)
+            
         result = await self.db.execute(query)
-        
-        # Dica Extra: O Backend retorna Tuplas [(status, count)]. 
-        # O Service que chama isso geralmente formata para o Front.
         return result.all()
 
-    async def get_defeitos_por_severidade(self):
+    async def get_defeitos_por_severidade(self, sistema_id: int = None):
         query = (
             select(Defeito.severidade, func.count(Defeito.id))
+            .join(Defeito.execucao)
+            .join(ExecucaoTeste.caso_teste)
+            .join(CasoTeste.projeto)
             .where(Defeito.status != StatusDefeitoEnum.fechado)
             .group_by(Defeito.severidade)
         )
+        if sistema_id:
+            query = query.where(Projeto.sistema_id == sistema_id)
+            
         result = await self.db.execute(query)
         return result.all()
-
-    async def get_modulos_com_mais_defeitos(self, limit: int = 5):
+    
+    async def get_modulos_com_mais_defeitos(self, limit: int = 5, sistema_id: int = None):
         query = (
             select(Modulo.nome, func.count(Defeito.id))
             .select_from(Defeito)
@@ -116,5 +153,9 @@ class DashboardRepository:
             .order_by(desc(func.count(Defeito.id)))
             .limit(limit)
         )
+        
+        if sistema_id:
+            query = query.where(Projeto.sistema_id == sistema_id)
+
         result = await self.db.execute(query)
         return result.all()
