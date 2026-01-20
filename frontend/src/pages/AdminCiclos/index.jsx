@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api';
 import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
+import { Trash } from '../../components/icons/Trash';
 import './styles.css';
 
 // --- COMPONENTE REUTILIZÁVEL ---
@@ -218,7 +219,7 @@ export function AdminCiclos() {
 
   return (
     <main className="container">
-      <ConfirmationModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleDelete} title="Excluir?" message={`Excluir "${itemToDelete?.nome}"?`} isDanger={true} />
+      <ConfirmationModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleDelete} title="Excluir Ciclo de Teste?" message={`Tem certeza que deseja excluir "${itemToDelete?.nome}"?`} isDanger={true} />
 
       {view === 'form' && (
         <div style={{maxWidth: '100%', margin: '0 auto'}}>
@@ -357,7 +358,7 @@ export function AdminCiclos() {
                                     <span className={`status-badge ${item.status}`}>{item.status.replace('_', ' ').toUpperCase()}</span>
                                 </td>
                                 <td className="cell-actions">
-                                    <button onClick={(e) => { e.stopPropagation(); setItemToDelete(item); setIsDeleteModalOpen(true); }} className="btn danger small btn-action-icon">🗑️</button>
+                                    <button onClick={(e) => { e.stopPropagation(); setItemToDelete(item); setIsDeleteModalOpen(true); }} className="btn danger small btn-action-icon"><Trash /></button>
                                 </td>
                             </tr>
                            ))

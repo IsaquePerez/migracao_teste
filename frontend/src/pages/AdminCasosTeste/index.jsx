@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api';
 import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
+import { Trash } from '../../components/icons/Trash';
 import './styles.css';
 
 // --- COMPONENTE REUTILIZÁVEL: SEARCHABLE SELECT (VERSÃO BLINDADA) ---
@@ -16,18 +17,17 @@ const SearchableSelect = ({ options = [], value, onChange, placeholder, disabled
     if (!Array.isArray(options)) return;
 
     if (value === null || value === undefined || value === '') {
-      setSearchTerm('');
-      return;
+      if (!(value === '' && searchTerm !== '')) {
+        setSearchTerm('');
+      }
     }
 
     const selectedOption = options.find(opt => String(opt.id) === String(value));
     
     if (selectedOption) {
-      if (!isOpen || searchTerm === '') {
-        setSearchTerm(selectedOption[labelKey]);
-      }
+      setSearchTerm(selectedOption[labelKey]);
     }
-  }, [value, options, labelKey, isOpen, searchTerm]); 
+  }, [value, options, labelKey]); 
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -329,11 +329,11 @@ export function AdminCasosTeste() {
   const usersFormatted = usuarios.map(u => ({ ...u, labelCompleto: `${u.nome} ${u.username ? `(@${u.username})` : ''}` }));
   const testers = usersFormatted.filter(u => u.nivel_acesso_id === 2 && u.ativo);
 
-  const isFormInvalid =  !String(form.ciclo_id).trim() || !String(form.responsavel_id).trim() || !form.nome.trim() || !form.prioridade.trim() || !form.pre_condicoes.trim() || !form.criterios_aceitacao.trim() || !form.prioridade.trim();
+  const isFormInvalid =  !String(form.ciclo_id).trim() || !String(form.responsavel_id).trim() || !form.nome.trim() || !form.pre_condicoes.trim() || !form.criterios_aceitacao.trim() || !form.prioridade.trim();
 
   return (
     <main className="container">
-      <ConfirmationModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleDelete} title="Excluir?" message={`Excluir "${casoToDelete?.nome}"?`} isDanger={true} />
+      <ConfirmationModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleDelete} title="Excluir Caso de Teste?" message={`Tem certeza que deseja excluir "${casoToDelete?.nome}"?`} isDanger={true} />
 
       {view === 'form' && (
         <div style={{maxWidth: '100%', margin: '0 auto'}}>
@@ -507,11 +507,11 @@ export function AdminCasosTeste() {
                             <tr key={c.id} className="selectable" onClick={() => handleEdit(c)}>
                                 <td className="cell-id">#{c.id}</td>
                                 <td><div className="cell-name" title={c.nome}>{truncate(c.nome, 30)}</div></td>
-                                <td className="cell-priority" style={{textAlign: 'center'}}><span className="badge priority-badge">{c.prioridade}</span></td>
+                                <td className="cell-priority" style={{textAlign: 'center'}}><span className={`badge priority-badge ${c.prioridade}`}>{c.prioridade?.toUpperCase()}</span></td>
                                 <td style={{color: '#64748b'}}>{truncate(getCicloName(c), 20)}</td>
                                 <td><span className="cell-resp">{c.responsavel_id ? truncate(getRespName(c.responsavel_id), 20) : '-'}</span></td>
                                 <td className="cell-steps" style={{textAlign: 'center'}}>{c.passos?.length || 0}</td>
-                                <td className="cell-actions"><button onClick={(e) => { e.stopPropagation(); setCasoToDelete(c); setIsDeleteModalOpen(true); }} className="btn danger small btn-action-icon">🗑️</button></td>
+                                <td className="cell-actions"><button onClick={(e) => { e.stopPropagation(); setCasoToDelete(c); setIsDeleteModalOpen(true); }} className="btn danger small btn-action-icon"><Trash /></button></td>
                             </tr>
                            ))
                          )}

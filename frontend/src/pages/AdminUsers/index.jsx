@@ -3,6 +3,7 @@ import { api } from '../../services/api';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 import { useSnackbar } from '../../context/SnackbarContext'; 
 import { Eye, EyeOff } from 'lucide-react';
+import { Trash } from '../../components/icons/Trash';
 import './styles.css';
 
 export function AdminUsers() {
@@ -207,7 +208,7 @@ export function AdminUsers() {
     <main className="container">
       <ConfirmationModal 
         isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleDelete}
-        title="Remover Usuário?" message={`Deseja remover "${itemToDelete?.nome}"?`} isDanger={true}
+        title="Remover Usuário?" message={`Tem certeza que deseja remover "${itemToDelete?.nome}"?`} isDanger={true}
       />
 
       {view === 'form' && (
@@ -405,7 +406,7 @@ export function AdminUsers() {
                                     </span>
                                 </td>
                                 <td className="cell-actions">
-                                    <button onClick={(e) => { e.stopPropagation(); setItemToDelete(item); setIsDeleteModalOpen(true); }} className="btn danger small btn-action-icon">🗑️</button>
+                                    <button onClick={(e) => { e.stopPropagation(); setItemToDelete(item); setIsDeleteModalOpen(true); }} className="btn danger small btn-action-icon"><Trash /></button>
                                 </td>
                             </tr>
                            ))

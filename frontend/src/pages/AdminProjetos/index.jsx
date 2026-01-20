@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api';
 import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
+import { Trash } from '../../components/icons/Trash';
 import './styles.css';
 
 const SearchableSelect = ({ options, value, onChange, placeholder, disabled, labelKey = 'nome' }) => {
@@ -237,14 +238,14 @@ export function AdminProjetos() {
     <main className="container">
       <ConfirmationModal 
         isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleDelete}
-        title="Excluir Projeto?" message={`Deseja excluir "${itemToDelete?.nome}"?`} isDanger={true}
+        title="Excluir Projeto?" message={`Tem certeza que deseja excluir "${itemToDelete?.nome}"?`} isDanger={true}
       />
 
       {view === 'form' && (
         <div style={{maxWidth: '800px', margin: '0 auto'}}>
           <form onSubmit={handleSubmit}>
             <section className="card form-section">
-              <div className="form-header"><h3 className="form-title">{editingId ? 'Editar Projeto' : 'Novo Projeto'}</h3></div>
+              <div className="form-header"><h2 className="form-title">{editingId ? 'Editar Projeto' : 'Novo Projeto'}</h2></div>
               <div style={{display: 'flex', flexDirection: 'column', gap: '20px'}}>
                   <div><label className="input-label">Nome do Projeto</label><input value={form.nome} onChange={e => setForm({...form, nome: e.target.value})} className="form-control"/></div>
                   <div><label className="input-label">Descrição</label><textarea value={form.descricao} onChange={e => setForm({...form, descricao: e.target.value})} className="form-control" rows="3" /></div>
@@ -403,7 +404,7 @@ export function AdminProjetos() {
                                     </td>
                                     <td className="cell-status"><span className={`status-badge ${item.status}`}>{item.status}</span></td>
                                     <td className="cell-actions">
-                                        <button onClick={(e) => { e.stopPropagation(); setItemToDelete(item); setIsDeleteModalOpen(true); }} className="btn danger small btn-action-icon">🗑️</button>
+                                        <button onClick={(e) => { e.stopPropagation(); setItemToDelete(item); setIsDeleteModalOpen(true); }} className="btn danger small btn-action-icon"><Trash /></button>
                                     </td>
                                 </tr>
                              ))

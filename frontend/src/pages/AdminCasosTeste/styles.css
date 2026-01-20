@@ -197,10 +197,25 @@
 .cell-id { color: #64748b; }
 .cell-name { font-weight: 600; color: #334155; }
 .cell-priority { text-align: center; }
-.priority-badge { background-color: #f1f5f9; color: #475569; }
+/* .priority-badge { background-color: #f1f5f9; color: #475569; } */
 .cell-resp { color: #475569; font-size: 0.85rem; }
 .cell-steps { text-align: center; color: #64748b; }
 .cell-actions { text-align: right; }
+
+.priority-badge.alta {
+  background-color: #001C42 !important;
+  color: #ffffff !important;
+}
+
+.priority-badge.media {
+  background-color: #506ba4 !important;
+  color: #ffffff !important;
+}
+
+.priority-badge.baixa{
+  background-color: #f1f5f9;
+  color: #475569;
+}
 
 .btn-action-icon {
   padding: 6px 10px;

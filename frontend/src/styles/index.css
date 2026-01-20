@@ -353,13 +353,13 @@ tr.selected {
 }
 
 .badge.on {
-  background-color: #DCFCE7;
-  color: #166534;
+  background-color: #001C42;
+  color: #ffffff;
 }
 
 .badge.off {
-  background-color: #FEE2E2;
-  color: #991B1B;
+  background-color: #0F2B66;
+  color: #ffffff;
 }
 
 .qa-runner-grid {

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api';
 import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal'; 
+import { Trash } from '../../components/icons/Trash';
 import './styles.css';
 
 export function AdminSistemas() {
@@ -153,14 +154,12 @@ export function AdminSistemas() {
     <main className="container"> 
       <ConfirmationModal 
         isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={confirmDelete}
-        title="Excluir Sistema?" message={`Tem certeza que deseja excluir "${sistemaToDelete?.nome}"?`} confirmText="Sim, Excluir" isDanger={true}
+        title="Excluir Sistema?" message={`Tem certeza que deseja excluir "${sistemaToDelete?.nome}"?`} isDanger={true}
       />
 
       {view === 'form' && (
         <section className="card form-card" style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <div className="form-header">
-            <h2 className="section-title">{editingId ? 'Editar Sistema' : 'Novo Sistema'}</h2>
-          </div>
+          <h2 className="section-title">{editingId ? 'Editar Sistema' : 'Novo Sistema'}</h2>
           <form onSubmit={handleSubmit}>
             
             <div className="form-grid" style={{ gridTemplateColumns: '1fr auto' }}> 
@@ -275,10 +274,10 @@ export function AdminSistemas() {
                                               <div title={s.descricao}>{truncate(s.descricao, 40)}</div>
                                           </td>
                                           <td style={{textAlign: 'center', whiteSpace: 'nowrap'}}>
-                                              <span className={`badge ${s.ativo ? 'on' : 'off'}`}>{s.ativo ? 'Ativo' : 'Inativo'}</span>
+                                              <span className={`badge ${s.ativo ? 'on' : 'off'}`}>{s.ativo ? 'ATIVO' : 'INATIVO'}</span>
                                           </td>
                                           <td className="cell-actions">
-                                              <button onClick={(e) => { e.stopPropagation(); requestDelete(s); }} className="btn danger small">🗑️</button>
+                                              <button onClick={(e) => { e.stopPropagation(); requestDelete(s); }} className="btn danger small"><Trash /></button>
                                           </td>
                                       </tr>
                                   ))

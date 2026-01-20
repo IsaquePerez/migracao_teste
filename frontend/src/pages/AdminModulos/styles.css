@@ -71,16 +71,6 @@
   cursor: pointer;
 }
 
-.badge.on {
-  background-color: #dcfce7;
-  color: #166534;
-}
-
-.badge.off {
-  background-color: #f1f5f9;
-  color: #475569;
-}
-
 .badge.system {
   background-color: #e0f2fe;
   color: #0369a1;

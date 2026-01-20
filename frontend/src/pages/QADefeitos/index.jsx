@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { api, getSession } from '../../services/api';
 import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
+import { Trash } from '../../components/icons/Trash';
 import './styles.css';
 
 export function QADefeitos() {
@@ -137,11 +138,11 @@ export function QADefeitos() {
 
   return (
     <main className="container">
-      <ConfirmationModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={() => { confirmDelete(); setIsDeleteModalOpen(false); }} title="Excluir?" message={`Excluir "${defectToDelete?.titulo || ''}"?`} isDanger={true} />
+      <ConfirmationModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={() => { confirmDelete(); setIsDeleteModalOpen(false); }} title="Excluir?" message={`Tem certeza que deseja excluir "${defectToDelete?.titulo || ''}"?`} isDanger={true} />
       
       <section className="card">
-        <div className="toolbar" style={{ flexWrap: 'wrap', gap: '15px' }}>
-            <h2 className="section-title">Gestão de Defeitos</h2>
+        <div className="toolbar">
+            <h3 className="page-title">Gestão de Defeitos</h3>
             <div style={{ display: 'flex', gap: '10px', marginLeft: 'auto', alignItems: 'center' }}>
                 <button onClick={loadDefeitos} className="btn">Atualizar</button>
                 <div className="separator"></div>
@@ -247,7 +248,7 @@ export function QADefeitos() {
                                 
                                 {isAdmin && (
                                     <td style={{textAlign: 'right'}}>
-                                        <button onClick={(e) => { e.stopPropagation(); requestDelete(d); }} className="btn danger small">🗑️</button>
+                                        <button onClick={(e) => { e.stopPropagation(); requestDelete(d); }} className="btn danger small"><Trash /></button>
                                     </td>
                                 )}
                             </tr>

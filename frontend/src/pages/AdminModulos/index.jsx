@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '../../services/api';
 import { useSnackbar } from '../../context/SnackbarContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
+import { Trash } from '../../components/icons/Trash';
 import './styles.css';
 
 // --- COMPONENTE REUTILIZÁVEL ---
@@ -208,7 +209,7 @@ export function AdminModulos() {
     <main className="container">
       <ConfirmationModal 
         isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={confirmDelete}
-        title="Excluir?" message={`Excluir "${moduloToDelete?.nome}"?`} confirmText="Sim" isDanger={true}
+        title="Excluir Módulo?" message={`Tem certeza que deseja excluir "${moduloToDelete?.nome}"?`} isDanger={true}
       />
 
       {view === 'form' ? (
@@ -384,10 +385,10 @@ export function AdminModulos() {
                                       </td>
                                       <td><span className="badge system">{truncate(getSistemaName(m.sistema_id), 20)}</span></td>
                                       <td style={{textAlign: 'center'}}>
-                                          <span className={`badge ${m.ativo ? 'on' : 'off'}`}>{m.ativo ? 'Ativo' : 'Inativo'}</span>                                      
+                                          <span className={`badge ${m.ativo ? 'on' : 'off'}`}>{m.ativo ? 'ATIVO' : 'INATIVO'}</span>                                      
                                       </td>
                                       <td className="cell-actions">
-                                          <button onClick={(e) => { e.stopPropagation(); requestDelete(m); }} className="btn danger small">🗑️</button>
+                                          <button onClick={(e) => { e.stopPropagation(); requestDelete(m); }} className="btn danger small"><Trash /></button>
                                       </td>
                                   </tr>
                               ))

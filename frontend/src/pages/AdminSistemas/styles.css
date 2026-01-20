@@ -71,16 +71,6 @@
   cursor: pointer;
 }
 
-.badge.on {
-  background-color: #dcfce7;
-  color: #166534;
-}
-
-.badge.off {
-  background-color: #f1f5f9;
-  color: #475569;
-}
-
 .cell-name strong {
   display: block;
   color: #334155;
