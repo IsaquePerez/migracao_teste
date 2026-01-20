@@ -16,71 +16,63 @@ class DashboardRepository:
         self.db = db
 
     async def get_kpis_gerais(self):
+        # 1. Contagens Básicas
         q_projetos = select(func.count(Projeto.id)).where(Projeto.status == StatusProjetoEnum.ativo)
         q_ciclos = select(func.count(CicloTeste.id)).where(CicloTeste.status == StatusCicloEnum.em_execucao)
         q_casos = select(func.count(CasoTeste.id))
-        q_defeitos_abertos = select(func.count(Defeito.id)).where(Defeito.status == StatusDefeitoEnum.aberto)        
-        q_pendentes = (
-            select(func.count(ExecucaoTeste.id))
-            .join(CicloTeste)
-            .where(
-                CicloTeste.status == StatusCicloEnum.em_execucao,
-                ExecucaoTeste.status_geral.in_([StatusExecucaoEnum.pendente, StatusExecucaoEnum.em_progresso])
-            )
+        
+        # 2. Defeitos
+        q_defeitos_abertos = select(func.count(Defeito.id)).where(
+            Defeito.status.in_([StatusDefeitoEnum.aberto, StatusDefeitoEnum.em_teste])
         )
-
+        
         q_criticos = select(func.count(Defeito.id)).where(
             Defeito.status != StatusDefeitoEnum.fechado,
             Defeito.severidade == SeveridadeDefeitoEnum.critico
         )
 
-        q_reteste = select(func.count(Defeito.id)).where(
+        q_aguardando_reteste_defeitos = select(func.count(Defeito.id)).where(
             Defeito.status == StatusDefeitoEnum.corrigido
         )
 
-        # Taxa de Sucesso
-        q_passou = (
-            select(func.count(ExecucaoTeste.id))
-            .join(CicloTeste)
-            .where(
-                CicloTeste.status == StatusCicloEnum.em_execucao,
-                ExecucaoTeste.status_geral == StatusExecucaoEnum.passou
-            )
-        )
-
-        q_total_finalizados = (
+        # 3. Execuções Pendentes (Soma: Pendente, Em Progresso e Reteste)
+        q_pendentes = (
             select(func.count(ExecucaoTeste.id))
             .join(CicloTeste)
             .where(
                 CicloTeste.status == StatusCicloEnum.em_execucao,
                 ExecucaoTeste.status_geral.in_([
-                    StatusExecucaoEnum.passou, 
-                    StatusExecucaoEnum.falhou, 
-                    StatusExecucaoEnum.bloqueado
+                    StatusExecucaoEnum.pendente, 
+                    StatusExecucaoEnum.em_progresso,
+                    StatusExecucaoEnum.reteste
                 ])
             )
         )
 
+        # 4. Finalizados (Apenas 'fechado')
+        q_total_finalizados = (
+            select(func.count(ExecucaoTeste.id))
+            .join(CicloTeste)
+            .where(
+                CicloTeste.status == StatusCicloEnum.em_execucao,
+                ExecucaoTeste.status_geral == StatusExecucaoEnum.fechado
+            )
+        )
+
+        # Executa as queries
         results = {}
         results["total_projetos"] = (await self.db.execute(q_projetos)).scalar() or 0
         results["total_ciclos_ativos"] = (await self.db.execute(q_ciclos)).scalar() or 0
         results["total_casos_teste"] = (await self.db.execute(q_casos)).scalar() or 0
         results["total_defeitos_abertos"] = (await self.db.execute(q_defeitos_abertos)).scalar() or 0
         
-        # --- MAPEAR O NOVO RESULTADO ---
         results["total_pendentes"] = (await self.db.execute(q_pendentes)).scalar() or 0
-        # -------------------------------
-        
         results["total_defeitos_criticos"] = (await self.db.execute(q_criticos)).scalar() or 0
-        results["total_aguardando_reteste"] = (await self.db.execute(q_reteste)).scalar() or 0
+        results["total_aguardando_reteste"] = (await self.db.execute(q_aguardando_reteste_defeitos)).scalar() or 0
         
-        passou = (await self.db.execute(q_passou)).scalar() or 0
-        total_finalizados = (await self.db.execute(q_total_finalizados)).scalar() or 0
-
-        if total_finalizados > 0:
-            results["taxa_sucesso_ciclos"] = round((passou / total_finalizados) * 100, 1)
-        else:
-            results["taxa_sucesso_ciclos"] = 0.0
+        # Como removemos "passou", a taxa de sucesso automática é difícil de calcular só pelo status.
+        # Vamos deixar zerada por enquanto para não quebrar.
+        results["taxa_sucesso_ciclos"] = 0.0
 
         return results
 

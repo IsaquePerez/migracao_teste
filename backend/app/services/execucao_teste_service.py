@@ -51,36 +51,40 @@ class ExecucaoTesteService:
 
         return ExecucaoPassoResponse.model_validate(atualizado)
     
-    # --- LÓGICA CORRIGIDA ---
     async def _calcular_status_automatico(self, execucao_id: int):
-        execucao = await self.repo.get_by_id(execucao_id)
-        if not execucao or not execucao.passos_executados:
+        # Busca todos os passos dessa execução
+        passos = await self.repo.listar_passos(execucao_id)
+        
+        total = len(passos)
+        if total == 0:
             return
 
-        passos = execucao.passos_executados
-        
-        tem_reprovado = any(p.status == StatusPassoEnum.reprovado for p in passos)
-        todos_aprovados = all(p.status == StatusPassoEnum.aprovado for p in passos)
-        
-        # Verifica se tem passos pendentes OU bloqueados (ambos impedem o "Passou")
-        # Se um passo está "bloqueado", o teste não acabou, então continua "Em Progresso" para ser resolvido.
-        tem_pendencia = any(p.status in [StatusPassoEnum.pendente, StatusPassoEnum.bloqueado] for p in passos)
+        aprovados = sum(1 for p in passos if p.status == StatusPassoEnum.aprovado)
+        reprovados = sum(1 for p in passos if p.status == StatusPassoEnum.reprovado)
+        bloqueados = sum(1 for p in passos if p.status == StatusPassoEnum.bloqueado)
+        pendentes = sum(1 for p in passos if p.status == StatusPassoEnum.pendente)
 
         novo_status = StatusExecucaoEnum.em_progresso
 
-        if tem_reprovado:
-            # Regra 1: Se falhou um passo, falhou tudo. (Prioridade Máxima)
-            novo_status = StatusExecucaoEnum.falhou
-        elif todos_aprovados:
-            # Regra 2: Só passa se TODOS estiverem OK.
-            novo_status = StatusExecucaoEnum.passou
-        elif tem_pendencia:
-            # Regra 3: Se tem passo bloqueado ou pendente, e nenhum falhou, 
-            # o status geral fica EM PROGRESSO (aguardando resolução).
+        # Lógica Nova:
+        # Se tudo estiver aprovado -> Fechado
+        # Se tiver algum reprovado -> Reteste (ou Fechado, depende da sua regra)
+        # Se tiver pendente -> Em Progresso
+        
+        if pendentes == 0:
+            # Todos os passos foram executados
+            if reprovados > 0 or bloqueados > 0:
+                # Se houve falha, o status geral vai para Reteste (ou Fechado, conforme sua preferência)
+                novo_status = StatusExecucaoEnum.reteste 
+            else:
+                # Se todos foram aprovados
+                novo_status = StatusExecucaoEnum.fechado
+        else:
+            # Ainda tem coisa para fazer
             novo_status = StatusExecucaoEnum.em_progresso
 
-        if execucao.status_geral != novo_status:
-            await self.repo.update_status_geral(execucao_id, novo_status)
+        # Atualiza o status geral da execução
+        await self.repo.atualizar_status_geral(execucao_id, novo_status)
 
     async def finalizar_execucao(self, execucao_id: int, status_final: StatusExecucaoEnum):
         return await self.repo.update_status_geral(execucao_id, status_final)

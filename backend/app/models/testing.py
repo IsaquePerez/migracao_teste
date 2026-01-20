@@ -14,9 +14,11 @@ class PrioridadeEnum(str, enum.Enum):
 class StatusExecucaoEnum(str, enum.Enum):
     pendente = "pendente"
     em_progresso = "em_progresso"
-    passou = "passou"
-    falhou = "falhou"
-    bloqueado = "bloqueado"
+    reteste = "reteste"
+    fechado = "fechado"
+    # Mantive bloqueado apenas para segurança de tipo, caso precise no futuro.
+    # Se tiver certeza absoluta que não usa, pode remover, mas recomendo deixar.
+    bloqueado = "bloqueado" 
 
 class StatusPassoEnum(str, enum.Enum):
     pendente = "pendente"
@@ -78,7 +80,7 @@ class CicloTeste(Base):
     execucoes = relationship("ExecucaoTeste", back_populates="ciclo", cascade="all, delete-orphan")
     metricas = relationship("Metrica", back_populates="ciclo")
     
-    # --- NOVO: Relacionamento inverso para acessar os casos planejados neste ciclo ---
+    # Relacionamento inverso para acessar os casos planejados neste ciclo
     casos = relationship("CasoTeste", back_populates="ciclo")
 
     # Helpers para calcular progresso direto no objeto.
@@ -90,7 +92,8 @@ class CicloTeste(Base):
     def testes_concluidos(self):
         if not self.execucoes:
             return 0
-        return sum(1 for e in self.execucoes if e.status_geral.value in ['passou', 'falhou', 'bloqueado'])
+        # CORRIGIDO: Agora conta apenas 'fechado' (já que passou/falhou sumiram)
+        return sum(1 for e in self.execucoes if e.status_geral == StatusExecucaoEnum.fechado)
     
 # Casos de Teste
 class CasoTeste(Base):
@@ -100,10 +103,9 @@ class CasoTeste(Base):
     projeto_id = Column(Integer, ForeignKey("projetos.id"), nullable=False)
     responsavel_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     
-    # --- NOVO: Campo que faltava e causava o erro ---
+    # Campo que faltava e causava o erro
     ciclo_id = Column(Integer, ForeignKey("ciclos_teste.id"), nullable=True)
-    # -----------------------------------------------
-
+    
     nome = Column(String(255), nullable=False)
     
     descricao = Column(Text)
@@ -122,9 +124,8 @@ class CasoTeste(Base):
     projeto = relationship("Projeto", back_populates="casos_teste")
     responsavel = relationship("Usuario")   
     
-    # --- NOVO: Relacionamento com Ciclo ---
+    # Relacionamento com Ciclo
     ciclo = relationship("CicloTeste", back_populates="casos")
-    # --------------------------------------
     
     passos = relationship("PassoCasoTeste", back_populates="caso_teste", cascade="all, delete-orphan", order_by="PassoCasoTeste.ordem")
     execucoes = relationship("ExecucaoTeste", back_populates="caso_teste")

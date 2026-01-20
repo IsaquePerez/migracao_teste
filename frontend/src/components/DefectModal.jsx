@@ -9,7 +9,7 @@ export function DefectModal({ isOpen, onClose, defect, onUpdate, readOnly = fals
   const [showDownloadConfirm, setShowDownloadConfirm] = useState(false);
   const [pendingDownload, setPendingDownload] = useState(null);
 
-  // Formata a data para PT-BR
+  // Formata data
   const formattedDate = defect.created_at 
     ? new Date(defect.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' })
     : '-';
@@ -28,7 +28,7 @@ export function DefectModal({ isOpen, onClose, defect, onUpdate, readOnly = fals
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
     } catch (error) {
-      alert("Erro ao baixar automaticamente. Tente salvar manualmente.");
+      alert("Erro ao baixar. Tente salvar manualmente.");
     }
   };
 
@@ -67,22 +67,24 @@ export function DefectModal({ isOpen, onClose, defect, onUpdate, readOnly = fals
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content defect-dashboard" onClick={e => e.stopPropagation()}>
-        
-        {/* --- MODAL CONFIRM DOWNLOAD --- */}
-        {showDownloadConfirm && (
-            <div className="download-confirm-overlay" onClick={cancelDownload}>
-                <div className="download-confirm-box" onClick={e => e.stopPropagation()}>
-                    <h3>Baixar Arquivo?</h3>
-                    <p style={{color: '#64748b', margin: '10px 0 20px'}}>O arquivo será salvo no seu computador.</p>
-                    <div className="confirm-actions">
-                        <button className="btn-blue ghost" onClick={cancelDownload}>Cancelar</button>
-                        <button className="btn-blue primary" onClick={confirmDownload}>Sim, Baixar</button>
-                    </div>
+      {/* IMPORTANTE: O 'download-confirm-overlay' deve estar aqui fora ou 
+          dentro, mas com z-index maior no CSS (ver arquivo abaixo) 
+      */}
+      
+      {showDownloadConfirm && (
+        <div className="download-confirm-overlay" onClick={cancelDownload}>
+            <div className="download-confirm-box" onClick={e => e.stopPropagation()}>
+                <h3>Baixar Arquivo?</h3>
+                <p>O arquivo será salvo no seu computador.</p>
+                <div className="confirm-actions">
+                    <button className="btn-blue ghost" onClick={cancelDownload}>Cancelar</button>
+                    <button className="btn-blue primary" onClick={confirmDownload}>Sim, Baixar</button>
                 </div>
             </div>
-        )}
+        </div>
+      )}
 
+      <div className="modal-content defect-dashboard" onClick={e => e.stopPropagation()}>
         {/* --- HEADER --- */}
         <div className="defect-header">
           <div className="header-left">
@@ -100,7 +102,7 @@ export function DefectModal({ isOpen, onClose, defect, onUpdate, readOnly = fals
           <div className="defect-main-info">
             <h1 className="defect-title">{defect.titulo || defect.nome || "Defeito sem título"}</h1>
             
-            {/* GRID DE INFORMAÇÕES (Agora com Data e Responsáveis) */}
+            {/* GRID DE INFORMAÇÕES */}
             <div className="context-grid-container">
                 <div className="info-grid">
                     <div className="info-item">
@@ -108,10 +110,16 @@ export function DefectModal({ isOpen, onClose, defect, onUpdate, readOnly = fals
                         <span className="info-value" title={defect.caso_teste_nome}>{defect.caso_teste_nome || "-"}</span>
                     </div>
                     <div className="info-item">
+                        <span className="info-label">Passo do Teste</span>
+                        <span className="info-value" >
+                            {defect.passo_nome || defect.passo_falha || "N/A"}
+                        </span>
+                    </div>
+                    
+                    <div className="info-item">
                         <span className="info-label">Projeto</span>
                         <span className="info-value">{defect.projeto_nome || "-"}</span>
                     </div>
-                     {/* --- NOVA DATA --- */}
                     <div className="info-item">
                         <span className="info-label">Data Envio</span>
                         <span className="info-value">{formattedDate}</span>
@@ -127,13 +135,12 @@ export function DefectModal({ isOpen, onClose, defect, onUpdate, readOnly = fals
                     </div>
                 </div>
 
-                {(defect.passo_falha || defect.passo_descricao) && (
+                {(defect.passo_descricao || defect.passo_falha) && (
                     <div className="failure-step-card">
-                        <div className="step-alert">
-                            <span className="step-icon">⚠️</span>
+                        <div className="step-alert">                            
                             <div className="step-content">
-                                <strong>Falha no Passo:</strong>
-                                <p>{defect.passo_falha || defect.passo_descricao}</p>
+                                <strong>Detalhe da Falha:</strong>
+                                <p>{defect.passo_descricao || defect.passo_falha}</p>
                             </div>
                         </div>
                     </div>
@@ -153,13 +160,14 @@ export function DefectModal({ isOpen, onClose, defect, onUpdate, readOnly = fals
             )}
           </div>
 
+          {/* SIDEBAR (ANEXOS) */}
           <div className="defect-sidebar">
             <div className="sidebar-title">Anexos ({evidencias.length})</div>
             <div className="files-list">
               {evidencias.length > 0 ? (
                 evidencias.map((url, idx) => (
                   <div key={idx} className="file-card" onClick={(e) => handleEvidenceClick(e, url, idx)}>
-                    <img src={url} className="file-thumb" alt="" />
+                    <img src={url} className="file-thumb" alt="evidencia" />
                     <div className="file-meta">
                         <span className="file-name">Evidência {idx + 1}</span>
                         <span className="file-action">Clique para baixar</span>
@@ -174,7 +182,7 @@ export function DefectModal({ isOpen, onClose, defect, onUpdate, readOnly = fals
           </div>
         </div>
 
-        {/* --- FOOTER (BOTÕES AZUIS) --- */}
+        {/* --- FOOTER --- */}
         {!readOnly ? (
             <div className="defect-footer">
               <div className="status-indicator">
@@ -184,7 +192,6 @@ export function DefectModal({ isOpen, onClose, defect, onUpdate, readOnly = fals
               <div className="actions-group">
                 {defect.status === 'aberto' && (
                   <>
-                    {/* Botões usando o estilo BLUE */}
                     <button className="btn-blue ghost" onClick={() => handleStatusChange('rejeitado')} disabled={loading}>Rejeitar</button>
                     <button className="btn-blue primary" onClick={() => handleStatusChange('corrigido')} disabled={loading}>Enviar p/ Reteste</button>
                   </>

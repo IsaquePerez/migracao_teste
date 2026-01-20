@@ -1,79 +1,67 @@
-from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.dashboard_repository import DashboardRepository
-from app.schemas.dashboard import (
-    DashboardResponse, 
-    DashboardKPI, 
-    DashboardCharts, 
-    ChartDataPoint
-)
-from app.models.testing import StatusExecucaoEnum, SeveridadeDefeitoEnum
+from app.models.testing import StatusExecucaoEnum
 
 class DashboardService:
-    def __init__(self, db: AsyncSession):
-        self.repo = DashboardRepository(db)
+    def __init__(self, repo: DashboardRepository):
+        self.repo = repo
 
-    async def get_dashboard_data(self) -> DashboardResponse:
-        kpis_data = await self.repo.get_kpis_gerais()
-        status_exec_data = await self.repo.get_status_execucao_geral()
-        severidade_data = await self.repo.get_defeitos_por_severidade()
-        modulos_data = await self.repo.get_modulos_com_mais_defeitos()
+    async def get_dashboard_data(self):
+        # 1. Buscar KPIs
+        kpis = await self.repo.get_kpis_gerais()
 
-        kpis = DashboardKPI(
-            total_projetos=kpis_data["total_projetos"],
-            total_ciclos_ativos=kpis_data["total_ciclos_ativos"],
-            total_casos_teste=kpis_data["total_casos_teste"],
-            taxa_sucesso_ciclos=kpis_data["taxa_sucesso_ciclos"],
-            
-            total_defeitos_abertos=kpis_data["total_defeitos_abertos"],
-            total_defeitos_criticos=kpis_data["total_defeitos_criticos"],
-            
-            # --- MUDANÇA AQUI ---
-            total_pendentes=kpis_data["total_pendentes"],
-            # --------------------
-            
-            total_aguardando_reteste=kpis_data["total_aguardando_reteste"]
-        )
+        # 2. Buscar dados para Gráficos
+        raw_status = await self.repo.get_status_execucao_geral()
+        raw_severidade = await self.repo.get_defeitos_por_severidade()
+        raw_modulos = await self.repo.get_modulos_com_mais_defeitos()
 
-        chart_status = []
-        color_map_status = {
-            StatusExecucaoEnum.passou: "#10b981",       
-            StatusExecucaoEnum.falhou: "#ef4444",       
-            StatusExecucaoEnum.bloqueado: "#f59e0b",    
-            StatusExecucaoEnum.pendente: "#cbd5e1",     
-            StatusExecucaoEnum.em_progresso: "#3b82f6"  
-        }
-        
-        for status, count in status_exec_data:
-            chart_status.append(ChartDataPoint(
-                label=status.value.upper(),
-                value=count,
-                color=color_map_status.get(status, "#64748b")
-            ))
-
-        chart_severidade = []
-        color_map_sev = {
-            SeveridadeDefeitoEnum.critico: "#7f1d1d",
-            SeveridadeDefeitoEnum.alto: "#b91c1c",
-            SeveridadeDefeitoEnum.medio: "#f59e0b",
-            SeveridadeDefeitoEnum.bajo: "#10b981"
+        # 3. Formatar Status Execução
+        # ATENÇÃO: Aqui definimos as cores apenas para os status que existem no Enum agora
+        status_colors = {
+            StatusExecucaoEnum.pendente: "#94a3b8",      # Cinza
+            StatusExecucaoEnum.em_progresso: "#3b82f6",  # Azul
+            StatusExecucaoEnum.reteste: "#f59e0b",       # Laranja/Amarelo
+            StatusExecucaoEnum.fechado: "#10b981",       # Verde
         }
 
-        for sev, count in severidade_data:
-            chart_severidade.append(ChartDataPoint(
-                label=sev.value.upper(),
-                value=count,
-                color=color_map_sev.get(sev, "#000000")
-            ))
-
-        chart_modulos = [
-            ChartDataPoint(label=nome, value=count) 
-            for nome, count in modulos_data
+        chart_status = [
+            {
+                "name": s.value, 
+                "label": s.value.replace("_", " ").title(),
+                "value": count,
+                "color": status_colors.get(s, "#cbd5e1")
+            }
+            for s, count in raw_status
         ]
 
-        charts = DashboardCharts(
-            status_execucao=chart_status,
-            defeitos_por_severidade=chart_severidade,
-            top_modulos_defeitos=chart_modulos
-        )
+        # 4. Formatar Defeitos por Severidade
+        severidade_colors = {
+            "critico": "#991b1b",
+            "alto": "#ef4444",
+            "medio": "#f59e0b",
+            "baixo": "#3b82f6"
+        }
+        
+        chart_severidade = [
+            {
+                "name": sev.value,
+                "label": sev.value.title(),
+                "value": count,
+                "color": severidade_colors.get(sev.value, "#8884d8")
+            }
+            for sev, count in raw_severidade
+        ]
 
-        return DashboardResponse(kpis=kpis, charts=charts)
+        # 5. Formatar Top Módulos
+        chart_modulos = [
+            {"name": nome, "value": count}
+            for nome, count in raw_modulos
+        ]
+
+        return {
+            "kpis": kpis,
+            "charts": {
+                "status_execucao": chart_status,
+                "defeitos_por_severidade": chart_severidade,
+                "top_modulos_defeitos": chart_modulos
+            }
+        }
