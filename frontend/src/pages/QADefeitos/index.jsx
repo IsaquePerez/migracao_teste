@@ -46,7 +46,7 @@ export function QADefeitos() {
   const [isRespOpen, setIsRespOpen] = useState(false);
   const respHeaderRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 5;
   const truncate = (str, n = 30) => (str && str.length > n) ? str.substr(0, n - 1) + '...' : str || '';
 
   // --- EFEITOS ---
