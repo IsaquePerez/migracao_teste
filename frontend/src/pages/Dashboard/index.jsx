@@ -189,7 +189,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="kpi-grid">
+      <div className="kpi-grid-dashboard-full">
         <div onClick={() => setActiveDetail('projetos')} style={{ cursor: 'pointer' }}>
           <KpiCard value={safeData.kpis.total_projetos || 0} label="PROJETOS ATIVOS" color="#3b82f6" gradient="linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)" />
         </div>
@@ -203,7 +203,7 @@ export function Dashboard() {
         <KpiCard value={safeData.kpis.total_aguardando_reteste || 0} label="AGUARDANDO RETESTE" color="#6366f1" gradient="linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)" />
       </div>
 
-      <div className="charts-grid">
+      <div className="charts-grid-dashboard-full">
         <div className="chart-card">
           <h3 className="chart-title">Status de Execução</h3>
           <ResponsiveContainer width="100%" height={300}>

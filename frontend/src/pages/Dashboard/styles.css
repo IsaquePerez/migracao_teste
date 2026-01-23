@@ -18,6 +18,13 @@
   margin-bottom: 30px;
 }
 
+.kpi-grid-dashboard-full {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); 
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
 .kpi-card {
   padding: 0px 24px;
   border-radius: 12px;
@@ -70,6 +77,12 @@
 }
 
 .charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.charts-grid-dashboard-full {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 20px;
