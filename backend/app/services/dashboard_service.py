@@ -8,37 +8,32 @@ from app.schemas.dashboard import (
 )
 
 class DashboardService:
-    # --- CONSTANTES VISUAIS ---
-    # Normalizamos as chaves para string (lowercase) para facilitar a busca
+    # Cores (Ajustado para os termos do Banco: PT-BR snake_case)
     STATUS_COLORS = {
         "pendente": "#94a3b8",      # Cinza
         "em_progresso": "#3b82f6",  # Azul
         "reteste": "#f59e0b",       # Laranja
-        "fechado": "#10b981",       # Verde
-        "bloqueado": "#ef4444",     # Vermelho
-        "passou": "#10b981",        # Verde (Compatibilidade)
-        "falhou": "#ef4444"         # Vermelho (Compatibilidade)
+        "fechado": "#10b981",       # Verde (Sucesso)
+        "bloqueado": "#ef4444"      # Vermelho
     }
 
     SEVERITY_COLORS = {
         "critico": "#991b1b",
         "alto": "#ef4444",
         "medio": "#f59e0b",
-        "baixo": "#3b82f6",
-        "low": "#3b82f6" # Compatibilidade
+        "baixo": "#3b82f6"
     }
 
     def __init__(self, db: AsyncSession):
         self.repo = DashboardRepository(db)
 
-    # --- DASHBOARD GERENCIAL (ADMIN) ---
     async def get_dashboard_data(self, sistema_id: int = None) -> DashboardResponse:
         kpis_data = await self.repo.get_kpis_gerais(sistema_id)
         exec_status_data = await self.repo.get_status_execucao_geral(sistema_id)
         severity_data = await self.repo.get_defeitos_por_severidade(sistema_id)
         modules_data = await self.repo.get_modulos_com_mais_defeitos(limit=5, sistema_id=sistema_id)
 
-        # Uso de .get() para evitar erro se o banco retornar dicionário vazio
+        # KPIs
         kpis = DashboardKPI(
             total_projetos=kpis_data.get("total_projetos", 0),
             total_ciclos_ativos=kpis_data.get("total_ciclos_ativos", 0),
@@ -51,18 +46,15 @@ class DashboardService:
             total_aguardando_reteste=kpis_data.get("total_aguardando_reteste", 0)
         )
 
+        # Gráficos
         charts = DashboardCharts(
             status_execucao=self._format_chart_data(exec_status_data, self.STATUS_COLORS),
             defeitos_por_severidade=self._format_chart_data(severity_data, self.SEVERITY_COLORS),
-            top_modulos_defeitos=[
-                ChartDataPoint(label=nome, name=nome, value=count) 
-                for nome, count in modules_data
-            ]
+            top_modulos_defeitos=[ChartDataPoint(label=nome, name=nome, value=count) for nome, count in modules_data]
         )
 
         return DashboardResponse(kpis=kpis, charts=charts)
 
-    # --- DASHBOARD OPERACIONAL (RUNNER) ---
     async def get_runner_dashboard_data(self, runner_id: Optional[int] = None) -> RunnerDashboardResponse:
         raw_kpis = await self.repo.get_runner_kpis(runner_id)
         status_dist = await self.repo.get_status_distribution(runner_id)
@@ -76,19 +68,14 @@ class DashboardService:
             ultima_atividade=raw_kpis.get("ultima_atividade", None)
         )
 
-        # Ranking (Apenas se não filtrar por runner específico, ex: visão de líder)
         ranking_data = []
         if not runner_id:
             ranking_raw = await self.repo.get_ranking_runners()
-            ranking_data = [
-                RunnerRankingData(label=name, value=total, color="#3b82f6") 
-                for name, total in ranking_raw
-            ]
+            ranking_data = [RunnerRankingData(label=name, value=total, color="#3b82f6") for name, total in ranking_raw]
 
-        # Distribuição de Status (reutiliza helper de cores)
         dist_data = [
             StatusDistributionData(
-                name=self._normalize_key(status).upper(),
+                name=self._normalize_key(status).upper().replace("_", " "),
                 value=count,
                 color=self.STATUS_COLORS.get(self._normalize_key(status), "#94a3b8")
             )
@@ -114,25 +101,19 @@ class DashboardService:
 
         return RunnerDashboardResponse(kpis=kpis, charts=charts)
 
-    # --- HELPERS PRIVADOS ---
-
     def _normalize_key(self, item: Any) -> str:
-        """Converte Enum ou String para string minúscula normalizada."""
-        if hasattr(item, 'value'):
-            return str(item.value).lower()
+        if hasattr(item, 'value'): return str(item.value).lower()
         return str(item).lower()
 
     def _format_chart_data(self, data: List[tuple], color_map: Dict) -> List[ChartDataPoint]:
-        """Gera lista de pontos para gráficos (Pizza/Barra) com cores."""
         chart_list = []
         for item, count in data:
             key_normalized = self._normalize_key(item)
+            # Remove underline e capitaliza para exibição
             label = key_normalized.replace("_", " ").title()
             
-            chart_list.append(ChartDataPoint(
-                label=label,
-                name=key_normalized,
-                value=count,
-                color=color_map.get(key_normalized, "#cbd5e1") # Cor padrão se não achar
-            ))
+            # Tentar pegar cor pela chave normalizada
+            color = color_map.get(key_normalized, "#cbd5e1")
+            
+            chart_list.append(ChartDataPoint(label=label, name=key_normalized, value=count, color=color))
         return chart_list

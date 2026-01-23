@@ -11,8 +11,10 @@ router = APIRouter()
 @router.get("/", response_model=RunnerDashboardResponse)
 async def get_runner_dashboard(
     current_user: Usuario = Depends(get_current_active_user),
-    db: AsyncSession = Depends(get_db) 
+    db: AsyncSession = Depends(get_db)
 ):
+    # --- CORREÇÃO AQUI ---
+    # Passamos o 'db' direto. Se passar 'repo', quebra.
     service = DashboardService(db)
     
     return await service.get_runner_dashboard_data(runner_id=current_user.id)

@@ -11,7 +11,6 @@ from app.models.usuario import Usuario
 from app.schemas.token import TokenPayload
 from app.repositories.usuario_repository import UsuarioRepository
 
-# Configuração do OAuth2
 reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/login/access-token"
 )
@@ -20,8 +19,9 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db), token: str = Depends(reusable_oauth2)
 ) -> Usuario:
     try:
+        # CORREÇÃO AQUI: settings.ALGORITHM
         payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         token_data = TokenPayload(**payload)
     except (JWTError, ValidationError):
@@ -30,16 +30,17 @@ async def get_current_user(
             detail="Could not validate credentials",
         )
     
-    # Usa o repositório para buscar o usuário
+    # GARANTE que o repo está sendo criado corretamente
     repo = UsuarioRepository(db)
-    user = await repo.get_by_id(token_data.sub)
+    
+    # GARANTE que o tipo de dado é int
+    user = await repo.get_by_id(user_id=int(token_data.sub))
     
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-# --- ESTA É A FUNÇÃO QUE ESTÁ FALTANDO ---
-async def get_current_active_user(
+def get_current_active_user(
     current_user: Usuario = Depends(get_current_user),
 ) -> Usuario:
     if not current_user.ativo:

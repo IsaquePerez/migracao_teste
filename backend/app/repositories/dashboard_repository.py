@@ -1,214 +1,252 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
+from sqlalchemy.future import select
+from sqlalchemy import func, desc, case, or_
 from typing import List, Dict, Any, Optional
+
+from app.models.modulo import Modulo
+from app.models.projeto import Projeto, StatusProjetoEnum
+from app.models.testing import (
+    CicloTeste, StatusCicloEnum, 
+    CasoTeste, 
+    Defeito, StatusDefeitoEnum, SeveridadeDefeitoEnum,
+    ExecucaoTeste, StatusExecucaoEnum
+)
+from app.models.usuario import Usuario
 
 class DashboardRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
     async def get_kpis_gerais(self, sistema_id: Optional[int] = None) -> Dict[str, Any]:
-        filtro_sistema = ""
-        params = {}
-        
+        # --- 1. PROJETOS ---
+        q_projetos = select(func.count(Projeto.id)).where(Projeto.status == StatusProjetoEnum.ativo)
         if sistema_id:
-            filtro_sistema = "JOIN casos_teste ct ON et.caso_teste_id = ct.id WHERE ct.projeto_id IN (SELECT id FROM projetos WHERE sistema_id = :sistema_id)"
-            params["sistema_id"] = sistema_id
+            q_projetos = q_projetos.where(Projeto.sistema_id == sistema_id)
 
-        q_projetos = text("SELECT COUNT(*) FROM projetos WHERE status = 'ativo'")
-        q_ciclos = text("SELECT COUNT(*) FROM ciclos_teste WHERE status = 'ativo'")
-        
-        base_exec = f"""
-            SELECT 
-                COUNT(*) as total,
-                SUM(CASE WHEN status_geral = 'passou' THEN 1 ELSE 0 END) as passou,
-                SUM(CASE WHEN status_geral IN ('pendente', 'em_progresso') THEN 1 ELSE 0 END) as pendente,
-                SUM(CASE WHEN status_geral = 'bloqueado' THEN 1 ELSE 0 END) as bloqueado,
-                SUM(CASE WHEN status_geral = 'reteste' THEN 1 ELSE 0 END) as reteste
-            FROM execucoes_teste et
-            {filtro_sistema}
-        """
-        q_exec = text(base_exec)
-        
-        q_defeitos = text("""
-            SELECT 
-                COUNT(*) as total_abertos,
-                SUM(CASE WHEN severidade = 'critico' THEN 1 ELSE 0 END) as criticos
-            FROM defeitos d
-            WHERE status != 'fechado'
-        """)
+        # --- 2. CICLOS ---
+        q_ciclos = select(func.count(CicloTeste.id)).join(Projeto).where(
+            CicloTeste.status.in_([StatusCicloEnum.em_execucao, StatusCicloEnum.planejado])
+        )
+        if sistema_id:
+            q_ciclos = q_ciclos.where(Projeto.sistema_id == sistema_id)
 
-        # --- AQUI ESTÁ A MUDANÇA CRÍTICA PARA EVITAR O ERRO ---
-        # Usamos await direto no execute da sessão
-        
-        # Projetos
-        res_proj = await self.db.execute(q_projetos)
-        total_projetos = res_proj.scalar() or 0
+        # --- 3. CASOS DE TESTE ---
+        q_casos = select(func.count(CasoTeste.id)).join(Projeto)
+        if sistema_id:
+            q_casos = q_casos.where(Projeto.sistema_id == sistema_id)
 
-        # Ciclos
-        res_ciclos = await self.db.execute(q_ciclos)
-        total_ciclos = res_ciclos.scalar() or 0
-        
-        # Execuções
-        res_exec = await self.db.execute(q_exec, params)
-        exec_row = res_exec.first() # Pega a primeira linha
-        
-        # Extração segura dos dados da linha
-        total_exec = getattr(exec_row, 'total', 0) if exec_row else 0
-        passou = getattr(exec_row, 'passou', 0) if exec_row else 0
-        pendente = getattr(exec_row, 'pendente', 0) if exec_row else 0
-        bloqueado = getattr(exec_row, 'bloqueado', 0) if exec_row else 0
-        reteste = getattr(exec_row, 'reteste', 0) if exec_row else 0
+        # --- 4. DEFEITOS ABERTOS ---
+        q_defeitos_abertos = (
+            select(func.count(Defeito.id))
+            .join(Defeito.execucao)
+            .join(ExecucaoTeste.caso_teste)
+            .join(CasoTeste.projeto)
+            .where(Defeito.status.in_([StatusDefeitoEnum.aberto, StatusDefeitoEnum.em_teste]))
+        )
+        if sistema_id:
+            q_defeitos_abertos = q_defeitos_abertos.where(Projeto.sistema_id == sistema_id)
 
-        # Defeitos
-        res_def = await self.db.execute(q_defeitos)
-        def_row = res_def.first()
-        total_defeitos = getattr(def_row, 'total_abertos', 0) if def_row else 0
-        total_criticos = getattr(def_row, 'criticos', 0) if def_row else 0
+        # --- 5. DEFEITOS CRITICOS/ALTOS ---
+        q_criticos = (
+            select(func.count(Defeito.id))
+            .join(Defeito.execucao)
+            .join(ExecucaoTeste.caso_teste)
+            .join(CasoTeste.projeto)
+            .where(
+                Defeito.status != StatusDefeitoEnum.fechado,
+                Defeito.severidade.in_([SeveridadeDefeitoEnum.critico, SeveridadeDefeitoEnum.alto])
+            )
+        )
+        if sistema_id:
+            q_criticos = q_criticos.where(Projeto.sistema_id == sistema_id)
 
-        taxa = 0.0
-        if total_exec > 0 and passou: # Garante que passou não seja None
-            taxa = round((float(passou) / total_exec) * 100, 1)
+        # --- 6. AGUARDANDO RETESTE (Defeitos corrigidos) ---
+        q_reteste = (
+            select(func.count(Defeito.id))
+            .join(Defeito.execucao)
+            .join(ExecucaoTeste.caso_teste)
+            .join(CasoTeste.projeto)
+            .where(Defeito.status == StatusDefeitoEnum.corrigido)
+        )
+        if sistema_id:
+            q_reteste = q_reteste.where(Projeto.sistema_id == sistema_id)
+
+        # --- 7. EXECUÇÕES PENDENTES E BLOQUEADAS ---
+        # Query base para execuções
+        q_exec_base = (
+            select(
+                func.sum(case((ExecucaoTeste.status_geral.in_([StatusExecucaoEnum.pendente, StatusExecucaoEnum.em_progresso]), 1), else_=0)),
+                func.sum(case((ExecucaoTeste.status_geral == StatusExecucaoEnum.bloqueado, 1), else_=0)),
+                func.sum(case((ExecucaoTeste.status_geral == StatusExecucaoEnum.reteste, 1), else_=0))
+            )
+            .join(ExecucaoTeste.caso_teste)
+            .join(CasoTeste.projeto)
+        )
+        if sistema_id:
+            q_exec_base = q_exec_base.where(Projeto.sistema_id == sistema_id)
+
+        # --- 8. FINALIZADOS (Para taxa de sucesso) ---
+        q_finalizados = (
+            select(func.count(ExecucaoTeste.id))
+            .join(ExecucaoTeste.caso_teste)
+            .join(CasoTeste.projeto)
+            .where(ExecucaoTeste.status_geral == StatusExecucaoEnum.fechado)
+        )
+        if sistema_id:
+            q_finalizados = q_finalizados.where(Projeto.sistema_id == sistema_id)
+
+        # --- EXECUÇÃO DAS QUERIES ---
+        total_projetos = (await self.db.execute(q_projetos)).scalar() or 0
+        total_ciclos = (await self.db.execute(q_ciclos)).scalar() or 0
+        total_casos = (await self.db.execute(q_casos)).scalar() or 0
+        total_defeitos = (await self.db.execute(q_defeitos_abertos)).scalar() or 0
+        total_criticos = (await self.db.execute(q_criticos)).scalar() or 0
+        total_reteste_def = (await self.db.execute(q_reteste)).scalar() or 0
+        
+        exec_stats = (await self.db.execute(q_exec_base)).first()
+        pendentes = exec_stats[0] or 0
+        bloqueados = exec_stats[1] or 0
+        aguardando_reteste_exec = exec_stats[2] or 0 # Execuções em reteste
+
+        # Você pode decidir se usa defeitos corrigidos ou execuções em reteste para o KPI 'total_aguardando_reteste'
+        # Aqui somamos para garantir cobertura
+        total_aguardando_reteste = total_reteste_def + aguardando_reteste_exec
+        
+        tot_fin = (await self.db.execute(q_finalizados)).scalar() or 0
+        
+        # Cálculo da taxa (Finalizados / (Pendentes + Finalizados)) ou sobre o total
+        # Usando lógica simples: Concluídos / (Concluídos + Pendentes)
+        denominador = pendentes + tot_fin
+        taxa = round((tot_fin / denominador * 100), 1) if denominador > 0 else 0.0
 
         return {
             "total_projetos": total_projetos,
             "total_ciclos_ativos": total_ciclos,
-            "total_casos_teste": total_exec,
+            "total_casos_teste": total_casos,
             "taxa_sucesso_ciclos": taxa,
             "total_defeitos_abertos": total_defeitos,
             "total_defeitos_criticos": total_criticos,
-            "total_pendentes": pendente,
-            "total_bloqueados": bloqueado,
-            "total_aguardando_reteste": reteste
+            "total_pendentes": pendentes,
+            "total_bloqueados": bloqueados,
+            "total_aguardando_reteste": total_aguardando_reteste
         }
 
     async def get_status_execucao_geral(self, sistema_id: Optional[int] = None) -> List[tuple]:
-        filtro = ""
-        params = {}
+        query = (
+            select(ExecucaoTeste.status_geral, func.count(ExecucaoTeste.id))
+            .join(ExecucaoTeste.caso_teste)
+            .join(CasoTeste.projeto)
+            .group_by(ExecucaoTeste.status_geral)
+        )
         if sistema_id:
-            filtro = "JOIN casos_teste ct ON et.caso_teste_id = ct.id JOIN projetos p ON ct.projeto_id = p.id WHERE p.sistema_id = :sistema_id"
-            params["sistema_id"] = sistema_id
-
-        query = text(f"""
-            SELECT status_geral, COUNT(*) 
-            FROM execucoes_teste et
-            {filtro}
-            GROUP BY status_geral
-        """)
-        result = await self.db.execute(query, params)
+            query = query.where(Projeto.sistema_id == sistema_id)
+            
+        result = await self.db.execute(query)
         return result.all()
 
     async def get_defeitos_por_severidade(self, sistema_id: Optional[int] = None) -> List[tuple]:
-        filtro = ""
-        params = {}
+        query = (
+            select(Defeito.severidade, func.count(Defeito.id))
+            .join(Defeito.execucao)
+            .join(ExecucaoTeste.caso_teste)
+            .join(CasoTeste.projeto)
+            .where(Defeito.status != StatusDefeitoEnum.fechado)
+            .group_by(Defeito.severidade)
+        )
         if sistema_id:
-            filtro = "JOIN execucoes_teste et ON d.execucao_teste_id = et.id JOIN casos_teste ct ON et.caso_teste_id = ct.id JOIN projetos p ON ct.projeto_id = p.id WHERE p.sistema_id = :sistema_id"
-            params["sistema_id"] = sistema_id
-
-        query = text(f"""
-            SELECT severidade, COUNT(*) 
-            FROM defeitos d
-            {filtro}
-            GROUP BY severidade
-        """)
-        result = await self.db.execute(query, params)
+            query = query.where(Projeto.sistema_id == sistema_id)
+            
+        result = await self.db.execute(query)
         return result.all()
-
-    async def get_modulos_com_mais_defeitos(self, limit: int = 5, sistema_id: Optional[int] = None) -> List[tuple]:
-        filtro = ""
-        params = {"limit": limit}
-        if sistema_id:
-            filtro = "WHERE p.sistema_id = :sistema_id"
-            params["sistema_id"] = sistema_id
-
-        query = text(f"""
-            SELECT p.nome as modulo, COUNT(d.id) as total
-            FROM defeitos d
-            JOIN execucoes_teste et ON d.execucao_teste_id = et.id
-            JOIN casos_teste ct ON et.caso_teste_id = ct.id
-            JOIN projetos p ON ct.projeto_id = p.id
-            {filtro}
-            GROUP BY p.nome
-            ORDER BY total DESC
-            LIMIT :limit
-        """)
-        result = await self.db.execute(query, params)
-        return result.all()
-
-    # --- MÉTODOS DO DASHBOARD DO RUNNER ---
     
-    async def get_runner_kpis(self, runner_id: int) -> Dict[str, Any]:
-        params = {"rid": runner_id}
+    async def get_modulos_com_mais_defeitos(self, limit: int = 5, sistema_id: Optional[int] = None) -> List[tuple]:
+        query = (
+            select(Modulo.nome, func.count(Defeito.id))
+            .select_from(Defeito)
+            .join(Defeito.execucao)
+            .join(ExecucaoTeste.caso_teste)
+            .join(CasoTeste.projeto)
+            .join(Projeto.modulo)
+            .group_by(Modulo.nome)
+            .order_by(desc(func.count(Defeito.id)))
+            .limit(limit)
+        )
         
-        q_concluidos = text("SELECT COUNT(*) FROM execucoes_teste WHERE responsavel_id = :rid AND status_geral NOT IN ('pendente', 'em_progresso')")
-        q_defeitos = text("SELECT COUNT(*) FROM defeitos d JOIN execucoes_teste et ON d.execucao_teste_id = et.id WHERE et.responsavel_id = :rid")
-        q_fila = text("SELECT COUNT(*) FROM execucoes_teste WHERE responsavel_id = :rid AND status_geral = 'pendente'")
-        q_last = text("SELECT MAX(updated_at) FROM execucoes_teste WHERE responsavel_id = :rid")
+        if sistema_id:
+            query = query.where(Projeto.sistema_id == sistema_id)
 
-        # Execução individual
-        res_conc = await self.db.execute(q_concluidos, params)
-        total_concluidos = res_conc.scalar() or 0
-        
-        res_def = await self.db.execute(q_defeitos, params)
-        total_defeitos = res_def.scalar() or 0
-        
-        res_fila = await self.db.execute(q_fila, params)
-        total_fila = res_fila.scalar() or 0
-        
-        res_last = await self.db.execute(q_last, params)
-        ultima_atividade = res_last.scalar()
+        result = await self.db.execute(query)
+        return result.all()
+
+    # --- MÉTODOS RUNNER (Convertidos para ORM) ---
+    async def get_runner_kpis(self, runner_id: int) -> Dict[str, Any]:
+        # Concluídos (Fechado ou Bloqueado)
+        q_concluidos = select(func.count(ExecucaoTeste.id)).where(
+            ExecucaoTeste.responsavel_id == runner_id,
+            ExecucaoTeste.status_geral.in_([StatusExecucaoEnum.fechado, StatusExecucaoEnum.bloqueado])
+        )
+
+        # Defeitos reportados pelo runner
+        q_defeitos = select(func.count(Defeito.id)).join(Defeito.execucao).where(
+            ExecucaoTeste.responsavel_id == runner_id
+        )
+
+        # Fila (Pendentes)
+        q_fila = select(func.count(ExecucaoTeste.id)).where(
+            ExecucaoTeste.responsavel_id == runner_id,
+            ExecucaoTeste.status_geral == StatusExecucaoEnum.pendente
+        )
+
+        # Última atividade
+        q_last = select(func.max(ExecucaoTeste.updated_at)).where(
+            ExecucaoTeste.responsavel_id == runner_id
+        )
+
+        total_concluidos = (await self.db.execute(q_concluidos)).scalar() or 0
+        total_defeitos = (await self.db.execute(q_defeitos)).scalar() or 0
+        total_fila = (await self.db.execute(q_fila)).scalar() or 0
+        ultima_atividade = (await self.db.execute(q_last)).scalar()
 
         return {
             "total_concluidos": total_concluidos,
             "total_defeitos": total_defeitos,
-            "tempo_medio_minutos": 0.0,
+            "tempo_medio_minutos": 0.0, # Placeholder
             "total_fila": total_fila,
             "ultima_atividade": ultima_atividade
         }
 
     async def get_status_distribution(self, runner_id: Optional[int] = None) -> List[tuple]:
-        where_clause = "WHERE responsavel_id = :rid" if runner_id else ""
-        params = {"rid": runner_id} if runner_id else {}
+        query = select(ExecucaoTeste.status_geral, func.count(ExecucaoTeste.id)).group_by(ExecucaoTeste.status_geral)
+        if runner_id:
+            query = query.where(ExecucaoTeste.responsavel_id == runner_id)
         
-        query = text(f"""
-            SELECT status_geral, COUNT(*) 
-            FROM execucoes_teste 
-            {where_clause}
-            GROUP BY status_geral
-        """)
-        result = await self.db.execute(query, params)
+        result = await self.db.execute(query)
         return result.all()
 
     async def get_runner_timeline(self, runner_id: Optional[int] = None, limit: int = 10):
-        # Aqui precisamos usar o select do ORM para trazer relacionamentos
-        from sqlalchemy import select
+        # Para timeline, precisamos carregar os relacionamentos para exibir nomes
         from sqlalchemy.orm import selectinload
-        from app.models.testing import ExecucaoTeste
         
-        stmt = (
+        query = (
             select(ExecucaoTeste)
-            .options(
-                selectinload(ExecucaoTeste.caso_teste),
-                selectinload(ExecucaoTeste.responsavel)
-            )
-            .order_by(ExecucaoTeste.updated_at.desc())
+            .options(selectinload(ExecucaoTeste.caso_teste), selectinload(ExecucaoTeste.responsavel))
+            .order_by(desc(ExecucaoTeste.updated_at))
             .limit(limit)
         )
-        
         if runner_id:
-            stmt = stmt.where(ExecucaoTeste.responsavel_id == runner_id)
+            query = query.where(ExecucaoTeste.responsavel_id == runner_id)
             
-        result = await self.db.execute(stmt)
+        result = await self.db.execute(query)
         return result.scalars().all()
 
     async def get_ranking_runners(self, limit: int = 5) -> List[tuple]:
-        query = text("""
-            SELECT u.nome, COUNT(et.id) as total
-            FROM usuarios u
-            JOIN execucoes_teste et ON u.id = et.responsavel_id
-            WHERE et.status_geral = 'passou' OR et.status_geral = 'falhou'
-            GROUP BY u.nome
-            ORDER BY total DESC
-            LIMIT :limit
-        """)
-        result = await self.db.execute(query, {"limit": limit})
+        query = (
+            select(Usuario.nome, func.count(ExecucaoTeste.id))
+            .join(ExecucaoTeste, Usuario.id == ExecucaoTeste.responsavel_id)
+            .where(ExecucaoTeste.status_geral.in_([StatusExecucaoEnum.fechado, StatusExecucaoEnum.bloqueado]))
+            .group_by(Usuario.nome)
+            .order_by(desc(func.count(ExecucaoTeste.id)))
+            .limit(limit)
+        )
+        result = await self.db.execute(query)
         return result.all()
