@@ -41,7 +41,7 @@ class SeveridadeDefeitoEnum(str, enum.Enum):
     critico = "critico"
     alto = "alto"
     medio = "medio"
-    bajo = "baixo"
+    baixo = "baixo"
 
 class StatusCasoTesteEnum(str, enum.Enum):
     rascunho = "rascunho"   

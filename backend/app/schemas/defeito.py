@@ -12,7 +12,7 @@ class DefeitoBase(BaseModel):
     evidencias: Optional[Union[List[str], str]] = [] 
     severidade: SeveridadeDefeitoEnum = SeveridadeDefeitoEnum.medio
     status: StatusDefeitoEnum = StatusDefeitoEnum.aberto
-    execucao_teste_id: int 
+    execucao_teste_id: Optional[int] = None
 
     # --- VALIDADOR BLINDADO (Essencial para a galeria de imagens) ---
     @field_validator('evidencias', mode='before')

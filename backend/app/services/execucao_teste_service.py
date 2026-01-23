@@ -26,8 +26,8 @@ class ExecucaoTesteService:
                 status_enum = StatusExecucaoEnum(status)
             except ValueError:
                 pass 
-
-        execucoes = await self.repo.get_by_responsavel(usuario_id, status_enum, skip, limit)
+        execucoes = await self.repo.get_minhas_execucoes(usuario_id, status_enum, skip, limit)
+        
         return [ExecucaoTesteResponse.model_validate(e) for e in execucoes]
 
     async def obter_execucao(self, execucao_id: int) -> Optional[ExecucaoTesteResponse]:
@@ -64,9 +64,7 @@ class ExecucaoTesteService:
             # Se ainda assim falhar, loga ou lança erro mais claro, mas vamos tentar prosseguir
             pass
         
-        # -----------------------------------------------------
-
-        passo_atual = await self.repo.get_passo_by_id(passo_id)
+        passo_atual = await self.repo.get_execucao_passo(passo_id)
         if not passo_atual:
             raise HTTPException(status_code=404, detail="Passo de execução não encontrado")
 
