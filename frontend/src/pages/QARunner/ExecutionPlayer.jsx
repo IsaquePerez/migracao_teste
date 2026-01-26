@@ -14,7 +14,8 @@ export function ExecutionPlayer({
     );
   }
 
-  const passosOrdenados = execution.passos_executados?.sort((a, b) => a.passo_caso_teste?.ordem - b.passo_caso_teste?.ordem) || [];
+  // CORREÇÃO 1: Alterado de passo_caso_teste para passo_template na ordenação
+  const passosOrdenados = execution.passos_executados?.sort((a, b) => a.passo_template?.ordem - b.passo_template?.ordem) || [];
 
   return (
     <div className={styles.playerContainer}>
@@ -44,8 +45,6 @@ export function ExecutionPlayer({
           const status = passo.status || 'pendente';
           const evidencias = passo.evidencias || []; 
           const hasEvidences = Array.isArray(evidencias) && evidencias.length > 0;
-
-          // Sem isStepLocked complexo, apenas readOnly bloqueia
           const isStepLocked = readOnly;
 
           return (
@@ -56,11 +55,12 @@ export function ExecutionPlayer({
               </div>
 
               <div className={styles.stepContent}>
+                {/* CORREÇÃO 2: Alterado para passo_template */}
                 <div className={styles.stepInfo}>
-                  <strong>Ação:</strong> {passo.passo_caso_teste?.acao}
+                  <strong>Ação:</strong> {passo.passo_template?.acao}
                 </div>
                 <div className={styles.stepInfo}>
-                  <strong>Resultado Esperado:</strong> {passo.passo_caso_teste?.resultado_esperado}
+                  <strong>Resultado Esperado:</strong> {passo.passo_template?.resultado_esperado}
                 </div>
               </div>
 

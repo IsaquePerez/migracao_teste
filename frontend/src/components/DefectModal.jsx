@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { api } from '../services/api'; 
-import { X, CheckCircle, ExternalLink, AlertTriangle, Calendar } from 'lucide-react'; // Adicionei ícone Calendar
+import { X, CheckCircle, ExternalLink, AlertTriangle, Calendar } from 'lucide-react';
 import { useSnackbar } from '../context/SnackbarContext';
+import { useAuth } from '../context/AuthContext'; // [Alteração 1] Importação do contexto
 import './DefectModal.css';
 
 export function DefectModal({ executionGroup, onClose }) {
   if (!executionGroup) return null;
 
+  const { user } = useAuth(); // [Alteração 2] Acesso ao usuário logado
   const [processing, setProcessing] = useState(false);
   const { success, error } = useSnackbar();
 
@@ -84,7 +86,6 @@ export function DefectModal({ executionGroup, onClose }) {
                   </div>
                   
                   <div className="header-right-group">
-                    {/* AQUI ESTÁ A DATA ESPECÍFICA DO PASSO/DEFEITO */}
                     <span className="defect-timestamp" title="Data do reporte">
                         <Calendar size={12} style={{marginRight: '4px'}} />
                         {formatDateTime(defect.created_at)}
@@ -128,17 +129,20 @@ export function DefectModal({ executionGroup, onClose }) {
             Analisar Depois
           </button>
           
-          <button 
-            className="btn-success" 
-            onClick={handleFixAll} 
-            disabled={processing}
-          >
-            {processing ? 'Processando...' : (
-              <>
-                Corrigir Tudo e Retestar
-              </>
-            )}
-          </button>
+          {/* [Alteração 3] Botão renderizado apenas se o usuário NÃO for runner */}
+          {user?.role !== 'user' && (
+            <button 
+                className="btn-success" 
+                onClick={handleFixAll} 
+                disabled={processing}
+            >
+                {processing ? 'Processando...' : (
+                <>
+                    Corrigir Tudo e Retestar
+                </>
+                )}
+            </button>
+          )}
         </div>
 
       </div>

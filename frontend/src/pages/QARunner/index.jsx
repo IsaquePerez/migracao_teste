@@ -9,8 +9,6 @@ import { ExecutionPlayer } from './ExecutionPlayer';
 import { EvidenceGallery } from './EvidenceGallery';
 import styles from './styles.module.css';
 
-
-
 export function QARunner() {
   const [tarefas, setTarefas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -173,7 +171,9 @@ export function QARunner() {
       const evidenciasJSON = JSON.stringify(listaFinalEvidencias);
 
       const passoAtual = activeExecucao.passos_executados.find(p => p.id === currentStepId);
-      const nomeAcaoPasso = passoAtual?.passo_caso_teste?.acao || "Passo desconhecido";
+      
+      // === CORREÇÃO AQUI: Mudado de passo_caso_teste para passo_template ===
+      const nomeAcaoPasso = passoAtual?.passo_template?.acao || "Passo desconhecido";
       const tituloCompleto = `${defectInfo.titulo} (Passo: ${nomeAcaoPasso})`;
 
       const newDefect = { 
