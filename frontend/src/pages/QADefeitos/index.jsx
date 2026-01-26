@@ -218,7 +218,7 @@ export function QADefeitos() {
                         <thead>
                             <tr>
                                 <th style={{width: '60px'}}>ID Exec</th>
-                                <th style={{width: '30%'}}>Projeto / Caso de Teste</th>
+                                <th style={{width: '30%'}}>Caso de Teste / Projeto </th>
                                 <th style={{width: '20%'}}>Runner</th>
                                 
                                 <th style={{width: '20%', textAlign: 'center'}}>
@@ -250,8 +250,8 @@ export function QADefeitos() {
                                     <tr key={group.id} onClick={() => handleRowClick(group)} className="selectable-row" title="Clique para gerenciar falhas">
                                         <td className="cell-id">#{group.id}</td>
                                         <td>
-                                            <div className="cell-name">{truncate(group.projeto_nome, 25)}</div>
-                                            <div style={{fontSize: '0.8rem', color: '#64748b'}}>{truncate(group.caso_teste_nome, 40)}</div>
+                                            <div>{truncate(group.caso_teste_nome, 40)}</div>
+                                            <div style={{fontSize: '0.8rem', color: '#64748b'}} className="cell-name">{truncate(group.projeto_nome, 25)}</div>
                                         </td>
                                         <td><span className="cell-resp">{truncate(group.responsavel_teste_nome, 20)}</span></td>
                                         
