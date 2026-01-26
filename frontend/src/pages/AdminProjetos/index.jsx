@@ -388,7 +388,7 @@ export function AdminProjetos() {
                        </thead>
                        <tbody>
                          {filteredData.length === 0 ? (
-                            <tr><td colSpan="6" className="no-results" style={{textAlign: 'center', padding: '20px'}}>Nenhum projeto encontrado com os filtros atuais.</td></tr>
+                            <tr><td colSpan="6" className="no-results" style={{textAlign: 'center', padding: '20px'}}>Nenhum projeto encontrado.</td></tr>
                          ) : (
                              currentData.map(item => (
                                 <tr key={item.id} className="selectable" onClick={() => handleEdit(item)}>

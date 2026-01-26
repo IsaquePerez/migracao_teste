@@ -1,14 +1,21 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Chevron } from './icons/Chevron';
-import { useState } from 'react';
-
+import { useEffect, useState } from 'react';
 
 export function Sidebar({ role, isOpen, closeSidebar }) {
   const location = useLocation();
 
-  const [isDashboardsOpen, setIsDashboardsOpen] = useState(
-    location.pathname === '/admin' || location.pathname === '/admin/performance'
-  );
+  const isDashboardsActive = location.pathname === '/admin' || location.pathname === '/admin/performance';
+
+  const [isDashboardsOpen, setIsDashboardsOpen] = useState(isDashboardsActive);
+
+  useEffect(() => {
+    if (isDashboardsActive) {
+      setIsDashboardsOpen(true);
+    } else {
+      setIsDashboardsOpen(false);
+    }
+  }, [isDashboardsActive]);
   
   const isActive = (path) => location.pathname === path ? 'active' : '';
 
@@ -22,6 +29,11 @@ export function Sidebar({ role, isOpen, closeSidebar }) {
     if (window.innerWidth < 768) {
       closeSidebar(); 
     }
+  };
+
+  const handleExternalClick = () => {
+    setIsDashboardsOpen(false);
+    handleNavClick();
   };
 
   return (
@@ -47,25 +59,19 @@ export function Sidebar({ role, isOpen, closeSidebar }) {
               <div className="nav-section">ADMINISTRAÇÃO</div>
 
               <div
-                onMouseEnter={toggleDashboards}
-                onMouseLeave={toggleDashboards}
+                className="nav-item-parent"
+                onClick={toggleDashboards}
               >
-                <div
-                  className="nav-item-parent"
-                  onClick={() => setIsDashboardsOpen(!isDashboardsOpen)}
-                >
-                  <span>Paineis</span>
-                  <Chevron isOpen={isDashboardsOpen} />
-                </div>
-
-                {isDashboardsOpen && (
-                  <div className="nav-submenu">
-                    <Link to="/admin" className={isActive('/admin')}>Execução</Link>
-                    <Link to="/admin/performance" className={isActive('/admin/performance')}>Time de Testadores</Link>
-                  </div>
-                )}
-
+                <span>Paineis</span>
+                <Chevron isOpen={isDashboardsOpen} />
               </div>
+
+              {isDashboardsOpen && (
+                <div className="nav-submenu">
+                  <Link to="/admin" className={isActive('/admin')}>Execução</Link>
+                  <Link to="/admin/performance" className={isActive('/admin/performance')}>Time de Testadores</Link>
+                </div>
+              )}
               
               <Link to="/admin/users" className={isActive('/admin/users')}>Acessos</Link>
               

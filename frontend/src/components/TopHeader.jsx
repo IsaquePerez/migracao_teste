@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Logout } from './icons/Logout';
+import { List } from './icons/List';
 
 export function TopHeader({ toggleSidebar }) {
   const { user, logout } = useAuth();
@@ -13,7 +14,7 @@ export function TopHeader({ toggleSidebar }) {
   return (
     <header className="top-header">
       <div style={{ display: 'flex', alignItems: 'center' }}>
-        <button className="btn-mobile-menu" onClick={toggleSidebar} title="Abrir Menu">☰</button>
+        <button className="btn-mobile-menu" onClick={toggleSidebar} title="Abrir Menu"><List /></button>
         
         <div style={{ 
             marginLeft: '-10px', 
@@ -29,7 +30,9 @@ export function TopHeader({ toggleSidebar }) {
                 height: '40px', 
                 marginRight: '8px',
                 transition: 'all 0.3s ease',
-                transform: isHovered ? 'scale(1.2)' : 'scale(1.0)'
+                transform: isHovered ? 'scale(1.2)' : 'scale(1.0)',
+                filter: 'drop-shadow(0px 5px 10px rgba(0,0,0, 0.5))'
+                // filter: 'drop-shadow(0px 5px 10px rgba(100,100,100, 0.5))' (adicionar quando tiver tema claro/escuro)
               }} 
             />
         </div>
