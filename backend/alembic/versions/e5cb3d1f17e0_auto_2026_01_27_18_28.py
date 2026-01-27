@@ -1,8 +1,8 @@
-"""Auto: 2026-01-23 14:12
+"""Auto: 2026-01-27 18:28
 
-Revision ID: 628fab6bb5ce
+Revision ID: e5cb3d1f17e0
 Revises: 
-Create Date: 2026-01-23 14:12:15.473257
+Create Date: 2026-01-27 18:28:39.369770
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '628fab6bb5ce'
+revision: str = 'e5cb3d1f17e0'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -189,7 +189,7 @@ def upgrade() -> None:
     sa.Column('descricao', sa.Text(), nullable=False),
     sa.Column('evidencias', sa.Text(), nullable=True),
     sa.Column('logs_erro', sa.Text(), nullable=True),
-    sa.Column('severidade', sa.Enum('critico', 'alto', 'medio', 'bajo', name='severidade_defeito_enum'), nullable=False),
+    sa.Column('severidade', sa.Enum('critico', 'alto', 'medio', 'baixo', name='severidade_defeito_enum'), nullable=False),
     sa.Column('status', sa.Enum('aberto', 'em_teste', 'corrigido', 'fechado', name='status_defeito_enum'), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
