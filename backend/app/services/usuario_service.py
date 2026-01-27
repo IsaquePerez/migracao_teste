@@ -13,18 +13,19 @@ class UsuarioService:
     def __init__(self, db: AsyncSession):
         self.repo = UsuarioRepository(db)
 
+    # GET
     async def get_all_usuarios(self, ativo: Optional[bool] = None) -> Sequence[UsuarioResponse]:
         db_usuarios = await self.repo.get_all_usuarios(ativo) 
         return [UsuarioResponse.model_validate(u) for u in db_usuarios]
     
     async def get_usuario_by_id(self, usuario_id: int) -> Optional[UsuarioResponse]:
-        db_usuarios = await self.repo.get_usuario_by_id(usuario_id)
+        db_usuarios = await self.repo.get_by_id(usuario_id)
         if db_usuarios:
             return UsuarioResponse.model_validate(db_usuarios)
         return None
 
+    # CREATE
     async def create_usuario(self, usuario_data: UsuarioCreate) -> UsuarioResponse:
-        # Service cria o objeto ORM e faz o hash da senha
         db_usuario = Usuario(
             nome=usuario_data.nome,
             username=usuario_data.username,
@@ -35,7 +36,6 @@ class UsuarioService:
         )
         
         try:
-            # Chama o método corrigido no repo passando o objeto ORM
             novo_usuario_db = await self.repo.create_usuario(db_usuario)
             return UsuarioResponse.model_validate(novo_usuario_db)
         except IntegrityError as e:
@@ -45,19 +45,19 @@ class UsuarioService:
                 "email": "Email já existente."
             })
 
+    # UPDATE
     async def update_usuario(self, usuario_id: int, usuario_data: UsuarioUpdate) -> Optional[UsuarioResponse]:
-        update_user = usuario_data.model_dump(exclude_unset=True)
-        
-        if 'senha' in update_user:
-            update_user['senha_hash'] = get_password_hash(update_user.pop('senha'))
-        else:
-            update_user.pop('senha', None)
+        db_usuario = await self.repo.get_by_id(usuario_id)
+        if not db_usuario:
+            return None
 
-        if not update_user:
-            raise HTTPException(status_code=400, detail="Nenhum dado fornecido para atualização.")
+        if usuario_data.senha:
+            usuario_data.senha = get_password_hash(usuario_data.senha)
+        
+        if not usuario_data.model_dump(exclude_unset=True):
+             raise HTTPException(status_code=400, detail="Nenhum dado fornecido para atualização.")
 
         try:
-            # Chama o método corrigido no repo
             usuario_atualizado_db = await self.repo.update_usuario(usuario_id, update_user)
             if usuario_atualizado_db:
                 return UsuarioResponse.model_validate(usuario_atualizado_db)
@@ -69,18 +69,27 @@ class UsuarioService:
                 "email": "Este email já está em uso por outra pessoa."
             })
 
+    # DELETE
     async def delete_usuario(self, usuario_id: int) -> bool:
-        usuario_alvo = await self.repo.get_usuario_by_id(usuario_id)        
+        usuario_alvo = await self.repo.get_by_id(usuario_id)        
+        
         if not usuario_alvo:
             return False 
-        
-        if usuario_alvo.nivel_acesso and usuario_alvo.nivel_acesso.nome == 'admin':
-            raise HTTPException(status_code=403, detail="Ação negada: Não é permitido excluir administradores.")
+        if usuario_alvo.nivel_acesso and usuario_alvo.nivel_acesso.nome.lower() == 'admin':
+            raise HTTPException(
+                status_code=403, 
+                detail="Ação negada: Não é permitido excluir usuários com perfil de Administrador."
+            )
+        if usuario_alvo.ativo:
+            raise HTTPException(
+                status_code=400, 
+                detail="Ação negada: O usuário deve estar DESATIVADO antes de ser excluído permanentemente."
+            )
 
         try:
-            return await self.repo.delete_usuario(usuario_id)
+            return await self.repo.delete(usuario_id)
         except IntegrityError as e:
             await self.repo.db.rollback()
             tratar_erro_integridade(e, {
-                "foreign key": "Não é possível excluir este utilizador pois ele possui registos vinculados."
+                "foreign key": "Não é possível excluir este utilizador pois ele possui registros vinculados (execuções, etc)."
             })

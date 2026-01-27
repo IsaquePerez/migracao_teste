@@ -80,7 +80,7 @@ export function ExecutionPlayer({
       <div className={styles.stepsContainer}>
         {passosOrdenados.map((passo, index) => {
           const status = passo.status || 'pendente';
-          const evidencias = passo.evidencias || []; 
+          const evidencias = passo.evidencias || [];
           const hasEvidences = Array.isArray(evidencias) && evidencias.length > 0;
           const isStepLocked = readOnly;
 
