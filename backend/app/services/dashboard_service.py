@@ -4,17 +4,20 @@ from app.repositories.dashboard_repository import DashboardRepository
 from app.models.testing import StatusExecucaoEnum, SeveridadeDefeitoEnum
 from app.schemas.dashboard import (
     DashboardResponse, DashboardKPI, DashboardCharts, ChartDataPoint,
-    RunnerDashboardResponse, RunnerKPI, RunnerRankingData, StatusDistributionData, TimelineItem, RunnerDashboardCharts
+    RunnerDashboardResponse, RunnerKPI, RunnerRankingData, 
+    StatusDistributionData, TimelineItem, RunnerDashboardCharts,
+    PerformanceResponse, TeamStats, TesterStats
 )
 
 class DashboardService:
-    # Cores (Ajustado para os termos do Banco: PT-BR snake_case)
     STATUS_COLORS = {
-        "pendente": "#94a3b8",      # Cinza
-        "em_progresso": "#3b82f6",  # Azul
-        "reteste": "#f59e0b",       # Laranja
-        "fechado": "#10b981",       # Verde (Sucesso)
-        "bloqueado": "#ef4444"      # Vermelho
+        "pendente": "#94a3b8",      
+        "em_progresso": "#3b82f6",  
+        "reteste": "#f59e0b",       
+        "fechado": "#10b981",       
+        "bloqueado": "#ef4444",     
+        "passou": "#10b981",
+        "falha": "#ef4444" 
     }
 
     SEVERITY_COLORS = {
@@ -33,7 +36,7 @@ class DashboardService:
         severity_data = await self.repo.get_defeitos_por_severidade(sistema_id)
         modules_data = await self.repo.get_modulos_com_mais_defeitos(limit=5, sistema_id=sistema_id)
 
-        # KPIs
+        # kpis
         kpis = DashboardKPI(
             total_projetos=kpis_data.get("total_projetos", 0),
             total_ciclos_ativos=kpis_data.get("total_ciclos_ativos", 0),
@@ -46,7 +49,7 @@ class DashboardService:
             total_aguardando_reteste=kpis_data.get("total_aguardando_reteste", 0)
         )
 
-        # Gráficos
+        # graficos
         charts = DashboardCharts(
             status_execucao=self._format_chart_data(exec_status_data, self.STATUS_COLORS),
             defeitos_por_severidade=self._format_chart_data(severity_data, self.SEVERITY_COLORS),
@@ -87,7 +90,7 @@ class DashboardService:
                 id=execution.id,
                 case_name=execution.caso_teste.nome if execution.caso_teste else "Caso Removido",
                 status=self._normalize_key(execution.status_geral),
-                assignee=execution.responsavel.nome if execution.responsavel else "Não atribuído",
+                assignee=execution.responsavel.nome if execution.responsavel else "Nao atribuido",
                 updated_at=execution.updated_at
             )
             for execution in raw_timeline
@@ -101,6 +104,82 @@ class DashboardService:
 
         return RunnerDashboardResponse(kpis=kpis, charts=charts)
 
+    
+    async def get_performance_analytics(self, user_id: Optional[int] = None) -> PerformanceResponse:
+        velocity_data = await self.repo.get_performance_velocity(user_id)
+        modules_data = await self.repo.get_top_offending_modules_perf(user_id)
+
+        team_stats = None
+        tester_stats = None
+        rigor_chart = []
+
+        if user_id:
+            # logica para visao individual
+            stats = await self.repo.get_user_stats_aggregates(user_id)
+            
+            total = stats["total_executions"]
+            blocked = stats["blocked_executions"]
+            
+            block_rate = 0.0
+            if total > 0:
+                block_rate = round((blocked / total) * 100, 1)
+
+            tester_stats = TesterStats(
+                bugs_reportados=stats["reported_bugs"],
+                total_execucoes=total,
+                taxa_bloqueio=block_rate
+            )
+
+            dist_data = await self.repo.get_status_distribution(user_id)
+            rigor_chart = self._format_chart_data(dist_data, self.STATUS_COLORS)
+
+        else:
+            stats = await self.repo.get_team_stats_aggregates()
+            
+            total_exec = stats["total_executions"]
+            passed = stats["passed_executions"]
+            defects = stats["total_defects"]
+
+            pass_rate = 0.0
+            defect_density = 0.0
+            
+            if total_exec > 0:
+                pass_rate = round((passed / total_exec) * 100, 1)
+                defect_density = round(defects / total_exec, 2)
+
+            team_stats = TeamStats(
+                taxa_aprovacao=pass_rate,
+                densidade_defeitos=defect_density
+            )
+
+            dist_data = await self.repo.get_status_distribution(None)
+            rigor_chart = self._format_chart_data(dist_data, self.STATUS_COLORS)
+
+        # CORREÇÃO AQUI: item já é um objeto date, removemos o .date
+        velocity_chart = [
+            ChartDataPoint(
+                label=item.strftime("%d/%m"), 
+                value=count,
+                color="#3b82f6"
+            ) for item, count in velocity_data
+        ]
+
+        top_modules = [
+            ChartDataPoint(
+                label=nome,
+                value=count,
+                color="#ef4444"
+            ) for nome, count in modules_data
+        ]
+
+        return PerformanceResponse(
+            stats_equipe=team_stats,
+            stats_testador=tester_stats,
+            grafico_velocidade=velocity_chart,
+            grafico_top_modulos=top_modules,
+            grafico_rigor=rigor_chart
+        )
+
     def _normalize_key(self, item: Any) -> str:
         if hasattr(item, 'value'): return str(item.value).lower()
         return str(item).lower()
@@ -109,10 +188,8 @@ class DashboardService:
         chart_list = []
         for item, count in data:
             key_normalized = self._normalize_key(item)
-            # Remove underline e capitaliza para exibição
             label = key_normalized.replace("_", " ").title()
             
-            # Tentar pegar cor pela chave normalizada
             color = color_map.get(key_normalized, "#cbd5e1")
             
             chart_list.append(ChartDataPoint(label=label, name=key_normalized, value=count, color=color))

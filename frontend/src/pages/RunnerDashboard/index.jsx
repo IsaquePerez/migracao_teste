@@ -1,218 +1,249 @@
 import { useState, useEffect } from 'react';
-import { useSnackbar } from '../../context/SnackbarContext';
 import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip, Legend, ResponsiveContainer, Cell,
-  PieChart, Pie 
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+  Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell 
 } from 'recharts';
+import { Users, User, ChevronDown, Activity, Bug, AlertTriangle, CheckCircle } from 'lucide-react';
 import { api } from '../../services/api';
-import './styles.css'; 
+import { useSnackbar } from '../../context/SnackbarContext';
+import './styles.css';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export function RunnerDashboard() {
-  // State definitions
-  const [data, setData] = useState(null);
-  const [runners, setRunners] = useState([]); 
-  const [selectedRunner, setSelectedRunner] = useState(""); 
   const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null); 
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  
   const { error } = useSnackbar();
 
-  // 1. Fetch runner list for the dropdown
+  // BUSCA USUARIOS
   useEffect(() => {
-    async function loadRunners() {
-      try {
-        const response = await api.get('/usuarios/');
-        setRunners(response); 
-      } catch (err) {
-        console.error("Error loading user list:", err);
-      }
-    }
-    loadRunners();
-  }, []);
+    api.get('/usuarios/')
+      .then(resp => setUsers(resp || []))
+      .catch(() => error("Erro ao carregar lista de usuários."));
+  }, [error]);
 
-  // 2. Fetch Dashboard data (reacts to filter change)
+  // BUSCA DADOS DE PERFORMANCE
   useEffect(() => {
-    async function loadDashboard() {
+    async function loadPerformance() {
       setLoading(true);
       try {
-        // Construct query params only if a runner is selected
-        const params = selectedRunner ? { runner_id: selectedRunner } : {};
-        const response = await api.get('/dashboard-runners/', { params });
+        const params = selectedUser ? { user_id: selectedUser.id } : {};
+        const response = await api.get('/dashboard-runners/performance', { params });
         setData(response);
       } catch (err) {
-        error("Erro ao carregar indicadores de performance.");
+        error("Erro ao carregar métricas de performance.");
         console.error(err);
       } finally {
         setLoading(false);
       }
     }
-    loadDashboard();
-  }, [selectedRunner, error]);
+    loadPerformance();
+  }, [selectedUser, error]);
 
-  if (loading && !data) return <div className="loading-container">A carregar métricas...</div>;
-  if (!data) return <div className="no-data">Sem dados para exibição.</div>;
-
-  // Helper functions for date formatting
-  const formatTime = (isoString) => {
-    if (!isoString) return "--:--";
-    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const handleUserSelect = (user) => {
+    setSelectedUser(user);
+    setIsDropdownOpen(false);
   };
 
-  const formatDate = (isoString) => {
-    if (!isoString) return "Sem atividade";
-    return new Date(isoString).toLocaleDateString();
-  };
+  if (loading && !data) return <div className="loading-container">Carregando performance...</div>;
+
+  const safeData = data || {};
+  const isTeamView = !selectedUser;
 
   return (
-    <main className="container dashboard-container">
+    <main className="container performance-container">
       
-      {/* Header with Filter Dropdown */}
-      <div className="header-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
-        <h2 className="section-title">Performance & Produtividade</h2>
-        
-        <select 
-            className="runner-select"
-            value={selectedRunner}
-            onChange={(e) => setSelectedRunner(e.target.value)}
-            style={{ 
-              padding: '10px 15px', 
-              borderRadius: '8px', 
-              border: '1px solid #cbd5e1',
-              fontSize: '0.95rem',
-              backgroundColor: 'white',
-              cursor: 'pointer',
-              minWidth: '250px'
-            }}
-        >
-            <option value="">Visão Geral da Equipe</option>
-            {runners.map(r => (
-                <option key={r.id} value={r.id}>{r.nome}</option>
-            ))}
-        </select>
-      </div>
+      {/* HEADER E DROPDOWN */}
+      <div className="performance-header">
+        <div>
+          <h2 className="section-title">
+            {isTeamView ? 'Performance da Equipe' : `Performance: ${selectedUser.nome}`}
+          </h2>
+          <p className="section-subtitle">
+            {isTeamView 
+              ? 'Análise de saúde do produto e ritmo do time' 
+              : 'Análise individual de entrega e qualidade'}
+          </p>
+        </div>
 
-      {/* KPIs Grid */}
-      <div className="kpi-grid">
-        <KpiCard 
-          value={data.kpis.total_execucoes_concluidas} 
-          label="Total Entregue" 
-          color="#3b82f6" 
-          gradient="linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)"
-        />
-        <KpiCard 
-          value={data.kpis.total_defeitos_reportados} 
-          label="Bugs Encontrados" 
-          color="#ef4444" 
-          gradient="linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)"
-        />
-        <KpiCard 
-          value={`${data.kpis.tempo_medio_execucao_minutos}m`} 
-          label="Tempo Médio" 
-          color="#10b981" 
-          gradient="linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)"
-        />
-        {/* Dynamic KPI: Shows 'Queue' for Team View OR 'Last Seen' for Individual View */}
-        <KpiCard 
-          value={selectedRunner ? formatTime(data.kpis.ultima_atividade) : data.kpis.testes_em_fila} 
-          label={selectedRunner ? "Última Atividade" : "Testes em Fila"} 
-          sublabel={selectedRunner ? formatDate(data.kpis.ultima_atividade) : null}
-          color="#f59e0b" 
-          gradient="linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)"
-        />
-      </div>
+        <div className="user-dropdown-wrapper">
+          <button 
+            className="dropdown-trigger-btn"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          >
+            <div className="dropdown-trigger-content">
+                {isTeamView ? <Users size={18} /> : <User size={18} />}
+                <span>{isTeamView ? 'Visão Geral (Equipe)' : selectedUser.nome}</span>
+            </div>
+            <ChevronDown size={16} />
+          </button>
 
-      {/* Charts Section */}
-      <div className="charts-grid" style={{ display: 'grid', gridTemplateColumns: selectedRunner ? '1fr 1fr' : '1fr', gap: '25px' }}>
-        
-        {/* Main Chart Card */}
-        <div className="chart-card">
-          <h3 className="chart-title">
-            {selectedRunner ? "Distribuição de Resultados (Qualidade)" : "Ranking de Produtividade"}
-          </h3>
-          <ResponsiveContainer width="100%" height={350}>
-            {selectedRunner ? (
-              // Individual View: Pie Chart (Quality)
-              <PieChart>
-                <Pie 
-                    data={data.charts.status_distribuicao} 
-                    dataKey="value" 
-                    nameKey="name" 
-                    cx="50%" cy="50%" 
-                    outerRadius={100} 
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+          {isDropdownOpen && (
+            <div className="dropdown-menu-list">
+              <div 
+                className={`dropdown-item ${isTeamView ? 'active' : ''}`}
+                onClick={() => handleUserSelect(null)}
+              >
+                <Users size={16} />
+                <span>Visão da Equipe</span>
+              </div>
+              <div className="dropdown-divider"></div>
+              {users.map(u => (
+                <div 
+                  key={u.id} 
+                  className={`dropdown-item ${selectedUser?.id === u.id ? 'active' : ''}`}
+                  onClick={() => handleUserSelect(u)}
                 >
-                    {data.charts.status_distribuicao.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            ) : (
-              // Team View: Bar Chart (Ranking)
-              <BarChart data={data.charts.ranking_produtividade} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="label" />
-                <YAxis allowDecimals={false} />
-                <Tooltip cursor={{ fill: 'rgba(0,0,0,0.05)' }} />
-                <Bar dataKey="value" name="Testes Finalizados" radius={[4, 4, 0, 0]} barSize={60}>
-                  {data.charts.ranking_produtividade.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color || '#3b82f6'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            )}
+                  <User size={16} />
+                  <span>{u.nome}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* GRID DE KPIS */}
+      <div className="kpi-grid">
+        {isTeamView ? (
+          <>
+            <KPICard 
+              label="Taxa de Aprovação" 
+              value={`${safeData.stats_equipe?.taxa_aprovacao || 0}%`}
+              icon={<CheckCircle size={24} color="#10b981" />}
+              desc="Testes com sucesso vs falhas"
+              color="#10b981"
+            />
+            <KPICard 
+              label="Densidade de Defeitos" 
+              value={safeData.stats_equipe?.densidade_defeitos || 0}
+              icon={<Bug size={24} color="#ef4444" />}
+              desc="Bugs encontrados por execução"
+              color="#ef4444"
+            />
+            <KPICard 
+              label="Execuções Totais" 
+              value={safeData.stats_equipe?.total_executions || 0} 
+              icon={<Activity size={24} color="#3b82f6" />} 
+              desc="Volume total no período"
+              color="#3b82f6"
+            />
+            <KPICard 
+              label="Bugs Totais" 
+              value={safeData.stats_equipe?.total_defects || 0} 
+              icon={<AlertTriangle size={24} color="#f59e0b" />} 
+              desc="Total de defeitos reportados"
+              color="#f59e0b"
+            />
+          </>
+        ) : (
+          <>
+            <KPICard 
+              label="Caçador de Bugs" 
+              value={safeData.stats_testador?.bugs_reportados || 0}
+              icon={<Bug size={24} color="#ef4444" />}
+              desc="Defeitos únicos reportados"
+              color="#ef4444"
+            />
+            <KPICard 
+              label="Produtividade" 
+              value={safeData.stats_testador?.total_execucoes || 0}
+              icon={<Activity size={24} color="#3b82f6" />}
+              desc="Casos de teste executados"
+              color="#3b82f6"
+            />
+            <KPICard 
+              label="Taxa de Bloqueio" 
+              value={`${safeData.stats_testador?.taxa_bloqueio || 0}%`}
+              icon={<AlertTriangle size={24} color="#f59e0b" />}
+              desc="% de testes impedidos"
+              color="#f59e0b"
+            />
+            <KPICard 
+              label="Rigor (Aprovações)" 
+              value={`${(100 - (safeData.stats_testador?.taxa_bloqueio || 0)).toFixed(1)}%`}
+              icon={<CheckCircle size={24} color="#10b981" />}
+              desc="Estimativa de fluxo limpo"
+              color="#10b981"
+            />
+          </>
+        )}
+      </div>
+
+      {/* GRAFICOS */}
+      <div className="charts-grid">
+        
+        {/* VELOCIDADE */}
+        <div className="chart-card">
+          <h3 className="chart-title">{isTeamView ? 'Velocidade da Equipe (30 dias)' : 'Ritmo de Trabalho Individual'}</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={safeData.grafico_velocidade || []} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="label" tick={{fontSize: 12}} />
+              <YAxis tick={{fontSize: 12}} />
+              <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+              <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+            </LineChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Timeline Card (Only visible when a specific runner is selected) */}
-        {selectedRunner && (
-          <div className="chart-card">
-            <h3 className="chart-title">Histórico Recente</h3>
-            <div className="timeline-container" style={{ maxHeight: '350px', overflowY: 'auto', paddingRight: '5px' }}>
-                {data.charts.timeline.length === 0 ? (
-                    <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>Nenhuma atividade registada recentemente.</p>
-                ) : (
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                        {data.charts.timeline.map(item => (
-                            <li key={item.id} style={{ 
-                                marginBottom: '15px', 
-                                paddingLeft: '15px', 
-                                borderLeft: `3px solid ${item.status === 'passou' ? '#10b981' : item.status === 'falhou' ? '#ef4444' : '#cbd5e1'}` 
-                            }}>
-                                <div style={{ fontWeight: '600', color: '#334155' }}>{item.case_name}</div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-                                    <span style={{ 
-                                        fontSize: '0.75rem', 
-                                        textTransform: 'uppercase', 
-                                        fontWeight: 'bold',
-                                        color: item.status === 'passou' ? '#10b981' : item.status === 'falhou' ? '#ef4444' : '#64748b'
-                                    }}>
-                                        {item.status}
-                                    </span>
-                                    <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-                                        {new Date(item.updated_at).toLocaleString()}
-                                    </span>
-                                </div>
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </div>
-          </div>
-        )}
+        {/* STATUS E RIGOR */}
+        <div className="chart-card">
+          <h3 className="chart-title">{isTeamView ? 'Status Global' : 'Perfil de Rigor'}</h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={safeData.grafico_rigor || []}
+                cx="50%" cy="50%"
+                innerRadius={60} outerRadius={80}
+                paddingAngle={5}
+                dataKey="value"
+              >
+                {(safeData.grafico_rigor || []).map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend verticalAlign="bottom" height={36}/>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
       </div>
+
+      {/* TOP OFENSORES */}
+      <div className="chart-card full-width">
+        <h3 className="chart-title">Módulos Mais Críticos (Top Ofensores)</h3>
+        <ResponsiveContainer width="100%" height={250}>
+            <BarChart layout="vertical" data={safeData.grafico_top_modulos || []} margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+              <XAxis type="number" />
+              <YAxis dataKey="label" type="category" width={150} tick={{fontSize: 12}} />
+              <Tooltip cursor={{fill: 'transparent'}} />
+              <Bar dataKey="value" fill="#ef4444" radius={[0, 4, 4, 0]} barSize={25} />
+            </BarChart>
+        </ResponsiveContainer>
+      </div>
+
     </main>
   );
 }
 
-// Simple Card Component
-function KpiCard({ value, label, sublabel, color, gradient }) {
+function KPICard({ label, value, icon, desc, color }) {
   return (
-    <div className="kpi-card" style={{ borderLeft: `6px solid ${color}`, background: gradient || '#ffffff' }}>
-      <div className="kpi-content">
+    <div className="kpi-card" style={{ borderLeft: `5px solid ${color}` }}>
+      <div className="kpi-header">
+        <div className="kpi-icon-box" style={{ background: `${color}15` }}>
+            {icon}
+        </div>
         <h3 className="kpi-value">{value}</h3>
+      </div>
+      <div>
         <span className="kpi-label">{label}</span>
-        {sublabel && <span style={{ display: 'block', fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>{sublabel}</span>}
+        <span className="kpi-desc">{desc}</span>
       </div>
     </div>
   );
