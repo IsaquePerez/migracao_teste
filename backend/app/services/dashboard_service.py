@@ -17,7 +17,7 @@ class DashboardService:
         "fechado": "#10b981",       
         "bloqueado": "#ef4444",     
         "passou": "#10b981",
-        "falha": "#ef4444"  # CORRIGIDO: de "falhou" para "falha" para bater com o Enum
+        "falha": "#ef4444" 
     }
 
     SEVERITY_COLORS = {
